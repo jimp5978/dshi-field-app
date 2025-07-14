@@ -9,13 +9,8 @@ import sys
 import traceback
 
 # 데이터베이스 연결 설정
-DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'field_app_user',
-    'password': 'dshi2025#',
-    'database': 'field_app_db',
-    'charset': 'utf8mb4'
-}
+from config_env import get_db_config
+DB_CONFIG = get_db_config()
 
 def get_db_connection():
     """MySQL 데이터베이스 연결"""

@@ -15,13 +15,9 @@ CORS(app)
 app.config['SECRET_KEY'] = 'dshi-field-pad-secret-key-2025'
 
 # MySQL 연결 설정
-DB_CONFIG = {
-    'host': 'localhost',
-    'database': 'field_app_db',
-    'user': 'field_app_user',
-    'password': 'dshi2025#',
-    'charset': 'utf8mb4'
-}
+from config_env import get_db_config, get_server_config
+DB_CONFIG = get_db_config()
+SERVER_CONFIG = get_server_config()
 
 def get_db_connection():
     """데이터베이스 연결 함수"""
@@ -251,5 +247,5 @@ def health_check():
 
 if __name__ == '__main__':
     print("DSHI Field Pad Server starting...")
-    print("Server URL: http://localhost:5001")
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    print(f"Server URL: http://{SERVER_CONFIG['host']}:{SERVER_CONFIG['port']}")
+    app.run(**SERVER_CONFIG)
