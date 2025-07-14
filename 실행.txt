@@ -1,0 +1,10 @@
+
+
+cd 'E:\DSHI RPA\APP\'
+
+.\backup_deleted\venv\Scripts\activate
+
+python flask_server.py
+
+
+cd dshi_field_app

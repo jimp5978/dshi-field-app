@@ -1,0 +1,450 @@
+<html lang="ko"><head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.13/html-to-image.min.js" integrity="sha512-iZ2ORl595Wx6miw+GuadDet4WQbdSWS3JLMoNfY8cRGoEFy6oT3G9IbcrBeL6AfkgpA51ETt/faX6yLV+/gFJg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+      (function() {
+        const originalConsole = window.console;
+        window.console = {
+          log: (...args) => {
+            originalConsole.log(...args);
+            window.parent.postMessage({ type: 'console', message: args.join(' ') }, '*');
+          },
+          error: (...args) => {
+            originalConsole.error(...args);
+            window.parent.postMessage({ type: 'console', message: 'Error: ' + args.join(' ') }, '*');
+          },
+          warn: (...args) => {
+            originalConsole.warn(...args);
+            window.parent.postMessage({ type: 'console', message: 'Warning: ' + args.join(' ') }, '*');
+          }
+        };
+
+        let requestId = 0;
+        let callbacksMap = new Map();
+        window.claude = {
+          complete: (prompt) => {
+            return new Promise((resolve, reject) => {
+              const id = requestId++;
+              callbacksMap.set(id, { resolve, reject });
+              window.parent.postMessage({ type: 'claudeComplete', id, prompt }, '*');
+            });
+          }
+        };
+
+        // Override global fetch
+        window.fetch = (url, init = {}) => {
+          return new Promise((resolve, reject) => {
+            const id = requestId++;
+            callbacksMap.set(id, { resolve, reject });
+            window.parent.postMessage({
+              type: 'proxyFetch',
+              id,
+              url,
+              init,
+            }, '*');
+          });
+        };
+
+        window.addEventListener('message', async (event) => {
+          if (event.data.type === 'takeScreenshot') {
+            const rootElement = document.getElementById('artifacts-component-root-html');
+            if (!rootElement) {
+              window.parent.postMessage({
+                type: 'screenshotError',
+                error: new Error('Root element not found'),
+              }, '*');
+            }
+            const screenshot = await htmlToImage.toPng(rootElement, {
+              imagePlaceholder:
+                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAA1JREFUGFdjePDgwX8ACOQDoNsk0PMAAAAASUVORK5CYII=",
+            });
+            window.parent.postMessage({
+              type: 'screenshotData',
+              data: screenshot,
+            }, '*');
+          } else if (event.data.type === 'claudeComplete') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.completion);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'proxyFetchResponse') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(new Response(event.data.body, {
+                status: event.data.status,
+                statusText: event.data.statusText,
+                headers: event.data.headers
+              }));
+            }
+            callbacksMap.delete(event.data.id);
+          }
+        });
+
+        window.addEventListener('click', (event) => {
+          const isEl = event.target instanceof HTMLElement;
+          if (!isEl) return;
+    
+          // find ancestor links
+          const linkEl = event.target.closest("a");
+          if (!linkEl || !linkEl.href) return;
+    
+          event.preventDefault();
+          event.stopImmediatePropagation();
+    
+          let linkUrl;
+          try {
+            linkUrl = new URL(linkEl.href);
+          } catch (error) {
+            return;
+          }
+    
+          if (linkUrl.hostname === window.location.hostname) return;
+    
+          window.parent.postMessage({
+            type: 'openExternal',
+            href: linkEl.href,
+          }, '*');
+      });
+
+        const originalOpen = window.open;
+        window.open = function (url) {
+          window.parent.postMessage({
+            type: "openExternal",
+            href: url,
+          }, "*");
+        };
+
+        window.addEventListener('error', (event) => {
+          window.parent.postMessage({ type: 'console', message: 'Uncaught Error: ' + event.message }, '*');
+        });
+      })();
+    </script>
+  
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSHI Field Pad App 프로젝트 현황 보고서</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #2196F3;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #1976D2;
+            margin: 0;
+            font-size: 28px;
+        }
+        .header .subtitle {
+            color: #666;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section h2 {
+            color: #1976D2;
+            border-left: 4px solid #2196F3;
+            padding-left: 15px;
+            margin-bottom: 15px;
+        }
+        .section h3 {
+            color: #333;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        .status-complete {
+            background: #e8f5e8;
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .status-pending {
+            background: #fff3e0;
+            border-left: 4px solid #FF9800;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .workflow {
+            background: #f0f7ff;
+            border: 1px solid #2196F3;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        .workflow-step {
+            display: inline-block;
+            background: #2196F3;
+            color: white;
+            padding: 8px 15px;
+            margin: 5px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .tech-item {
+            background: #e3f2fd;
+            color: #1565C0;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            background: white;
+            border: 1px solid #ddd;
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        .priority {
+            background: #ffebee;
+            border: 1px solid #f44336;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .priority h4 {
+            color: #c62828;
+            margin-top: 0;
+        }
+        .api-endpoint {
+            background: #f5f5f5;
+            border-left: 3px solid #607D8B;
+            padding: 10px;
+            margin: 5px 0;
+            font-family: monospace;
+        }
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 10px rgba(33, 150, 243, 0.3);
+        }
+        @media print {
+            body { background: white; }
+            .container { box-shadow: none; }
+            .print-button { display: none; }
+        }
+    </style>
+</head>
+<body id="artifacts-component-root-html">
+    <div style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+        <button class="print-button" onclick="window.print()" style="margin-bottom: 10px; display: block; width: 120px;">🖨️ PDF 저장</button>
+        <button class="print-button" onclick="copyToClipboard()" style="background: #4CAF50; width: 120px; margin-bottom: 10px;">📋 HTML 복사</button>
+        <div style="font-size: 12px; color: #666; text-align: center; max-width: 120px;">
+            Ctrl+P → PDF로 저장 선택
+        </div>
+    </div>
+    
+    <script>
+        function copyToClipboard() {
+            const htmlContent = document.documentElement.outerHTML;
+            navigator.clipboard.writeText(htmlContent).then(function() {
+                alert('HTML 코드가 클립보드에 복사되었습니다!\n\n메모장에 붙여넣기(Ctrl+V) 후\n"DSHI_프로젝트_현황보고서.html"로 저장하세요.');
+            }).catch(function(err) {
+                console.error('복사 실패: ', err);
+                // 대안 방법
+                const textArea = document.createElement('textarea');
+                textArea.value = htmlContent;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('HTML 코드가 복사되었습니다!\n\n메모장에 붙여넣기(Ctrl+V) 후\n"DSHI_프로젝트_현황보고서.html"로 저장하세요.');
+            });
+        }
+    </script>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🏭 DSHI Field Pad App</h1>
+            <div class="subtitle">프로젝트 현황 보고서 • 2025년 7월 8일</div>
+        </div>
+
+        <div class="section">
+            <h2>📋 프로젝트 개요</h2>
+            <p><strong>목적:</strong> 현장 작업자를 위한 모바일 ASSEMBLY 관리 시스템</p>
+            <p><strong>개발 기간:</strong> 3년 전부터 VS Code 활용하여 업무 자동화 진행</p>
+            <p><strong>현재 진행률:</strong> 핵심 기능 완료, 추가 기능 설계 완료</p>
+            
+            <div class="tech-stack">
+                <div class="tech-item">📱 Flutter (Frontend)</div>
+                <div class="tech-item">🐍 Flask (Backend)</div>
+                <div class="tech-item">🗄️ MySQL (Database)</div>
+                <div class="tech-item">🔧 VS Code (IDE)</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>✅ 완료된 기능</h2>
+            
+            <div class="status-complete">
+                <h3>1. 핵심 앱 구조</h3>
+                <ul class="feature-list">
+                    <li>📂 위치: E:/DSHI_RPA/APP/field_pad_app/lib/main.dart</li>
+                    <li>✅ 구문 오류 수정 완료</li>
+                    <li>🚀 정상 작동 확인</li>
+                </ul>
+            </div>
+
+            <div class="status-complete">
+                <h3>2. 백엔드 API 서버</h3>
+                <div class="api-endpoint">📂 E:/DSHI_RPA/APP/app.py</div>
+                <div class="api-endpoint">🔗 /api/search_assembly - ASSEMBLY 검색 및 공정 상태 조회</div>
+                <div class="api-endpoint">🔗 /api/update_process - 단일 ASSEMBLY 공정 업데이트</div>
+                <div class="api-endpoint">🔗 /api/batch_update_process - 여러 ASSEMBLY 배치 업데이트</div>
+            </div>
+
+            <div class="status-complete">
+                <h3>3. 사용자 워크플로우</h3>
+                <div class="workflow">
+                    <div class="workflow-step">1. 앱 실행</div>
+                    <div class="workflow-step">2. 숫자 입력</div>
+                    <div class="workflow-step">3. 검색 실행</div>
+                    <div class="workflow-step">4. 결과 선택</div>
+                    <div class="workflow-step">5. 리스트업</div>
+                    <div class="workflow-step">6. 배치 처리</div>
+                </div>
+            </div>
+
+            <div class="status-complete">
+                <h3>4. 공정 순서 관리</h3>
+                <div class="workflow">
+                    <div class="workflow-step">Fit-up</div>
+                    <div class="workflow-step">→ NDE</div>
+                    <div class="workflow-step">→ VIDI</div>
+                    <div class="workflow-step">→ GALV</div>
+                    <div class="workflow-step">→ SHOT</div>
+                    <div class="workflow-step">→ PAINT</div>
+                    <div class="workflow-step">→ PACKING</div>
+                </div>
+                <ul>
+                    <li>이전 공정 완료 검증</li>
+                    <li>중복 완료 방지</li>
+                    <li>배치 처리로 여러 ASSEMBLY 동시 업데이트</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🚧 설계 완료 (구현 대기)</h2>
+            
+            <div class="status-pending">
+                <h3>1. PDF 도면 보기 기능</h3>
+                <ul>
+                    <li>📁 로컬 저장소: /DSHI_FieldPad/PDFs/</li>
+                    <li>🔌 포트를 통한 PDF 배포 방식</li>
+                    <li>📋 DWG 아이콘 클릭 → 즉시 PDF 열기</li>
+                    <li>📦 flutter_pdfview 패키지 사용 예정</li>
+                </ul>
+            </div>
+
+            <div class="status-pending">
+                <h3>2. 관리자별 권한 시스템</h3>
+                <ul>
+                    <li>👷 DSHI 직원: 공정 진행/취소, 이전 단계 롤백</li>
+                    <li>👤 외부 관리자: 검사신청만 가능</li>
+                    <li>🔐 사용자 인증 시스템</li>
+                    <li>🎛️ 권한별 UI 동적 변경</li>
+                </ul>
+            </div>
+
+            <div class="status-pending">
+                <h3>3. 공정 롤백 시스템</h3>
+                <ul>
+                    <li>⏮️ 완료된 공정을 이전 단계로 되돌리기</li>
+                    <li>🗑️ 공정 취소시 해당 날짜 데이터 삭제</li>
+                    <li>📝 취소 이력 로그 기록</li>
+                </ul>
+            </div>
+
+            <div class="status-pending">
+                <h3>4. 검사신청 시스템</h3>
+                <ul>
+                    <li>📧 외부 관리자가 List에서 검사신청</li>
+                    <li>💾 SQL DB에 검사요청 저장</li>
+                    <li>👀 DSHI 직원이 DB에서 확인</li>
+                    <li>⏳ 스키마 설계 대기 중</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>💪 현재 앱의 강점</h2>
+            <ul class="feature-list">
+                <li><strong>즉시 사용 가능:</strong> 현재 상태로도 현장에서 활용 가능</li>
+                <li><strong>배치 처리:</strong> 여러 ASSEMBLY 동시 공정 업데이트</li>
+                <li><strong>스마트 선택:</strong> 동일 공정 단계 자동 선택으로 실수 방지</li>
+                <li><strong>실시간 검증:</strong> 공정 순서 및 중복 완료 방지</li>
+                <li><strong>안정성:</strong> 네트워크 오류, DB 오류 등 포괄적 에러 처리</li>
+                <li><strong>직관적 UX:</strong> 현장 작업자를 위한 큰 버튼, 명확한 피드백</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🎯 다음 단계 우선순위</h2>
+            <div class="priority">
+                <h4>구현 순서</h4>
+                <ol>
+                    <li><strong>권한 시스템 구현</strong> - 사용자별 기능 차별화</li>
+                    <li><strong>공정 롤백 기능</strong> - DSHI 직원용 취소 기능</li>
+                    <li><strong>검사신청 시스템</strong> - 외부 관리자용 + DB 스키마</li>
+                    <li><strong>PDF 도면 기능</strong> - 도면 확인 기능</li>
+                    <li><strong>최종 테스트 및 배포</strong></li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📊 프로젝트 현황 요약</h2>
+            <div style="background: #e8f5e8; padding: 20px; border-radius: 10px; border: 1px solid #4CAF50;">
+                <h3 style="color: #2E7D32; margin-top: 0;">✅ 현재 상태</h3>
+                <p><strong>핵심 기능이 완전히 작동하는 상태</strong>이며, 추가 기능들은 설계가 완료되어 순차적으로 구현만 하면 되는 상황입니다.</p>
+                <p>현장에서 <strong>즉시 사용 가능한 수준</strong>의 완성도를 보여주고 있습니다.</p>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666;">
+            <p>DSHI Field Pad App • 개발자: DSHI • 생성일: 2025년 7월 8일</p>
+        </div>
+    </div>
+
+</body></html>
