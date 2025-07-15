@@ -334,17 +334,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '테스트 계정 (아이디/비밀번호 동일):',
+                        '사용자 계정:',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.blue,
                         ),
                       ),
                       SizedBox(height: 8),
-                      Text('a / a (Admin)'),
-                      Text('l1 / l1 (Level 1 - 외부업체)'),
-                      Text('l3 / l3 (Level 3 - DSHI 현장직원)'),
-                      Text('l5 / l5 (Level 5 - DSHI 시스템관리자)'),
+                      Text('a / a (Admin - Level 5)'),
+                      Text('seojin / 1234 (Level 1 - 외부업체)'),
+                      Text('sookang / 1234 (Level 1 - 외부업체)'),
+                      Text('gyeongin / 1234 (Level 1 - 외부업체)'),
+                      Text('dshi_hy / 1234 (Level 3 - DSHI 현장직원)'),
                     ],
                   ),
                 ),

@@ -194,6 +194,13 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
         _savedList.add(_searchResults[index]);
       }
       
+      // LIST 내에서 ASSEMBLY NO 기준으로 중복 제거 (나중에 추가된 것을 유지)
+      Map<String, AssemblyItem> uniqueItems = {};
+      for (AssemblyItem item in _savedList) {
+        uniqueItems[item.assemblyNo] = item; // 같은 키면 덮어씀 (나중 것이 유지됨)
+      }
+      _savedList = uniqueItems.values.toList();
+      
       // 선택된 항목들을 검색 결과에서 제거 (역순으로 제거)
       for (int index in _selectedItems.toList()..sort((a, b) => b.compareTo(a))) {
         _searchResults.removeAt(index);
@@ -207,6 +214,7 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
         SnackBar(
           content: Text('${selectedAssemblies.length}개 항목이 리스트에 저장되었습니다'),
           duration: const Duration(seconds: 2),
+          backgroundColor: Colors.green,
         ),
       );
     }
@@ -808,26 +816,44 @@ class _SavedListScreenState extends State<SavedListScreen> {
         final data = json.decode(response.body);
         
         if (data['success'] == true) {
-          // 검사 신청 성공 - LIST에서 제거
-          setState(() {
-            for (AssemblyItem item in items) {
-              _savedList.remove(item);
-            }
-            _selectedItems.clear();
-            _selectAll = false;
-          });
+          // 성공한 항목들만 LIST에서 제거
+          int insertedCount = data['inserted_count'] ?? 0;
+          List<dynamic> duplicateItems = data['duplicate_items'] ?? [];
           
-          widget.onListUpdated(_savedList);
+          if (insertedCount > 0) {
+            // 성공한 항목들을 LIST에서 제거 (전체가 아닌 성공한 개수만큼)
+            setState(() {
+              // 간단하게 성공한 만큼 앞에서부터 제거 (실제로는 더 정교한 로직 필요)
+              for (int i = 0; i < insertedCount && items.isNotEmpty; i++) {
+                _savedList.remove(items[i]);
+              }
+              _selectedItems.clear();
+              _selectAll = false;
+            });
+            widget.onListUpdated(_savedList);
+          }
           
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(data['message'] ?? '검사신청이 완료되었습니다'),
-              duration: const Duration(seconds: 3),
-              backgroundColor: Colors.green,
-            ),
-          );
+          // 중복 항목이 있으면 상세 팝업 표시
+          if (duplicateItems.isNotEmpty) {
+            _showDuplicateDialog(data['message'], duplicateItems);
+          } else {
+            // 모두 성공 시 간단한 메시지
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(data['message'] ?? '검사신청이 완료되었습니다'),
+                duration: const Duration(seconds: 3),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
         } else {
-          _showMessage(data['message'] ?? '검사신청 실패');
+          // 모두 실패 (모든 항목이 중복인 경우)
+          List<dynamic> duplicateItems = data['duplicate_items'] ?? [];
+          if (duplicateItems.isNotEmpty) {
+            _showDuplicateDialog(data['message'], duplicateItems);
+          } else {
+            _showMessage(data['message'] ?? '검사신청 실패');
+          }
         }
       } else {
         _showMessage('서버 오류: ${response.statusCode}');
@@ -844,6 +870,55 @@ class _SavedListScreenState extends State<SavedListScreen> {
         content: Text(message),
         duration: const Duration(seconds: 2),
       ),
+    );
+  }
+  
+  // 중복 항목 상세 팝업
+  void _showDuplicateDialog(String message, List<dynamic> duplicateItems) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('검사신청 결과'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                message,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              if (duplicateItems.isNotEmpty) ...[
+                const Text(
+                  '이미 신청된 항목:',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                ...duplicateItems.map((item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    '• ${item['assembly_code']} (${item['existing_requester']} - ${item['existing_date']})',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                )).toList(),
+              ],
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('확인'),
+            ),
+          ],
+        );
+      },
     );
   }
   
@@ -1027,6 +1102,14 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
   DateTime _selectedDate = DateTime.now();
   List<InspectionRequest> _inspectionRequests = [];
   bool _isLoading = false;
+  Set<int> _selectedItems = <int>{}; // 선택된 항목 인덱스
+  bool _selectAll = false; // 전체 선택 상태
+  
+  // Level 3+ 전용 필터링 변수
+  List<String> _availableRequesters = [];
+  String? _selectedRequester;
+  List<String> _availableProcessTypes = ['NDE', 'VIDI', 'GALV', 'SHOT', 'PAINT', 'PACKING'];
+  String? _selectedProcessType;
   
   // 서버 URL
   static const String _serverUrl = 'http://192.168.0.5:5001';
@@ -1034,7 +1117,40 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
   @override
   void initState() {
     super.initState();
+    // Level 3+ 사용자인 경우 신청자 목록 로드
+    if (widget.userInfo['permission_level'] >= 3) {
+      _loadAvailableRequesters();
+    }
     _loadInspectionRequests();
+  }
+
+  // 신청자 목록 로드 (Level 3+ 전용)
+  Future<void> _loadAvailableRequesters() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('auth_token');
+      
+      if (token == null) return;
+
+      final url = Uri.parse('$_serverUrl/api/inspection-requests/requesters');
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          setState(() {
+            _availableRequesters = List<String>.from(data['requesters']);
+          });
+        }
+      }
+    } catch (e) {
+      print('신청자 목록 로딩 오류: $e');
+    }
   }
 
   // 검사신청 목록 로드 (실제 API 호출)
@@ -1053,9 +1169,21 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
         return;
       }
 
-      // API 호출 (날짜별 필터링)
+      // API 호출 (날짜별 + 신청자 필터링)
       final String dateParam = _formatDate(_selectedDate);
-      final url = Uri.parse('$_serverUrl/api/inspection-requests?date=$dateParam');
+      String urlString = '$_serverUrl/api/inspection-requests?date=$dateParam';
+      
+      // Level 3+ 사용자이고 필터가 선택된 경우 추가
+      if (widget.userInfo['permission_level'] >= 3) {
+        if (_selectedRequester != null) {
+          urlString += '&requester=${Uri.encodeComponent(_selectedRequester!)}';
+        }
+        if (_selectedProcessType != null) {
+          urlString += '&process_type=${Uri.encodeComponent(_selectedProcessType!)}';
+        }
+      }
+      
+      final url = Uri.parse(urlString);
       
       final response = await http.get(
         url,
@@ -1069,7 +1197,10 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
         
         if (data['success'] == true) {
           setState(() {
-            _inspectionRequests = (data['requests'] as List).map((requestData) {
+            // 취소된 항목 제외하고 목록 생성
+            _inspectionRequests = (data['requests'] as List)
+                .where((requestData) => requestData['status'] != '취소됨')
+                .map((requestData) {
               // 날짜 파싱 개선 (다양한 형식 지원)
               DateTime requestDate;
               try {
@@ -1086,14 +1217,58 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
                 requestDate = DateTime.now();
               }
               
+              // 승인일/확정일 파싱
+              DateTime? approvedDate;
+              DateTime? confirmedDate;
+              
+              if (requestData['approved_date'] != null) {
+                try {
+                  String approvedDateStr = requestData['approved_date'];
+                  // GMT 형식 또는 일반 형식 처리
+                  if (approvedDateStr.contains('GMT')) {
+                    approvedDate = DateTime.parse(approvedDateStr);
+                  } else {
+                    approvedDate = DateTime.parse(approvedDateStr);
+                  }
+                } catch (e) {
+                  print('승인일 파싱 오류: ${requestData['approved_date']} - $e');
+                  // 파싱 실패 시 null 유지
+                  approvedDate = null;
+                }
+              }
+              
+              if (requestData['confirmed_date'] != null) {
+                try {
+                  String confirmedDateStr = requestData['confirmed_date'];
+                  // GMT 형식 또는 일반 형식 처리
+                  if (confirmedDateStr.contains('GMT')) {
+                    confirmedDate = DateTime.parse(confirmedDateStr);
+                  } else {
+                    confirmedDate = DateTime.parse(confirmedDateStr);
+                  }
+                } catch (e) {
+                  print('확정일 파싱 오류: ${requestData['confirmed_date']} - $e');
+                  // 파싱 실패 시 null 유지
+                  confirmedDate = null;
+                }
+              }
+              
               return InspectionRequest(
+                id: requestData['id'],
                 assemblyNo: requestData['assembly_code'],
                 requestDate: requestDate,
                 inspectionType: requestData['inspection_type'],
                 requestedBy: requestData['requested_by_name'],
-                status: '대기중', // 기본 상태
+                status: requestData['status'] ?? '대기중',
+                approvedBy: requestData['approved_by_name'],
+                approvedDate: approvedDate,
+                confirmedDate: confirmedDate,
               );
             }).toList();
+            
+            // 전체 선택 상태 초기화
+            _selectedItems.clear();
+            _selectAll = false;
           });
         } else {
           _showMessage(data['message'] ?? '데이터 로딩 실패');
@@ -1134,9 +1309,490 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
     );
   }
 
+  // 전체 선택/해제 토글
+  void _toggleSelectAll() {
+    setState(() {
+      if (_selectAll) {
+        // 전체 해제
+        _selectedItems.clear();
+        _selectAll = false;
+      } else {
+        // 전체 선택
+        _selectedItems.clear();
+        for (int i = 0; i < _inspectionRequests.length; i++) {
+          _selectedItems.add(i);
+        }
+        _selectAll = true;
+      }
+    });
+  }
+
   // 날짜 포맷팅
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+  
+  // 상태별 색상과 아이콘 반환
+  Map<String, dynamic> _getStatusStyle(String status) {
+    switch (status) {
+      case '대기중':
+        return {
+          'color': Colors.orange,
+          'icon': Icons.schedule,
+          'emoji': '🟡'
+        };
+      case '승인됨':
+        return {
+          'color': Colors.green,
+          'icon': Icons.check_circle,
+          'emoji': '🟢'
+        };
+      case '확정됨':
+        return {
+          'color': Colors.blue,
+          'icon': Icons.verified,
+          'emoji': '🔵'
+        };
+      case '취소됨':
+        return {
+          'color': Colors.red,
+          'icon': Icons.cancel,
+          'emoji': '❌'
+        };
+      default:
+        return {
+          'color': Colors.grey,
+          'icon': Icons.help,
+          'emoji': '❓'
+        };
+    }
+  }
+  
+  // 선택된 항목들 취소 (Level별 권한 적용)
+  Future<void> _cancelSelectedRequests() async {
+    if (_selectedItems.isEmpty) {
+      _showMessage('취소할 항목을 선택해주세요');
+      return;
+    }
+    
+    final userLevel = widget.userInfo['permission_level'];
+    
+    // 선택된 항목들이 취소 가능한지 확인
+    List<InspectionRequest> selectedRequests = [];
+    List<String> invalidItems = [];
+    
+    for (int index in _selectedItems) {
+      final request = _inspectionRequests[index];
+      
+      if (userLevel == 1) {
+        // Level 1: 대기중 상태만 취소 가능
+        if (request.status == '대기중') {
+          selectedRequests.add(request);
+        } else {
+          invalidItems.add('${request.assemblyNo} (${request.status})');
+        }
+      } else {
+        // Level 3+: 모든 상태 취소 가능
+        selectedRequests.add(request);
+      }
+    }
+    
+    if (invalidItems.isNotEmpty) {
+      _showMessage('대기중 상태만 취소 가능합니다: ${invalidItems.join(', ')}');
+      return;
+    }
+    
+    // 확인 팝업
+    bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('검사신청 취소'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('선택한 ${selectedRequests.length}개 항목을 취소하시겠습니까?'),
+              const SizedBox(height: 16),
+              ...selectedRequests.map((r) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text('• ${r.assemblyNo} (${r.inspectionType}) - ${r.status}'),
+              )).toList(),
+              if (userLevel >= 3 && selectedRequests.any((r) => r.status == '확정됨')) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange[200]!),
+                  ),
+                  child: const Text(
+                    '⚠️ 확정된 항목을 취소하면 조립품 공정 날짜가 되돌려집니다.\n취소 후 다시 검사신청이 필요합니다.',
+                    style: TextStyle(fontSize: 12, color: Colors.orange),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('아니오'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('취소하기'),
+            ),
+          ],
+        );
+      },
+    );
+    
+    if (confirmed != true) return;
+    
+    // 실제 취소 API 호출
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('auth_token');
+      
+      if (token == null) {
+        _showMessage('로그인이 필요합니다');
+        return;
+      }
+      
+      int cancelledCount = 0;
+      List<String> failedItems = [];
+      
+      for (final request in selectedRequests) {
+        try {
+          final url = Uri.parse('$_serverUrl/api/inspection-requests/${request.id}');
+          final response = await http.delete(
+            url,
+            headers: {
+              'Authorization': 'Bearer $token',
+            },
+          );
+          
+          if (response.statusCode == 200) {
+            final data = json.decode(response.body);
+            if (data['success'] == true) {
+              cancelledCount++;
+            } else {
+              failedItems.add(request.assemblyNo);
+            }
+          } else {
+            failedItems.add(request.assemblyNo);
+          }
+        } catch (e) {
+          failedItems.add(request.assemblyNo);
+        }
+      }
+      
+      // 결과 메시지 표시
+      if (cancelledCount > 0) {
+        // 확정된 항목이 포함되어 있는지 확인
+        bool hasConfirmedItems = selectedRequests.any((r) => r.status == '확정됨');
+        String message = '$cancelledCount개 항목이 취소되었습니다';
+        
+        if (userLevel >= 3 && hasConfirmedItems) {
+          message += '\n확정된 항목의 조립품 공정 날짜가 되돌려졌습니다';
+        }
+        
+        _showMessage(message);
+        
+        // 취소된 항목들을 목록에서 즉시 제거
+        setState(() {
+          // 취소 성공한 항목들의 ID 수집
+          Set<int> cancelledIds = selectedRequests
+              .where((req) => !failedItems.contains(req.assemblyNo))
+              .map((req) => req.id)
+              .toSet();
+          
+          // 취소된 항목들을 목록에서 제거
+          _inspectionRequests.removeWhere((req) => cancelledIds.contains(req.id));
+          
+          // 선택 해제
+          _selectedItems.clear();
+          _selectAll = false;
+        });
+      }
+      
+      if (failedItems.isNotEmpty) {
+        _showMessage('취소 실패: ${failedItems.join(', ')}');
+      }
+      
+    } catch (e) {
+      _showMessage('네트워크 오류: $e');
+    }
+  }
+
+  // 선택된 항목들 승인 (Level 3+ 전용)
+  Future<void> _approveSelectedRequests() async {
+    if (_selectedItems.isEmpty) {
+      _showMessage('승인할 항목을 선택해주세요');
+      return;
+    }
+    
+    // 선택된 항목들이 승인 가능한지 확인
+    List<InspectionRequest> selectedRequests = [];
+    List<String> invalidItems = [];
+    
+    for (int index in _selectedItems) {
+      final request = _inspectionRequests[index];
+      if (request.status == '대기중') {
+        selectedRequests.add(request);
+      } else {
+        invalidItems.add('${request.assemblyNo} (${request.status})');
+      }
+    }
+    
+    if (invalidItems.isNotEmpty) {
+      _showMessage('대기중 상태만 승인 가능합니다: ${invalidItems.join(', ')}');
+      return;
+    }
+    
+    // 확인 팝업
+    bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('검사신청 승인'),
+          content: Text(
+            '선택한 ${selectedRequests.length}개 항목을 승인하시겠습니까?\n\n'
+            '${selectedRequests.map((r) => '• ${r.assemblyNo} (${r.inspectionType})').join('\n')}',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('아니오'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('승인하기'),
+            ),
+          ],
+        );
+      },
+    );
+    
+    if (confirmed != true) return;
+    
+    // 실제 승인 API 호출
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('auth_token');
+      
+      if (token == null) {
+        _showMessage('로그인이 필요합니다');
+        return;
+      }
+      
+      int approvedCount = 0;
+      List<String> failedItems = [];
+      
+      for (final request in selectedRequests) {
+        try {
+          final url = Uri.parse('$_serverUrl/api/inspection-requests/${request.id}/approve');
+          final response = await http.put(
+            url,
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+          );
+          
+          if (response.statusCode == 200) {
+            final data = json.decode(response.body);
+            if (data['success'] == true) {
+              approvedCount++;
+            } else {
+              failedItems.add(request.assemblyNo);
+            }
+          } else {
+            failedItems.add(request.assemblyNo);
+          }
+        } catch (e) {
+          failedItems.add(request.assemblyNo);
+        }
+      }
+      
+      // 결과 메시지 표시
+      if (approvedCount > 0) {
+        _showMessage('$approvedCount개 항목이 승인되었습니다');
+        
+        // 데이터 새로고침
+        _loadInspectionRequests();
+        
+        // 선택 해제
+        setState(() {
+          _selectedItems.clear();
+          _selectAll = false;
+        });
+      } else {
+        _showMessage('승인할 항목을 선택해주세요');
+      }
+      
+      if (failedItems.isNotEmpty) {
+        _showMessage('승인 실패 항목: ${failedItems.join(', ')}');
+      }
+    } catch (e) {
+      _showMessage('네트워크 오류: $e');
+    }
+  }
+
+  // 선택된 항목들 확정 (Level 3+ 전용)
+  Future<void> _confirmSelectedRequests() async {
+    if (_selectedItems.isEmpty) {
+      _showMessage('확정할 항목을 선택해주세요');
+      return;
+    }
+    
+    // 선택된 항목들이 확정 가능한지 확인
+    List<InspectionRequest> selectedRequests = [];
+    List<String> invalidItems = [];
+    
+    for (int index in _selectedItems) {
+      final request = _inspectionRequests[index];
+      if (request.status == '승인됨') {
+        selectedRequests.add(request);
+      } else {
+        invalidItems.add('${request.assemblyNo} (${request.status})');
+      }
+    }
+    
+    if (invalidItems.isNotEmpty) {
+      _showMessage('승인됨 상태만 확정 가능합니다: ${invalidItems.join(', ')}');
+      return;
+    }
+    
+    // 확정 날짜 입력 팝업
+    String? confirmedDate = await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        final dateController = TextEditingController();
+        dateController.text = _formatDate(DateTime.now());
+        
+        return AlertDialog(
+          title: const Text('검사신청 확정'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('선택한 ${selectedRequests.length}개 항목을 확정하시겠습니까?'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: dateController,
+                decoration: const InputDecoration(
+                  labelText: '확정 날짜 (YYYY-MM-DD)',
+                  border: OutlineInputBorder(),
+                ),
+                readOnly: true,
+                onTap: () async {
+                  final DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime(2024),
+                    lastDate: DateTime(2030),
+                  );
+                  if (picked != null) {
+                    dateController.text = _formatDate(picked);
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: const Text('취소'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(dateController.text),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('확정하기'),
+            ),
+          ],
+        );
+      },
+    );
+    
+    if (confirmedDate == null) return;
+    
+    // 실제 확정 API 호출
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('auth_token');
+      
+      if (token == null) {
+        _showMessage('로그인이 필요합니다');
+        return;
+      }
+      
+      int confirmedCount = 0;
+      List<String> failedItems = [];
+      
+      for (final request in selectedRequests) {
+        try {
+          final url = Uri.parse('$_serverUrl/api/inspection-requests/${request.id}/confirm');
+          final response = await http.put(
+            url,
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+            body: json.encode({
+              'confirmed_date': confirmedDate,
+            }),
+          );
+          
+          if (response.statusCode == 200) {
+            final data = json.decode(response.body);
+            if (data['success'] == true) {
+              confirmedCount++;
+            } else {
+              failedItems.add(request.assemblyNo);
+            }
+          } else {
+            failedItems.add(request.assemblyNo);
+          }
+        } catch (e) {
+          failedItems.add(request.assemblyNo);
+        }
+      }
+      
+      // 결과 메시지 표시
+      if (confirmedCount > 0) {
+        _showMessage('$confirmedCount개 항목이 확정되었습니다');
+        
+        // 데이터 새로고침
+        _loadInspectionRequests();
+        
+        // 선택 해제
+        setState(() {
+          _selectedItems.clear();
+          _selectAll = false;
+        });
+      } else {
+        _showMessage('확정할 항목을 선택해주세요');
+      }
+      
+      if (failedItems.isNotEmpty) {
+        _showMessage('확정 실패 항목: ${failedItems.join(', ')}');
+      }
+    } catch (e) {
+      _showMessage('네트워크 오류: $e');
+    }
   }
 
   @override
@@ -1179,6 +1835,15 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
                             '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}',
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: _inspectionRequests.isNotEmpty ? _toggleSelectAll : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _selectAll ? Colors.orange : Colors.blue,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: Text(_selectAll ? '전체해제' : '전체선택'),
+                        ),
                         const Spacer(),
                         ElevatedButton(
                           onPressed: _loadInspectionRequests,
@@ -1186,6 +1851,72 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
                         ),
                       ],
                     ),
+                    
+                    // Level 3+ 전용 신청자 필터
+                    if (userLevel >= 3) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const Text('신청자 필터: ', style: TextStyle(fontSize: 16)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: DropdownButton<String>(
+                              value: _selectedRequester,
+                              hint: const Text('전체'),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedRequester = newValue;
+                                });
+                                _loadInspectionRequests();
+                              },
+                              items: [
+                                const DropdownMenuItem<String>(
+                                  value: null,
+                                  child: Text('전체'),
+                                ),
+                                ..._availableRequesters.map<DropdownMenuItem<String>>((String requester) {
+                                  return DropdownMenuItem<String>(
+                                    value: requester,
+                                    child: Text(requester),
+                                  );
+                                }).toList(),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const Text('공정별 필터: ', style: TextStyle(fontSize: 16)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: DropdownButton<String>(
+                              value: _selectedProcessType,
+                              hint: const Text('전체'),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedProcessType = newValue;
+                                });
+                                _loadInspectionRequests();
+                              },
+                              items: [
+                                const DropdownMenuItem<String>(
+                                  value: null,
+                                  child: Text('전체'),
+                                ),
+                                ..._availableProcessTypes.map<DropdownMenuItem<String>>((String processType) {
+                                  return DropdownMenuItem<String>(
+                                    value: processType,
+                                    child: Text(processType),
+                                  );
+                                }).toList(),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1207,9 +1938,23 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
                           itemCount: _inspectionRequests.length,
                           itemBuilder: (context, index) {
                             final request = _inspectionRequests[index];
+                            final statusStyle = _getStatusStyle(request.status);
+                            
                             return Card(
                               margin: const EdgeInsets.only(bottom: 8),
-                              child: ListTile(
+                              child: CheckboxListTile(
+                                value: _selectedItems.contains(index),
+                                onChanged: (bool? value) {
+                                  setState(() {
+                                    if (value == true) {
+                                      _selectedItems.add(index);
+                                    } else {
+                                      _selectedItems.remove(index);
+                                    }
+                                    // 전체 선택 상태 업데이트
+                                    _selectAll = _selectedItems.length == _inspectionRequests.length;
+                                  });
+                                },
                                 title: Text(
                                   request.assemblyNo,
                                   style: const TextStyle(fontWeight: FontWeight.bold),
@@ -1219,25 +1964,139 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
                                   children: [
                                     Text('검사유형: ${request.inspectionType}'),
                                     Text('신청자: ${request.requestedBy}'),
-                                    Text('신청일: ${request.requestDate.toString().substring(0, 10)}'),
+                                    Text('신청일: ${_formatDate(request.requestDate)}'),
+                                    if (request.approvedBy != null && request.approvedDate != null)
+                                      Text('승인자: ${request.approvedBy} (${_formatDate(request.approvedDate!)})'),
+                                    if (request.confirmedDate != null)
+                                      Text('확정일: ${_formatDate(request.confirmedDate!)}'),
                                   ],
                                 ),
-                                trailing: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                secondary: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: request.status == '완료' ? Colors.green : Colors.orange,
-                                    borderRadius: BorderRadius.circular(12),
+                                    color: statusStyle['color'],
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
-                                  child: Text(
-                                    request.status,
-                                    style: const TextStyle(color: Colors.white),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        statusStyle['emoji'],
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        request.status,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
+                                controlAffinity: ListTileControlAffinity.leading,
                               ),
                             );
                           },
                         ),
             ),
+            
+            // 하단 액션 버튼들 (Level별)
+            if (userLevel == 1) ...[
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _selectedItems.isEmpty ? null : _cancelSelectedRequests,
+                    icon: const Icon(Icons.cancel),
+                    label: Text(
+                      _selectedItems.isEmpty 
+                          ? '선택된 항목 취소' 
+                          : '선택된 항목 취소 (${_selectedItems.length}개)',
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      disabledBackgroundColor: Colors.grey,
+                      disabledForegroundColor: Colors.white54,
+                    ),
+                  ),
+                ),
+              ),
+            ] else if (userLevel >= 3) ...[
+              // Level 3+ 전용 액션 버튼들
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    // 승인 버튼
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _selectedItems.isEmpty ? null : _approveSelectedRequests,
+                        icon: const Icon(Icons.check_circle),
+                        label: Text(
+                          _selectedItems.isEmpty 
+                              ? '승인' 
+                              : '승인 (${_selectedItems.length}개)',
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          disabledBackgroundColor: Colors.grey,
+                          disabledForegroundColor: Colors.white54,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // 확정 버튼
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _selectedItems.isEmpty ? null : _confirmSelectedRequests,
+                        icon: const Icon(Icons.verified),
+                        label: Text(
+                          _selectedItems.isEmpty 
+                              ? '확정' 
+                              : '확정 (${_selectedItems.length}개)',
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          disabledBackgroundColor: Colors.grey,
+                          disabledForegroundColor: Colors.white54,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // 취소 버튼
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _selectedItems.isEmpty ? null : _cancelSelectedRequests,
+                        icon: const Icon(Icons.cancel),
+                        label: Text(
+                          _selectedItems.isEmpty 
+                              ? '취소' 
+                              : '취소 (${_selectedItems.length}개)',
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          disabledBackgroundColor: Colors.grey,
+                          disabledForegroundColor: Colors.white54,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -1247,18 +2106,26 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
 
 // 검사신청 데이터 모델
 class InspectionRequest {
+  final int id;
   final String assemblyNo;
   final DateTime requestDate;
   final String inspectionType;
   final String requestedBy;
   final String status;
+  final String? approvedBy;
+  final DateTime? approvedDate;
+  final DateTime? confirmedDate;
 
   InspectionRequest({
+    required this.id,
     required this.assemblyNo,
     required this.requestDate,
     required this.inspectionType,
     required this.requestedBy,
     required this.status,
+    this.approvedBy,
+    this.approvedDate,
+    this.confirmedDate,
   });
 }
 

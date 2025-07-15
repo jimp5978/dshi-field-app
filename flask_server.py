@@ -60,31 +60,37 @@ def login():
         if not username or not password_hash:
             return jsonify({'success': False, 'message': '아이디와 비밀번호를 입력하세요'}), 400
         
-        # 테스트용 하드코딩된 사용자 계정 (SHA256 해시값)
+        # 실제 사용자 계정 (SHA256 해시값)
         test_users = {
             'a': {
                 'password_hash': 'ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb',  # SHA256('a')
                 'full_name': 'Admin',
-                'permission_level': 1,
+                'permission_level': 5,
                 'id': 1
             },
-            'l1': {
-                'password_hash': '2804bad6fe94a55f18b2b37e300919a5fd517b95aa81e95db574c0ba069a3740',  # SHA256('l1')
-                'full_name': 'Level 1 User',
+            'seojin': {
+                'password_hash': '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',  # SHA256('1234')
+                'full_name': '서진',
                 'permission_level': 1,
                 'id': 2
             },
-            'l3': {
-                'password_hash': '10dacdccfe877dc064d57442e6fa7a4e3085dc94e11a29819c2290fc3d788724',  # SHA256('l3')
-                'full_name': 'Level 3 User', 
-                'permission_level': 3,
+            'sookang': {
+                'password_hash': '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',  # SHA256('1234')
+                'full_name': '수강',
+                'permission_level': 1,
                 'id': 3
             },
-            'l5': {
-                'password_hash': 'a99e27f8d40e114ff48dc9c44b04cd7418328c15b7a5ed0ceeaa180783c45fa0',  # SHA256('l5')
-                'full_name': 'Level 5 User',
-                'permission_level': 5,
+            'gyeongin': {
+                'password_hash': '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',  # SHA256('1234')
+                'full_name': '경인',
+                'permission_level': 1,
                 'id': 4
+            },
+            'dshi_hy': {
+                'password_hash': '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',  # SHA256('1234')
+                'full_name': 'DSHI 현영',
+                'permission_level': 3,
+                'id': 5
             }
         }
         
@@ -256,14 +262,15 @@ def create_inspection_request(current_user):
         if not connection:
             return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
         
-        cursor = connection.cursor()
+        cursor = connection.cursor(dictionary=True)
         
-        # 테스트용 하드코딩된 사용자 정보
+        # 실제 사용자 정보
         test_users = {
-            1: {'username': 'a', 'full_name': 'Admin', 'permission_level': 1},
-            2: {'username': 'l1', 'full_name': 'Level 1 User', 'permission_level': 1},
-            3: {'username': 'l3', 'full_name': 'Level 3 User', 'permission_level': 3},
-            4: {'username': 'l5', 'full_name': 'Level 5 User', 'permission_level': 5}
+            1: {'username': 'a', 'full_name': 'Admin', 'permission_level': 5},
+            2: {'username': 'seojin', 'full_name': '서진', 'permission_level': 1},
+            3: {'username': 'sookang', 'full_name': '수강', 'permission_level': 1},
+            4: {'username': 'gyeongin', 'full_name': '경인', 'permission_level': 1},
+            5: {'username': 'dshi_hy', 'full_name': 'DSHI 현영', 'permission_level': 3}
         }
         
         if current_user not in test_users:
@@ -273,29 +280,70 @@ def create_inspection_request(current_user):
         username = user_info['username']
         full_name = user_info['full_name']
         
-        # 여러 ASSEMBLY에 대해 검사신청 저장
+        # 중복 체크 및 검사신청 저장
         inserted_count = 0
+        duplicate_items = []
+        
         for assembly_code in assembly_codes:
+            # 선착순 체크: 같은 ASSEMBLY + 같은 검사타입이 이미 있는지 확인 (취소된 항목 제외)
             cursor.execute("""
-                INSERT INTO inspection_requests (
-                    assembly_code, 
-                    inspection_type, 
-                    requested_by_user_id, 
-                    requested_by_name, 
-                    request_date
-                ) VALUES (%s, %s, %s, %s, %s)
-            """, (assembly_code, inspection_type, current_user, full_name, request_date))
-            inserted_count += 1
+                SELECT id, requested_by_name, request_date 
+                FROM inspection_requests 
+                WHERE assembly_code = %s AND inspection_type = %s AND status != '취소됨'
+                LIMIT 1
+            """, (assembly_code, inspection_type))
+            
+            existing_request = cursor.fetchone()
+            
+            if existing_request:
+                # 이미 신청된 항목
+                duplicate_items.append({
+                    'assembly_code': assembly_code,
+                    'existing_requester': existing_request['requested_by_name'],
+                    'existing_date': existing_request['request_date'].strftime('%Y-%m-%d')
+                })
+            else:
+                # 새로 신청 가능한 항목
+                cursor.execute("""
+                    INSERT INTO inspection_requests (
+                        assembly_code, 
+                        inspection_type, 
+                        requested_by_user_id, 
+                        requested_by_name, 
+                        request_date
+                    ) VALUES (%s, %s, %s, %s, %s)
+                """, (assembly_code, inspection_type, current_user, full_name, request_date))
+                inserted_count += 1
         
         connection.commit()
         cursor.close()
         connection.close()
         
-        return jsonify({
-            'success': True,
-            'message': f'{inserted_count}개 항목의 {inspection_type} 검사가 신청되었습니다',
-            'inserted_count': inserted_count
-        })
+        # 결과 메시지 생성
+        if inserted_count > 0 and len(duplicate_items) == 0:
+            # 모두 성공
+            return jsonify({
+                'success': True,
+                'message': f'{inserted_count}개 항목의 {inspection_type} 검사가 신청되었습니다',
+                'inserted_count': inserted_count,
+                'duplicate_items': []
+            })
+        elif inserted_count > 0 and len(duplicate_items) > 0:
+            # 일부 성공, 일부 중복
+            return jsonify({
+                'success': True,
+                'message': f'{inserted_count}개 항목 신청 완료, {len(duplicate_items)}개 항목 중복',
+                'inserted_count': inserted_count,
+                'duplicate_items': duplicate_items
+            })
+        else:
+            # 모두 중복
+            return jsonify({
+                'success': False,
+                'message': '선택한 모든 항목이 이미 신청되어 있습니다',
+                'inserted_count': 0,
+                'duplicate_items': duplicate_items
+            })
         
     except Exception as e:
         print(f"검사신청 생성 오류: {e}")
@@ -307,6 +355,8 @@ def get_inspection_requests(current_user):
     """검사신청 목록 조회 (Level별 필터링)"""
     try:
         request_date = request.args.get('date')
+        requester_filter = request.args.get('requester')  # 신청자 필터 추가
+        process_type_filter = request.args.get('process_type')  # 공정별 필터 추가
         
         connection = get_db_connection()
         if not connection:
@@ -314,12 +364,13 @@ def get_inspection_requests(current_user):
         
         cursor = connection.cursor(dictionary=True)
         
-        # 테스트용 하드코딩된 사용자 정보
+        # 실제 사용자 정보
         test_users = {
-            1: {'username': 'a', 'full_name': 'Admin', 'permission_level': 1},
-            2: {'username': 'l1', 'full_name': 'Level 1 User', 'permission_level': 1},
-            3: {'username': 'l3', 'full_name': 'Level 3 User', 'permission_level': 3},
-            4: {'username': 'l5', 'full_name': 'Level 5 User', 'permission_level': 5}
+            1: {'username': 'a', 'full_name': 'Admin', 'permission_level': 5},
+            2: {'username': 'seojin', 'full_name': '서진', 'permission_level': 1},
+            3: {'username': 'sookang', 'full_name': '수강', 'permission_level': 1},
+            4: {'username': 'gyeongin', 'full_name': '경인', 'permission_level': 1},
+            5: {'username': 'dshi_hy', 'full_name': 'DSHI 현영', 'permission_level': 3}
         }
         
         if current_user not in test_users:
@@ -343,18 +394,24 @@ def get_inspection_requests(current_user):
                     ORDER BY created_at DESC
                 """, (current_user,))
         else:
-            # Level 3+: 전체 검사신청
+            # Level 3+: 전체 검사신청 (신청자 필터 적용)
+            base_query = "SELECT * FROM inspection_requests WHERE 1=1"
+            params = []
+            
             if request_date:
-                cursor.execute("""
-                    SELECT * FROM inspection_requests 
-                    WHERE request_date = %s
-                    ORDER BY created_at DESC
-                """, (request_date,))
-            else:
-                cursor.execute("""
-                    SELECT * FROM inspection_requests 
-                    ORDER BY created_at DESC
-                """)
+                base_query += " AND request_date = %s"
+                params.append(request_date)
+            
+            if requester_filter:
+                base_query += " AND requested_by_name = %s"
+                params.append(requester_filter)
+            
+            if process_type_filter:
+                base_query += " AND inspection_type = %s"
+                params.append(process_type_filter)
+            
+            base_query += " ORDER BY created_at DESC"
+            cursor.execute(base_query, params)
         
         requests = cursor.fetchall()
         
@@ -389,6 +446,332 @@ def get_inspection_requests(current_user):
         
     except Exception as e:
         print(f"검사신청 조회 오류: {e}")
+        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
+
+@app.route('/api/inspection-requests/<int:request_id>/approve', methods=['PUT'])
+@token_required
+def approve_inspection_request(current_user, request_id):
+    """검사신청 승인 (Level 3+ 전용)"""
+    try:
+        # 실제 사용자 정보
+        test_users = {
+            1: {'username': 'a', 'full_name': 'Admin', 'permission_level': 5},
+            2: {'username': 'seojin', 'full_name': '서진', 'permission_level': 1},
+            3: {'username': 'sookang', 'full_name': '수강', 'permission_level': 1},
+            4: {'username': 'gyeongin', 'full_name': '경인', 'permission_level': 1},
+            5: {'username': 'dshi_hy', 'full_name': 'DSHI 현영', 'permission_level': 3}
+        }
+        
+        if current_user not in test_users:
+            return jsonify({'success': False, 'message': '사용자 정보를 찾을 수 없습니다'}), 404
+        
+        user_info = test_users[current_user]
+        permission_level = user_info['permission_level']
+        
+        # Level 3+ 권한 확인
+        if permission_level < 3:
+            return jsonify({'success': False, 'message': '승인 권한이 없습니다'}), 403
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # 해당 검사신청이 존재하고 대기중인지 확인
+        cursor.execute("""
+            SELECT * FROM inspection_requests 
+            WHERE id = %s AND status = '대기중'
+        """, (request_id,))
+        
+        inspection_request = cursor.fetchone()
+        
+        if not inspection_request:
+            return jsonify({'success': False, 'message': '승인할 수 있는 검사신청이 없습니다'}), 404
+        
+        # 승인 처리
+        today = datetime.datetime.now().date()
+        cursor.execute("""
+            UPDATE inspection_requests 
+            SET status = '승인됨',
+                approved_by_user_id = %s,
+                approved_by_name = %s,
+                approved_date = %s
+            WHERE id = %s
+        """, (current_user, user_info['full_name'], today, request_id))
+        
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'{inspection_request["assembly_code"]} {inspection_request["inspection_type"]} 검사신청이 승인되었습니다'
+        })
+        
+    except Exception as e:
+        print(f"검사신청 승인 오류: {e}")
+        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
+
+@app.route('/api/inspection-requests/<int:request_id>/confirm', methods=['PUT'])
+@token_required
+def confirm_inspection_request(current_user, request_id):
+    """검사신청 확정 (Level 3+ 전용) - assembly_items 테이블도 업데이트"""
+    try:
+        # 실제 사용자 정보
+        test_users = {
+            1: {'username': 'a', 'full_name': 'Admin', 'permission_level': 5},
+            2: {'username': 'seojin', 'full_name': '서진', 'permission_level': 1},
+            3: {'username': 'sookang', 'full_name': '수강', 'permission_level': 1},
+            4: {'username': 'gyeongin', 'full_name': '경인', 'permission_level': 1},
+            5: {'username': 'dshi_hy', 'full_name': 'DSHI 현영', 'permission_level': 3}
+        }
+        
+        if current_user not in test_users:
+            return jsonify({'success': False, 'message': '사용자 정보를 찾을 수 없습니다'}), 404
+        
+        user_info = test_users[current_user]
+        permission_level = user_info['permission_level']
+        
+        # Level 3+ 권한 확인
+        if permission_level < 3:
+            return jsonify({'success': False, 'message': '확정 권한이 없습니다'}), 403
+        
+        data = request.get_json()
+        confirmed_date = data.get('confirmed_date')  # 실제 검사 완료 날짜
+        
+        if not confirmed_date:
+            return jsonify({'success': False, 'message': '확정 날짜를 입력하세요'}), 400
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # 해당 검사신청이 존재하고 승인됨 상태인지 확인
+        cursor.execute("""
+            SELECT * FROM inspection_requests 
+            WHERE id = %s AND status = '승인됨'
+        """, (request_id,))
+        
+        inspection_request = cursor.fetchone()
+        
+        if not inspection_request:
+            return jsonify({'success': False, 'message': '확정할 수 있는 검사신청이 없습니다'}), 404
+        
+        # 검사타입별 assembly_items 컬럼 매핑
+        inspection_type_mapping = {
+            'NDE': 'nde_date',
+            'VIDI': 'vidi_date',
+            'GALV': 'galv_date',
+            'SHOT': 'shot_date',
+            'PAINT': 'paint_date',
+            'PACKING': 'packing_date'
+        }
+        
+        inspection_type = inspection_request['inspection_type']
+        if inspection_type not in inspection_type_mapping:
+            return jsonify({'success': False, 'message': f'알 수 없는 검사타입: {inspection_type}'}), 400
+        
+        assembly_column = inspection_type_mapping[inspection_type]
+        assembly_code = inspection_request['assembly_code']
+        
+        # 트랜잭션 시작
+        try:
+            # 1. inspection_requests 상태를 확정됨으로 업데이트
+            cursor.execute("""
+                UPDATE inspection_requests 
+                SET status = '확정됨',
+                    confirmed_date = %s
+                WHERE id = %s
+            """, (confirmed_date, request_id))
+            
+            # 2. assembly_items 테이블의 해당 공정 날짜 업데이트
+            update_query = f"""
+                UPDATE assembly_items 
+                SET {assembly_column} = %s
+                WHERE assembly_code = %s
+            """
+            cursor.execute(update_query, (confirmed_date, assembly_code))
+            
+            # 업데이트된 행이 있는지 확인
+            if cursor.rowcount == 0:
+                raise Exception(f'Assembly {assembly_code}를 찾을 수 없습니다')
+            
+            connection.commit()
+            cursor.close()
+            connection.close()
+            
+            return jsonify({
+                'success': True,
+                'message': f'{assembly_code} {inspection_type} 검사가 확정되었습니다 ({confirmed_date})'
+            })
+            
+        except Exception as e:
+            connection.rollback()
+            raise e
+        
+    except Exception as e:
+        print(f"검사신청 확정 오류: {e}")
+        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
+
+@app.route('/api/inspection-requests/<int:request_id>', methods=['DELETE'])
+@token_required
+def cancel_inspection_request(current_user, request_id):
+    """검사신청 취소 (권한별 제한)"""
+    try:
+        # 실제 사용자 정보
+        test_users = {
+            1: {'username': 'a', 'full_name': 'Admin', 'permission_level': 5},
+            2: {'username': 'seojin', 'full_name': '서진', 'permission_level': 1},
+            3: {'username': 'sookang', 'full_name': '수강', 'permission_level': 1},
+            4: {'username': 'gyeongin', 'full_name': '경인', 'permission_level': 1},
+            5: {'username': 'dshi_hy', 'full_name': 'DSHI 현영', 'permission_level': 3}
+        }
+        
+        if current_user not in test_users:
+            return jsonify({'success': False, 'message': '사용자 정보를 찾을 수 없습니다'}), 404
+        
+        user_info = test_users[current_user]
+        permission_level = user_info['permission_level']
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # 해당 검사신청 조회
+        cursor.execute("""
+            SELECT * FROM inspection_requests WHERE id = %s
+        """, (request_id,))
+        
+        inspection_request = cursor.fetchone()
+        
+        if not inspection_request:
+            return jsonify({'success': False, 'message': '검사신청을 찾을 수 없습니다'}), 404
+        
+        # 권한별 취소 제한 확인
+        if permission_level == 1:
+            # Level 1: 본인이 신청한 대기중 상태만 취소 가능
+            if (inspection_request['requested_by_user_id'] != current_user or 
+                inspection_request['status'] != '대기중'):
+                return jsonify({'success': False, 'message': '취소 권한이 없습니다'}), 403
+        
+        # Level 3+는 모든 상태 취소 가능
+        
+        # 트랜잭션 시작
+        try:
+            # 확정됨 상태에서 취소하는 경우 assembly_items 테이블 롤백 필요
+            if inspection_request['status'] == '확정됨':
+                # 검사타입별 assembly_items 컬럼 매핑
+                inspection_type_mapping = {
+                    'NDE': 'nde_date',
+                    'VIDI': 'vidi_date',
+                    'GALV': 'galv_date',
+                    'SHOT': 'shot_date',
+                    'PAINT': 'paint_date',
+                    'PACKING': 'packing_date'
+                }
+                
+                inspection_type = inspection_request['inspection_type']
+                if inspection_type in inspection_type_mapping:
+                    assembly_column = inspection_type_mapping[inspection_type]
+                    assembly_code = inspection_request['assembly_code']
+                    
+                    # assembly_items 테이블의 해당 공정 날짜를 NULL로 되돌리기
+                    update_query = f"""
+                        UPDATE assembly_items 
+                        SET {assembly_column} = NULL
+                        WHERE assembly_code = %s
+                    """
+                    cursor.execute(update_query, (assembly_code,))
+                    
+                    # 업데이트된 행이 있는지 확인
+                    if cursor.rowcount == 0:
+                        raise Exception(f'Assembly {assembly_code}를 찾을 수 없습니다')
+            
+            # 취소 처리 (실제로는 상태만 변경)
+            cursor.execute("""
+                UPDATE inspection_requests 
+                SET status = '취소됨'
+                WHERE id = %s
+            """, (request_id,))
+            
+            connection.commit()
+            
+        except Exception as e:
+            connection.rollback()
+            raise e
+        cursor.close()
+        connection.close()
+        
+        # 성공 메시지 생성
+        message = f'{inspection_request["assembly_code"]} {inspection_request["inspection_type"]} 검사신청이 취소되었습니다'
+        
+        # 확정된 항목이 취소된 경우 추가 정보 제공
+        if inspection_request['status'] == '확정됨':
+            message += ' (조립품 공정 날짜가 되돌려졌습니다)'
+        
+        return jsonify({
+            'success': True,
+            'message': message
+        })
+        
+    except Exception as e:
+        print(f"검사신청 취소 오류: {e}")
+        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
+
+@app.route('/api/inspection-requests/requesters', methods=['GET'])
+@token_required
+def get_requesters(current_user):
+    """검사신청 신청자 목록 조회 (Level 3+ 전용)"""
+    try:
+        # 실제 사용자 정보
+        test_users = {
+            1: {'username': 'a', 'full_name': 'Admin', 'permission_level': 5},
+            2: {'username': 'seojin', 'full_name': '서진', 'permission_level': 1},
+            3: {'username': 'sookang', 'full_name': '수강', 'permission_level': 1},
+            4: {'username': 'gyeongin', 'full_name': '경인', 'permission_level': 1},
+            5: {'username': 'dshi_hy', 'full_name': 'DSHI 현영', 'permission_level': 3}
+        }
+        
+        if current_user not in test_users:
+            return jsonify({'success': False, 'message': '사용자 정보를 찾을 수 없습니다'}), 404
+        
+        user_info = test_users[current_user]
+        permission_level = user_info['permission_level']
+        
+        # Level 3+ 권한 확인
+        if permission_level < 3:
+            return jsonify({'success': False, 'message': '조회 권한이 없습니다'}), 403
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # 검사신청에서 신청자 목록 조회 (중복 제거)
+        cursor.execute("""
+            SELECT DISTINCT requested_by_name
+            FROM inspection_requests 
+            WHERE status != '취소됨'
+            ORDER BY requested_by_name
+        """)
+        
+        requesters = [row['requested_by_name'] for row in cursor.fetchall()]
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'success': True,
+            'requesters': requesters
+        })
+        
+    except Exception as e:
+        print(f"신청자 목록 조회 오류: {e}")
         return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
 
 @app.route('/api/health', methods=['GET'])
