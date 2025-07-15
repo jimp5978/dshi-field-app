@@ -167,8 +167,11 @@ def get_assemblies():
                 ('PACKING', row['packing_date'])
             ]
             
-            # 완료된 공정들만 필터링
-            completed_processes = [(name, date) for name, date in processes if date is not None]
+            # 완료된 공정들만 필터링 (None과 1900-01-01 제외)
+            completed_processes = []
+            for name, date in processes:
+                if date is not None and date != datetime.date(1900, 1, 1):
+                    completed_processes.append((name, date))
             
             if completed_processes:
                 # 가장 마지막 완료된 공정
