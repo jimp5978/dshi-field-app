@@ -19,7 +19,7 @@ def get_db_config():
     if env == 'home':
         # 집에서 작업할 때 - 회사 DB에 원격 접속
         return {
-            'host': 'company_ip_address',  # 회사 IP로 변경 필요
+            'host': '192.168.0.5',  # 회사 컴퓨터 IP
             'user': 'field_app_user',
             'password': 'dshi2025#',
             'database': 'field_app_db',
