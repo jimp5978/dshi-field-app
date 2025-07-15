@@ -239,6 +239,158 @@ def search_assemblies(current_user):
     except Exception as e:
         return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
 
+@app.route('/api/inspection-requests', methods=['POST'])
+@token_required
+def create_inspection_request(current_user):
+    """검사신청 생성"""
+    try:
+        data = request.get_json()
+        assembly_codes = data.get('assembly_codes', [])
+        inspection_type = data.get('inspection_type')
+        request_date = data.get('request_date')
+        
+        if not assembly_codes or not inspection_type or not request_date:
+            return jsonify({'success': False, 'message': '필수 데이터가 누락되었습니다'}), 400
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor()
+        
+        # 테스트용 하드코딩된 사용자 정보
+        test_users = {
+            1: {'username': 'a', 'full_name': 'Admin', 'permission_level': 1},
+            2: {'username': 'l1', 'full_name': 'Level 1 User', 'permission_level': 1},
+            3: {'username': 'l3', 'full_name': 'Level 3 User', 'permission_level': 3},
+            4: {'username': 'l5', 'full_name': 'Level 5 User', 'permission_level': 5}
+        }
+        
+        if current_user not in test_users:
+            return jsonify({'success': False, 'message': '사용자 정보를 찾을 수 없습니다'}), 404
+        
+        user_info = test_users[current_user]
+        username = user_info['username']
+        full_name = user_info['full_name']
+        
+        # 여러 ASSEMBLY에 대해 검사신청 저장
+        inserted_count = 0
+        for assembly_code in assembly_codes:
+            cursor.execute("""
+                INSERT INTO inspection_requests (
+                    assembly_code, 
+                    inspection_type, 
+                    requested_by_user_id, 
+                    requested_by_name, 
+                    request_date
+                ) VALUES (%s, %s, %s, %s, %s)
+            """, (assembly_code, inspection_type, current_user, full_name, request_date))
+            inserted_count += 1
+        
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'{inserted_count}개 항목의 {inspection_type} 검사가 신청되었습니다',
+            'inserted_count': inserted_count
+        })
+        
+    except Exception as e:
+        print(f"검사신청 생성 오류: {e}")
+        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
+
+@app.route('/api/inspection-requests', methods=['GET'])
+@token_required  
+def get_inspection_requests(current_user):
+    """검사신청 목록 조회 (Level별 필터링)"""
+    try:
+        request_date = request.args.get('date')
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # 테스트용 하드코딩된 사용자 정보
+        test_users = {
+            1: {'username': 'a', 'full_name': 'Admin', 'permission_level': 1},
+            2: {'username': 'l1', 'full_name': 'Level 1 User', 'permission_level': 1},
+            3: {'username': 'l3', 'full_name': 'Level 3 User', 'permission_level': 3},
+            4: {'username': 'l5', 'full_name': 'Level 5 User', 'permission_level': 5}
+        }
+        
+        if current_user not in test_users:
+            return jsonify({'success': False, 'message': '사용자 정보를 찾을 수 없습니다'}), 404
+        
+        permission_level = test_users[current_user]['permission_level']
+        
+        # Level별 쿼리 분기
+        if permission_level == 1:
+            # Level 1: 본인이 신청한 것만
+            if request_date:
+                cursor.execute("""
+                    SELECT * FROM inspection_requests 
+                    WHERE requested_by_user_id = %s AND request_date = %s
+                    ORDER BY created_at DESC
+                """, (current_user, request_date))
+            else:
+                cursor.execute("""
+                    SELECT * FROM inspection_requests 
+                    WHERE requested_by_user_id = %s
+                    ORDER BY created_at DESC
+                """, (current_user,))
+        else:
+            # Level 3+: 전체 검사신청
+            if request_date:
+                cursor.execute("""
+                    SELECT * FROM inspection_requests 
+                    WHERE request_date = %s
+                    ORDER BY created_at DESC
+                """, (request_date,))
+            else:
+                cursor.execute("""
+                    SELECT * FROM inspection_requests 
+                    ORDER BY created_at DESC
+                """)
+        
+        requests = cursor.fetchall()
+        
+        # 날짜 형식을 문자열로 변환 (JSON 직렬화 문제 해결)
+        for req_item in requests:
+            try:
+                if 'request_date' in req_item and req_item['request_date'] is not None:
+                    if hasattr(req_item['request_date'], 'strftime'):
+                        req_item['request_date'] = req_item['request_date'].strftime('%Y-%m-%d')
+                    else:
+                        req_item['request_date'] = str(req_item['request_date'])
+                        
+                if 'created_at' in req_item and req_item['created_at'] is not None:
+                    if hasattr(req_item['created_at'], 'strftime'):
+                        req_item['created_at'] = req_item['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+                    else:
+                        req_item['created_at'] = str(req_item['created_at'])
+            except Exception as e:
+                print(f"날짜 변환 오류: {e}")
+                # 오류 시 기본값 설정
+                req_item['request_date'] = '2025-07-16'
+                req_item['created_at'] = '2025-07-16 00:00:00'
+        
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'success': True,
+            'requests': requests,
+            'user_level': permission_level
+        })
+        
+    except Exception as e:
+        print(f"검사신청 조회 오류: {e}")
+        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """서버 상태 확인"""

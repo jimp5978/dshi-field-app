@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'main.dart';
 
@@ -123,7 +124,12 @@ class _LoginScreenState extends State<LoginScreen> {
       
       if (result['success'] == true) {
         final user = result['user'];
+        final token = result['token'];
         final permissionLevel = user['permission_level'];
+        
+        // JWT 토큰을 SharedPreferences에 저장
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', token);
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -133,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
           
-          // TODO: 권한 레벨에 따른 화면 이동
+          // 권한 레벨에 따른 화면 이동
           _navigateToMainScreen(user);
           
           print('로그인 성공:');
@@ -141,6 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
           print('Username: ${user['username']}');
           print('Full Name: ${user['full_name']}');
           print('Permission Level: $permissionLevel');
+          print('Token saved: ${token.substring(0, 20)}...');
         }
       } else {
         if (mounted) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'login_screen.dart';
 
@@ -173,6 +174,16 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
     );
   }
 
+  // 검사신청 확인 화면 (새 화면으로)
+  void _showInspectionRequests() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => InspectionRequestScreen(userInfo: widget.userInfo),
+      ),
+    );
+  }
+
   // LIST UP 버튼
   void _onListUpPressed() {
     if (_selectedItems.isNotEmpty) {
@@ -222,11 +233,11 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // 상단 영역 (타이틀과 LIST 버튼)
+            // 상단 영역 (LIST 버튼, 타이틀, 검사신청 확인 버튼)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // LIST 버튼 (크기 확대)
+                // LIST 버튼
                 ElevatedButton(
                   onPressed: _showSavedList,
                   style: ElevatedButton.styleFrom(
@@ -249,8 +260,20 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
                     color: Colors.blue,
                   ),
                 ),
-                // 빈 공간 (균형 맞추기)
-                const SizedBox(width: 120),
+                // 검사신청 확인 버튼
+                ElevatedButton(
+                  onPressed: _showInspectionRequests,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    minimumSize: const Size(100, 48),
+                  ),
+                  child: const Text(
+                    '검사신청 확인',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -518,6 +541,9 @@ class _SavedListScreenState extends State<SavedListScreen> {
   Set<int> _selectedItems = <int>{};
   bool _selectAll = false;
   late DateTime _selectedDate; // 기본값을 내일로 설정
+  
+  // 서버 URL
+  static const String _serverUrl = 'http://192.168.0.5:5001';
 
   @override
   void initState() {
@@ -748,28 +774,75 @@ class _SavedListScreenState extends State<SavedListScreen> {
     return processMap[currentProcess] ?? '완료';
   }
   
-  // 검사 신청 제출
-  void _submitInspectionRequest(List<AssemblyItem> items, String nextProcess) {
-    // TODO: 실제 API 호출로 대체
-    
-    // 검사 신청된 항목들을 LIST에서 제거
-    setState(() {
-      // 신청된 항목들을 _savedList에서 제거
-      for (AssemblyItem item in items) {
-        _savedList.remove(item);
+  // 검사 신청 제출 (실제 API 호출)
+  Future<void> _submitInspectionRequest(List<AssemblyItem> items, String nextProcess) async {
+    try {
+      // 저장된 토큰 가져오기 (로그인 시 저장된 토큰)
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('auth_token');
+      
+      if (token == null) {
+        _showMessage('로그인이 필요합니다');
+        return;
       }
-      // 선택 상태 초기화
-      _selectedItems.clear();
-      _selectAll = false;
-    });
-    
-    // 변경사항을 부모 위젯에 전달
-    widget.onListUpdated(_savedList);
-    
+
+      // ASSEMBLY 코드 리스트 생성
+      final List<String> assemblyCodes = items.map((item) => item.assemblyNo).toList();
+      
+      // API 호출
+      final url = Uri.parse('${_serverUrl}/api/inspection-requests');
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'assembly_codes': assemblyCodes,
+          'inspection_type': nextProcess,
+          'request_date': _formatDate(_selectedDate),
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        if (data['success'] == true) {
+          // 검사 신청 성공 - LIST에서 제거
+          setState(() {
+            for (AssemblyItem item in items) {
+              _savedList.remove(item);
+            }
+            _selectedItems.clear();
+            _selectAll = false;
+          });
+          
+          widget.onListUpdated(_savedList);
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['message'] ?? '검사신청이 완료되었습니다'),
+              duration: const Duration(seconds: 3),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          _showMessage(data['message'] ?? '검사신청 실패');
+        }
+      } else {
+        _showMessage('서버 오류: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showMessage('네트워크 오류: $e');
+    }
+  }
+
+  // 메시지 표시 함수
+  void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${items.length}개 항목의 $nextProcess 검사가 신청되었습니다'),
-        duration: const Duration(seconds: 3),
+        content: Text(message),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -938,6 +1011,255 @@ class _SavedListScreenState extends State<SavedListScreen> {
       ),
     );
   }
+}
+
+// 검사신청 확인 화면
+class InspectionRequestScreen extends StatefulWidget {
+  final Map<String, dynamic> userInfo;
+
+  const InspectionRequestScreen({super.key, required this.userInfo});
+
+  @override
+  State<InspectionRequestScreen> createState() => _InspectionRequestScreenState();
+}
+
+class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
+  DateTime _selectedDate = DateTime.now();
+  List<InspectionRequest> _inspectionRequests = [];
+  bool _isLoading = false;
+  
+  // 서버 URL
+  static const String _serverUrl = 'http://192.168.0.5:5001';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInspectionRequests();
+  }
+
+  // 검사신청 목록 로드 (실제 API 호출)
+  Future<void> _loadInspectionRequests() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // 저장된 토큰 가져오기
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('auth_token');
+      
+      if (token == null) {
+        _showMessage('로그인이 필요합니다');
+        return;
+      }
+
+      // API 호출 (날짜별 필터링)
+      final String dateParam = _formatDate(_selectedDate);
+      final url = Uri.parse('$_serverUrl/api/inspection-requests?date=$dateParam');
+      
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        if (data['success'] == true) {
+          setState(() {
+            _inspectionRequests = (data['requests'] as List).map((requestData) {
+              // 날짜 파싱 개선 (다양한 형식 지원)
+              DateTime requestDate;
+              try {
+                String dateStr = requestData['request_date'];
+                // GMT 형식 처리
+                if (dateStr.contains('GMT')) {
+                  requestDate = DateTime.parse(dateStr);
+                } else {
+                  requestDate = DateTime.parse(dateStr);
+                }
+              } catch (e) {
+                // 파싱 실패 시 현재 날짜 사용
+                print('날짜 파싱 오류: ${requestData['request_date']} - $e');
+                requestDate = DateTime.now();
+              }
+              
+              return InspectionRequest(
+                assemblyNo: requestData['assembly_code'],
+                requestDate: requestDate,
+                inspectionType: requestData['inspection_type'],
+                requestedBy: requestData['requested_by_name'],
+                status: '대기중', // 기본 상태
+              );
+            }).toList();
+          });
+        } else {
+          _showMessage(data['message'] ?? '데이터 로딩 실패');
+        }
+      } else {
+        _showMessage('서버 오류: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showMessage('네트워크 오류: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  // 날짜 선택
+  void _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2024),
+      lastDate: DateTime(2030),
+    );
+    
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+      _loadInspectionRequests();
+    }
+  }
+
+  // 메시지 표시
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  // 날짜 포맷팅
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = widget.userInfo;
+    final int userLevel = user['permission_level'];
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('검사신청 확인 - ${user['full_name']} (Level $userLevel)'),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // 상단 날짜 선택 및 권한 안내
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      userLevel == 1 
+                          ? '본인이 신청한 검사신청 목록'
+                          : '전체 검사신청 목록',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        const Text('조회 날짜: ', style: TextStyle(fontSize: 16)),
+                        ElevatedButton(
+                          onPressed: _selectDate,
+                          child: Text(
+                            '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}',
+                          ),
+                        ),
+                        const Spacer(),
+                        ElevatedButton(
+                          onPressed: _loadInspectionRequests,
+                          child: const Text('새로고침'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // 검사신청 목록
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _inspectionRequests.isEmpty
+                      ? const Center(
+                          child: Text(
+                            '해당 날짜에 검사신청이 없습니다',
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _inspectionRequests.length,
+                          itemBuilder: (context, index) {
+                            final request = _inspectionRequests[index];
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              child: ListTile(
+                                title: Text(
+                                  request.assemblyNo,
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('검사유형: ${request.inspectionType}'),
+                                    Text('신청자: ${request.requestedBy}'),
+                                    Text('신청일: ${request.requestDate.toString().substring(0, 10)}'),
+                                  ],
+                                ),
+                                trailing: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: request.status == '완료' ? Colors.green : Colors.orange,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    request.status,
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// 검사신청 데이터 모델
+class InspectionRequest {
+  final String assemblyNo;
+  final DateTime requestDate;
+  final String inspectionType;
+  final String requestedBy;
+  final String status;
+
+  InspectionRequest({
+    required this.assemblyNo,
+    required this.requestDate,
+    required this.inspectionType,
+    required this.requestedBy,
+    required this.status,
+  });
 }
 
 // ASSEMBLY 아이템 데이터 모델
