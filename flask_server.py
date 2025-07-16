@@ -28,6 +28,38 @@ def get_db_connection():
         print(f"데이터베이스 연결 오류: {e}")
         return None
 
+def get_user_info(user_id):
+    """사용자 정보 조회 헬퍼 함수"""
+    try:
+        connection = get_db_connection()
+        if not connection:
+            return None
+        
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute("""
+                SELECT id, username, full_name, permission_level, company
+                FROM users 
+                WHERE id = %s AND is_active = TRUE
+            """, (user_id,))
+        except:
+            # company 컬럼이 없는 경우
+            cursor.execute("""
+                SELECT id, username, full_name, permission_level
+                FROM users 
+                WHERE id = %s AND is_active = TRUE
+            """, (user_id,))
+        
+        user = cursor.fetchone()
+        if user and 'company' not in user:
+            user['company'] = ''
+        cursor.close()
+        connection.close()
+        return user
+    except Exception as e:
+        print(f"사용자 정보 조회 오류: {e}")
+        return None
+
 def token_required(f):
     """JWT 토큰 검증 데코레이터"""
     @wraps(f)
@@ -51,7 +83,7 @@ def token_required(f):
 
 @app.route('/api/login', methods=['POST'])
 def login():
-    """사용자 로그인"""
+    """사용자 로그인 - 데이터베이스 기반 (하드코딩 백업)"""
     try:
         data = request.get_json()
         username = data.get('username')
@@ -60,64 +92,67 @@ def login():
         if not username or not password_hash:
             return jsonify({'success': False, 'message': '아이디와 비밀번호를 입력하세요'}), 400
         
-        # 실제 사용자 계정 (SHA256 해시값)
-        test_users = {
-            'a': {
-                'password_hash': 'ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb',  # SHA256('a')
-                'full_name': 'Admin',
-                'permission_level': 5,
-                'id': 1
-            },
-            'seojin': {
-                'password_hash': '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',  # SHA256('1234')
-                'full_name': '서진',
-                'permission_level': 1,
-                'id': 2
-            },
-            'sookang': {
-                'password_hash': '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',  # SHA256('1234')
-                'full_name': '수강',
-                'permission_level': 1,
-                'id': 3
-            },
-            'gyeongin': {
-                'password_hash': '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',  # SHA256('1234')
-                'full_name': '경인',
-                'permission_level': 1,
-                'id': 4
-            },
-            'dshi_hy': {
-                'password_hash': '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',  # SHA256('1234')
-                'full_name': 'DSHI 현영',
-                'permission_level': 3,
-                'id': 5
-            }
-        }
         
-        if username in test_users and test_users[username]['password_hash'] == password_hash:
-            user = test_users[username]
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        try:
+            cursor = connection.cursor(dictionary=True)
             
+            # 데이터베이스에서 사용자 조회
+            try:
+                cursor.execute("""
+                    SELECT id, username, password_hash, full_name, permission_level, company, is_active
+                    FROM users 
+                    WHERE username = %s AND is_active = TRUE
+                """, (username,))
+            except:
+                # company 컬럼이 없는 경우
+                cursor.execute("""
+                    SELECT id, username, password_hash, full_name, permission_level, is_active
+                    FROM users 
+                    WHERE username = %s AND is_active = TRUE
+                """, (username,))
+            
+            user = cursor.fetchone()
+            # company 컬럼이 없는 경우 기본값 설정
+            if user and 'company' not in user:
+                user['company'] = ''
+            cursor.close()
+            connection.close()
+            
+        except Exception as e:
+            print(f"데이터베이스 조회 오류: {e}")
+            connection.close()
+            return jsonify({'success': False, 'message': '데이터베이스 오류'}), 500
+        
+        # 사용자 인증
+        if user and user['password_hash'] == password_hash:
             # JWT 토큰 생성
             token = jwt.encode({
                 'user_id': user['id'],
-                'username': username,
+                'username': user['username'],
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
-            }, app.config['SECRET_KEY'])
+            }, app.config['SECRET_KEY'], algorithm='HS256')
             
             return jsonify({
                 'success': True,
+                'message': '로그인 성공',
                 'token': token,
                 'user': {
                     'id': user['id'],
-                    'username': username,
+                    'username': user['username'],
                     'full_name': user['full_name'],
-                    'permission_level': user['permission_level']
+                    'permission_level': user['permission_level'],
+                    'company': user.get('company', '')
                 }
             })
         else:
             return jsonify({'success': False, 'message': '아이디 또는 비밀번호가 틀렸습니다'}), 401
             
     except Exception as e:
+        print(f"로그인 오류: {e}")
         return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
 
 @app.route('/api/assemblies', methods=['GET'])
@@ -264,19 +299,10 @@ def create_inspection_request(current_user):
         
         cursor = connection.cursor(dictionary=True)
         
-        # 실제 사용자 정보
-        test_users = {
-            1: {'username': 'a', 'full_name': 'Admin', 'permission_level': 5},
-            2: {'username': 'seojin', 'full_name': '서진', 'permission_level': 1},
-            3: {'username': 'sookang', 'full_name': '수강', 'permission_level': 1},
-            4: {'username': 'gyeongin', 'full_name': '경인', 'permission_level': 1},
-            5: {'username': 'dshi_hy', 'full_name': 'DSHI 현영', 'permission_level': 3}
-        }
-        
-        if current_user not in test_users:
+        # 사용자 정보 조회
+        user_info = get_user_info(current_user)
+        if not user_info:
             return jsonify({'success': False, 'message': '사용자 정보를 찾을 수 없습니다'}), 404
-        
-        user_info = test_users[current_user]
         username = user_info['username']
         full_name = user_info['full_name']
         
@@ -362,19 +388,12 @@ def get_inspection_requests(current_user):
         
         cursor = connection.cursor(dictionary=True)
         
-        # 실제 사용자 정보
-        test_users = {
-            1: {'username': 'a', 'full_name': 'Admin', 'permission_level': 5},
-            2: {'username': 'seojin', 'full_name': '서진', 'permission_level': 1},
-            3: {'username': 'sookang', 'full_name': '수강', 'permission_level': 1},
-            4: {'username': 'gyeongin', 'full_name': '경인', 'permission_level': 1},
-            5: {'username': 'dshi_hy', 'full_name': 'DSHI 현영', 'permission_level': 3}
-        }
-        
-        if current_user not in test_users:
+        # 사용자 정보 조회
+        user_info = get_user_info(current_user)
+        if not user_info:
             return jsonify({'success': False, 'message': '사용자 정보를 찾을 수 없습니다'}), 404
         
-        permission_level = test_users[current_user]['permission_level']
+        permission_level = user_info['permission_level']
         
         # Level별 쿼리 분기
         if permission_level == 1:
@@ -445,19 +464,10 @@ def get_inspection_requests(current_user):
 def approve_inspection_request(current_user, request_id):
     """검사신청 승인 (Level 3+ 전용)"""
     try:
-        # 실제 사용자 정보
-        test_users = {
-            1: {'username': 'a', 'full_name': 'Admin', 'permission_level': 5},
-            2: {'username': 'seojin', 'full_name': '서진', 'permission_level': 1},
-            3: {'username': 'sookang', 'full_name': '수강', 'permission_level': 1},
-            4: {'username': 'gyeongin', 'full_name': '경인', 'permission_level': 1},
-            5: {'username': 'dshi_hy', 'full_name': 'DSHI 현영', 'permission_level': 3}
-        }
-        
-        if current_user not in test_users:
+        # 사용자 정보 조회
+        user_info = get_user_info(current_user)
+        if not user_info:
             return jsonify({'success': False, 'message': '사용자 정보를 찾을 수 없습니다'}), 404
-        
-        user_info = test_users[current_user]
         permission_level = user_info['permission_level']
         
         # Level 3+ 권한 확인
@@ -510,19 +520,10 @@ def approve_inspection_request(current_user, request_id):
 def confirm_inspection_request(current_user, request_id):
     """검사신청 확정 (Level 3+ 전용) - assembly_items 테이블도 업데이트"""
     try:
-        # 실제 사용자 정보
-        test_users = {
-            1: {'username': 'a', 'full_name': 'Admin', 'permission_level': 5},
-            2: {'username': 'seojin', 'full_name': '서진', 'permission_level': 1},
-            3: {'username': 'sookang', 'full_name': '수강', 'permission_level': 1},
-            4: {'username': 'gyeongin', 'full_name': '경인', 'permission_level': 1},
-            5: {'username': 'dshi_hy', 'full_name': 'DSHI 현영', 'permission_level': 3}
-        }
-        
-        if current_user not in test_users:
+        # 사용자 정보 조회
+        user_info = get_user_info(current_user)
+        if not user_info:
             return jsonify({'success': False, 'message': '사용자 정보를 찾을 수 없습니다'}), 404
-        
-        user_info = test_users[current_user]
         permission_level = user_info['permission_level']
         
         # Level 3+ 권한 확인
@@ -613,19 +614,10 @@ def confirm_inspection_request(current_user, request_id):
 def cancel_inspection_request(current_user, request_id):
     """검사신청 취소 (권한별 제한)"""
     try:
-        # 실제 사용자 정보
-        test_users = {
-            1: {'username': 'a', 'full_name': 'Admin', 'permission_level': 5},
-            2: {'username': 'seojin', 'full_name': '서진', 'permission_level': 1},
-            3: {'username': 'sookang', 'full_name': '수강', 'permission_level': 1},
-            4: {'username': 'gyeongin', 'full_name': '경인', 'permission_level': 1},
-            5: {'username': 'dshi_hy', 'full_name': 'DSHI 현영', 'permission_level': 3}
-        }
-        
-        if current_user not in test_users:
+        # 사용자 정보 조회
+        user_info = get_user_info(current_user)
+        if not user_info:
             return jsonify({'success': False, 'message': '사용자 정보를 찾을 수 없습니다'}), 404
-        
-        user_info = test_users[current_user]
         permission_level = user_info['permission_level']
         
         connection = get_db_connection()
@@ -713,6 +705,296 @@ def cancel_inspection_request(current_user, request_id):
         
     except Exception as e:
         print(f"검사신청 취소 오류: {e}")
+        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
+
+def get_user_info(user_id):
+    """사용자 정보 조회 함수"""
+    connection = get_db_connection()
+    if not connection:
+        return None
+    
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id, username, full_name, permission_level, company FROM users WHERE id = %s", (user_id,))
+        user = cursor.fetchone()
+    except:
+        # company 컬럼이 없는 경우 기본 쿼리 사용
+        cursor.execute("SELECT id, username, full_name, permission_level FROM users WHERE id = %s", (user_id,))
+        user = cursor.fetchone()
+        if user:
+            user['company'] = ''
+    
+    cursor.close()
+    connection.close()
+    
+    return user
+
+def admin_required(f):
+    """Admin 권한 검증 데코레이터"""
+    @wraps(f)
+    def decorated(current_user, *args, **kwargs):
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT permission_level FROM users WHERE id = %s", (current_user,))
+        user = cursor.fetchone()
+        cursor.close()
+        connection.close()
+        
+        if not user or user['permission_level'] < 5:
+            return jsonify({'success': False, 'message': 'Admin 권한이 필요합니다'}), 403
+        
+        return f(current_user, *args, **kwargs)
+    return decorated
+
+@app.route('/api/admin/users', methods=['GET'])
+@token_required
+@admin_required
+def get_users(current_user):
+    """사용자 목록 조회 (Admin 전용)"""
+    try:
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute("""
+                SELECT id, username, full_name, permission_level, company, is_active, created_at
+                FROM users 
+                ORDER BY permission_level DESC, created_at DESC
+            """)
+        except:
+            # company 컬럼이 없는 경우
+            cursor.execute("""
+                SELECT id, username, full_name, permission_level, is_active, created_at
+                FROM users 
+                ORDER BY permission_level DESC, created_at DESC
+            """)
+        
+        users = cursor.fetchall()
+        cursor.close()
+        connection.close()
+        
+        # 날짜 포맷팅 및 company 기본값 설정
+        for user in users:
+            if user['created_at']:
+                user['created_at'] = user['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            if 'company' not in user:
+                user['company'] = ''
+        
+        return jsonify({
+            'success': True,
+            'users': users
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
+
+@app.route('/api/admin/users', methods=['POST'])
+@token_required
+@admin_required
+def create_user(current_user):
+    """새 사용자 생성 (Admin 전용)"""
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password', '1234')  # 기본 비밀번호
+        full_name = data.get('full_name')
+        permission_level = data.get('permission_level', 1)
+        company = data.get('company', '')
+        
+        # 비밀번호 해싱
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        
+        if not username or not full_name:
+            return jsonify({'success': False, 'message': '사용자명과 이름은 필수입니다'}), 400
+        
+        # 비밀번호 해시화
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor()
+        
+        # 중복 사용자명 확인
+        cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+        if cursor.fetchone():
+            return jsonify({'success': False, 'message': '이미 존재하는 사용자명입니다'}), 400
+        
+        # 사용자 생성
+        try:
+            cursor.execute("""
+                INSERT INTO users (username, password_hash, full_name, permission_level, company)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (username, password_hash, full_name, permission_level, company))
+        except:
+            # company 컬럼이 없는 경우
+            cursor.execute("""
+                INSERT INTO users (username, password_hash, full_name, permission_level)
+                VALUES (%s, %s, %s, %s)
+            """, (username, password_hash, full_name, permission_level))
+        
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'사용자 {username}이 생성되었습니다'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
+
+@app.route('/api/admin/users/<int:user_id>', methods=['PUT'])
+@token_required
+@admin_required
+def update_user(current_user, user_id):
+    """사용자 정보 수정 (Admin 전용)"""
+    try:
+        data = request.get_json()
+        full_name = data.get('full_name')
+        permission_level = data.get('permission_level')
+        company = data.get('company')
+        is_active = data.get('is_active')
+        password = data.get('password')
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor()
+        
+        # 사용자 존재 확인
+        cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+        user = cursor.fetchone()
+        if not user:
+            return jsonify({'success': False, 'message': '사용자를 찾을 수 없습니다'}), 404
+        
+        # 업데이트 필드 구성
+        update_fields = []
+        update_values = []
+        
+        if full_name is not None:
+            update_fields.append("full_name = %s")
+            update_values.append(full_name)
+        
+        if permission_level is not None:
+            update_fields.append("permission_level = %s")
+            update_values.append(permission_level)
+        
+        if password is not None:
+            update_fields.append("password_hash = %s")
+            password_hash = hashlib.sha256(password.encode()).hexdigest()
+            update_values.append(password_hash)
+        
+        if company is not None:
+            try:
+                # company 컬럼이 있는지 확인
+                cursor.execute("SHOW COLUMNS FROM users LIKE 'company'")
+                if cursor.fetchone():
+                    update_fields.append("company = %s")
+                    update_values.append(company)
+            except:
+                pass
+        
+        if is_active is not None:
+            update_fields.append("is_active = %s")
+            update_values.append(is_active)
+        
+        if not update_fields:
+            return jsonify({'success': False, 'message': '수정할 내용이 없습니다'}), 400
+        
+        # 업데이트 실행
+        update_query = f"UPDATE users SET {', '.join(update_fields)} WHERE id = %s"
+        update_values.append(user_id)
+        
+        cursor.execute(update_query, update_values)
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'사용자 정보가 수정되었습니다'
+        })
+        
+    except Exception as e:
+        print(f"사용자 수정 오류: {e}")
+        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
+
+@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+@token_required
+@admin_required
+def deactivate_user(current_user, user_id):
+    """사용자 비활성화 (Admin 전용)"""
+    try:
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # 사용자 존재 확인
+        cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+        user = cursor.fetchone()
+        if not user:
+            return jsonify({'success': False, 'message': '사용자를 찾을 수 없습니다'}), 404
+        
+        # 사용자 비활성화
+        cursor.execute("UPDATE users SET is_active = FALSE WHERE id = %s", (user_id,))
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'사용자 {user["username"]}이 비활성화되었습니다'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
+
+@app.route('/api/admin/users/<int:user_id>/delete-permanently', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_user_permanently(current_user, user_id):
+    """사용자 완전 삭제 (Admin 전용)"""
+    try:
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # 사용자 존재 확인
+        cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+        user = cursor.fetchone()
+        if not user:
+            return jsonify({'success': False, 'message': '사용자를 찾을 수 없습니다'}), 404
+        
+        # 자기 자신을 삭제하는 것을 방지
+        if user_id == current_user:
+            return jsonify({'success': False, 'message': '자기 자신을 삭제할 수 없습니다'}), 400
+        
+        # 사용자 완전 삭제
+        cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'사용자 {user["username"]}이 완전히 삭제되었습니다'
+        })
+        
+    except Exception as e:
+        print(f"사용자 삭제 오류: {e}")
         return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
 
 @app.route('/')

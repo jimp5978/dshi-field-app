@@ -58,11 +58,21 @@ class AssemblySearchScreen extends StatefulWidget {
   State<AssemblySearchScreen> createState() => _AssemblySearchScreenState();
 }
 
+enum SearchState {
+  initial,    // 초기 상태 (검색 전)
+  loading,    // 검색 중
+  success,    // 검색 성공 (결과 있음)
+  empty,      // 검색 성공 (결과 없음)
+  error       // 검색 실패 (서버 오류 등)
+}
+
 class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
   List<AssemblyItem> _searchResults = [];
   Set<int> _selectedItems = <int>{};
   List<AssemblyItem> _savedList = []; // 저장된 항목들
   bool _isLoading = false;
+  SearchState _searchState = SearchState.initial;
+  String _errorMessage = '';
   
   // 서버 URL (SharedPreferences에서 로드)
   String _serverUrl = 'http://203.251.108.199:5001';
@@ -102,6 +112,7 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
 
     setState(() {
       _isLoading = true;
+      _searchState = SearchState.loading;
     });
 
     try {
@@ -123,30 +134,192 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
             _selectedItems.clear();
             // 검색 후 입력창 자동 삭제
             _searchController.clear();
+            
+            // 상태 업데이트
+            if (_searchResults.isEmpty) {
+              _searchState = SearchState.empty;
+            } else {
+              _searchState = SearchState.success;
+              _showMessage('${_searchResults.length}개 결과를 찾았습니다');
+            }
           });
-          
-          _showMessage('${_searchResults.length}개 결과를 찾았습니다');
         } else {
-          _showMessage(data['message'] ?? '검색 실패');
           setState(() {
             _searchResults = [];
+            _searchState = SearchState.error;
+            _errorMessage = data['message'] ?? '검색 실패';
           });
         }
       } else {
-        _showMessage('서버 연결 오류: ${response.statusCode}');
         setState(() {
           _searchResults = [];
+          _searchState = SearchState.error;
+          _errorMessage = '서버 연결 오류: ${response.statusCode}';
         });
       }
     } catch (e) {
-      _showMessage('네트워크 오류: $e');
       setState(() {
         _searchResults = [];
+        _searchState = SearchState.error;
+        _errorMessage = '네트워크 오류: $e';
       });
     } finally {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  // 검색 결과를 상태별로 표시하는 함수
+  Widget _buildSearchResults() {
+    switch (_searchState) {
+      case SearchState.initial:
+        return const Center(
+          child: Text(
+            '입력창에 3자리 숫자를 입력하고\n검색을 누르세요',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        );
+      case SearchState.loading:
+        return const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text(
+                '검색 중...',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        );
+      case SearchState.success:
+        return ListView.builder(
+          itemCount: _searchResults.length,
+          itemBuilder: (context, index) {
+            final item = _searchResults[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: CheckboxListTile(
+                value: _selectedItems.contains(index),
+                onChanged: (bool? value) {
+                  setState(() {
+                    if (value == true) {
+                      _selectedItems.add(index);
+                    } else {
+                      _selectedItems.remove(index);
+                    }
+                  });
+                },
+                title: Text(
+                  item.assemblyNo,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '최종공정: ${item.lastProcess}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    Text(
+                      '완료일자: ${item.completedDate}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ],
+                ),
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+            );
+          },
+        );
+      case SearchState.empty:
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.search_off,
+                size: 64,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '검색 결과가 없습니다',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '다른 검색어를 시도해보세요',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        );
+      case SearchState.error:
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Colors.red[400],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '검색 중 오류가 발생했습니다',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _searchState = SearchState.initial;
+                    _errorMessage = '';
+                  });
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('다시 시도'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        );
     }
   }
 
@@ -335,59 +508,7 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
             
             // 검색 결과 리스트 영역
             Expanded(
-              child: _searchResults.isEmpty
-                  ? const Center(
-                      child: Text(
-                        '입력창에 3자리 숫자를 입력하고\n검색을 누르세요',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: _searchResults.length,
-                      itemBuilder: (context, index) {
-                        final item = _searchResults[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: CheckboxListTile(
-                            value: _selectedItems.contains(index),
-                            onChanged: (bool? value) {
-                              setState(() {
-                                if (value == true) {
-                                  _selectedItems.add(index);
-                                } else {
-                                  _selectedItems.remove(index);
-                                }
-                              });
-                            },
-                            title: Text(
-                              item.assemblyNo,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '최종공정: ${item.lastProcess}',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                Text(
-                                  '완료일자: ${item.completedDate}',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                              ],
-                            ),
-                            controlAffinity: ListTileControlAffinity.leading,
-                          ),
-                        );
-                      },
-                    ),
+              child: _buildSearchResults(),
             ),
             
             const SizedBox(height: 20),

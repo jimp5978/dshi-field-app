@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'main.dart';
+import 'admin_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,9 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _serverUrlController = TextEditingController();
   bool _isLoading = false;
-  bool _showServerSettings = false;
   bool _rememberCredentials = false;
 
   // Flask 서버 URL (실제 IP 주소 사용)
@@ -29,14 +28,12 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _loadServerUrl();
     _loadSavedCredentials();
-    _serverUrlController.text = _serverUrl;
   }
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
-    _serverUrlController.dispose();
     super.dispose();
   }
   
@@ -45,15 +42,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _serverUrl = prefs.getString('server_url') ?? 'http://203.251.108.199:5001';
-      _serverUrlController.text = _serverUrl;
     });
   }
   
-  // 서버 URL 저장
-  Future<void> _saveServerUrl() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('server_url', _serverUrl);
-  }
   
   // 저장된 아이디/비밀번호 로드
   Future<void> _loadSavedCredentials() async {
@@ -67,15 +58,6 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
   
-  // 서버 URL 유효성 검사
-  bool _isValidServerUrl(String url) {
-    try {
-      final uri = Uri.parse(url);
-      return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https') && uri.hasAuthority;
-    } catch (e) {
-      return false;
-    }
-  }
   
   // 아이디/비밀번호 저장
   Future<void> _saveCredentials() async {
@@ -92,12 +74,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // 권한 레벨별 화면 이동
   void _navigateToMainScreen(Map<String, dynamic> user) {
-    // AssemblySearchScreen에서 레벨별 화면 분기 처리
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => AssemblySearchScreen(userInfo: user),
-      ),
-    );
+    if (user['permission_level'] >= 5) {
+      // Admin은 관리 화면으로
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => AdminDashboardScreen(userInfo: user),
+        ),
+      );
+    } else {
+      // 일반 사용자는 기존 화면으로
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => AssemblySearchScreen(userInfo: user),
+        ),
+      );
+    }
   }
 
   // SHA256 해싱 함수
@@ -107,30 +98,6 @@ class _LoginScreenState extends State<LoginScreen> {
     return digest.toString();
   }
 
-  // Flask 서버 연결 테스트
-  Future<void> _testServerConnection() async {
-    try {
-      final url = Uri.parse('$_serverUrl/');
-      final response = await http.get(url);
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        print('서버 연결 성공: ${data['message']}');
-        
-        if (mounted) {
-          _showMessage('서버 연결 성공: ${data['message']}');
-        }
-      } else {
-        print('서버 연결 실패: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('서버 연결 오류: $e');
-      
-      if (mounted) {
-        _showMessage('서버 연결 오류: $e');
-      }
-    }
-  }
   Future<Map<String, dynamic>> _callLoginAPI(String username, String passwordHash) async {
     final url = Uri.parse('$_serverUrl/api/login');
     
@@ -379,72 +346,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 
                 const SizedBox(height: 16),
                 
-                // 서버 설정 버튼
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _showServerSettings = !_showServerSettings;
-                    });
-                  },
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(_showServerSettings ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
-                      const SizedBox(width: 4),
-                      const Text('서버 설정'),
-                    ],
-                  ),
-                ),
-                
-                // 서버 URL 입력 필드 (접을 수 있음)
-                if (_showServerSettings) ...[
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _serverUrlController,
-                    decoration: const InputDecoration(
-                      labelText: '서버 주소',
-                      prefixIcon: Icon(Icons.dns),
-                      border: OutlineInputBorder(),
-                      filled: true,
-                      fillColor: Colors.white,
-                      hintText: 'http://203.251.108.199:5001',
-                    ),
-                    onChanged: (value) {
-                      if (_isValidServerUrl(value) || value.isEmpty) {
-                        _serverUrl = value;
-                        _saveServerUrl();
-                      }
-                    },
-                    validator: (value) {
-                      if (value != null && value.isNotEmpty && !_isValidServerUrl(value)) {
-                        return '올바른 서버 주소를 입력하세요 (예: http://192.168.1.100:5001)';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '현재 서버: $_serverUrl',
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: _testServerConnection,
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.wifi_find, size: 16),
-                            SizedBox(width: 4),
-                            Text('연결 테스트', style: TextStyle(fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
                 
                 const SizedBox(height: 16),
                 
@@ -470,33 +371,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 
                 const SizedBox(height: 24),
                 
-                // 테스트 계정 안내
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue[200]!),
-                  ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '사용자 계정:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text('a / a (Admin - Level 5)'),
-                      Text('seojin / 1234 (Level 1 - 외부업체)'),
-                      Text('sookang / 1234 (Level 1 - 외부업체)'),
-                      Text('gyeongin / 1234 (Level 1 - 외부업체)'),
-                      Text('dshi_hy / 1234 (Level 3 - DSHI 현장직원)'),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),

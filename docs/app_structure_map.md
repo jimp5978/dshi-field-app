@@ -1,7 +1,7 @@
 # DSHI Field Pad 앱 상세 파일 구조 맵
 
 > 📅 **업데이트**: 2025-07-16  
-> 🎯 **상태**: 공인 IP 외부 접속 설정 완료 - APK 빌드 및 실제 배포 가능
+> 🎯 **상태**: Admin Dashboard 완전 구현 - 데이터베이스 기반 사용자 관리 시스템 완료
 
 ## 🗂️ 전체 파일 구조
 
@@ -54,7 +54,7 @@ main.dart
         └── Level 3+: 전체 조회, 신청자/공정별 필터링, 3단계 상태 관리
 ```
 
-#### 📄 **login_screen.dart** ⭐ (로그인 전용 - 500+ 줄)
+#### 📄 **login_screen.dart** ⭐ (로그인 전용 - 400+ 줄)
 ```
 login_screen.dart
 ├── 🔐 LoginScreen
@@ -62,20 +62,39 @@ login_screen.dart
 │   │   ├── _hashPassword() → SHA256 패스워드 해싱
 │   │   ├── _callLoginAPI() → HTTP POST /api/login
 │   │   └── SharedPreferences에 JWT 토큰 저장
-│   ├── _testServerConnection() → 서버 연결 테스트
-│   ├── _navigateToMainScreen() → 로그인 성공 후 화면 이동
+│   ├── _navigateToMainScreen() → 권한별 화면 이동 (Level 5+ → AdminDashboard)
 │   ├── _loadServerUrl() → 저장된 서버 URL 로드
-│   ├── _saveServerUrl() → 서버 URL 저장
-│   ├── _isValidServerUrl() → 서버 URL 유효성 검사
+│   ├── _loadSavedCredentials() → 저장된 계정 정보 로드
+│   ├── _saveCredentials() → 계정 정보 저장 (기억하기 기능)
 │   ├── _showMessage() → 상단 메시지 표시 (통일된 UI)
 │   └── UI 구성:
 │       ├── 아이디/비밀번호 입력폼 (기억하기 기능)
 │       ├── 로그인 버튼
-│       ├── 서버 설정 (접을 수 있는 UI)
-│       │   ├── 서버 URL 입력 필드 (유효성 검사)
-│       │   ├── 현재 서버 주소 표시
-│       │   └── 연결 테스트 버튼
-│       └── 테스트 계정 안내 (a/a, seojin/1234, 등)
+│       └── 깔끔한 로그인 UI (서버 설정 및 테스트 계정 정보 제거)
+```
+
+#### 📄 **admin_dashboard_screen.dart** ⭐ (관리자 전용 - 800+ 줄)
+```
+admin_dashboard_screen.dart
+├── 🔧 AdminDashboardScreen (Level 5+ 전용)
+│   ├── _loadUsers() → HTTP GET /api/admin/users (사용자 목록 조회)
+│   ├── _createUser() → HTTP POST /api/admin/users (사용자 생성)
+│   ├── _updateUser() → HTTP PUT /api/admin/users/{id} (사용자 수정)
+│   ├── _deleteUserPermanently() → HTTP DELETE /api/admin/users/{id}/delete-permanently
+│   ├── _toggleUserStatus() → 사용자 활성화/비활성화 토글
+│   ├── _testServerConnection() → 서버 연결 테스트
+│   ├── _logout() → 안전한 로그아웃 (토큰 제거)
+│   └── UI 구성:
+│       ├── 관리자 정보 표시
+│       ├── 서버 설정 (Admin 전용)
+│       │   ├── 서버 URL 입력 및 저장
+│       │   └── 연결 테스트 기능
+│       └── 사용자 관리 시스템:
+│           ├── 사용자 목록 (권한별 색상 구분)
+│           ├── 사용자 생성 다이얼로그 (ID, PW, 이름, 회사, 권한)
+│           ├── 사용자 수정 다이얼로그 (PW 변경 옵션)
+│           ├── 완전 삭제 (되돌릴 수 없음 경고)
+│           └── 활성화/비활성화 토글
 ```
 
 #### 📄 **pubspec.yaml** (패키지 의존성)
@@ -212,10 +231,15 @@ MySQL Tables:
 숫자 입력 (예: 201)
 → main.dart:_onNumberPressed() → _assemblyCode 상태 업데이트
 → 검색 버튼 클릭
-→ main.dart:_onSearchPressed() → HTTP GET /api/assemblies?search=201
+→ main.dart:_onSearchPressed() → _searchState = SearchState.loading
+→ 로딩 인디케이터 표시 (CircularProgressIndicator + "검색 중...")
+→ HTTP GET /api/assemblies?search=201
 → flask_server.py: RIGHT(assembly_code, 3) = '201' 쿼리
 → 7단계 공정 상태 분석 (완료/진행중/대기)
-→ JSON 반환 → main.dart에서 리스트 표시
+→ JSON 반환 → 상태별 UI 표시:
+  ├── 성공 (결과 있음): 검색 결과 리스트
+  ├── 빈 결과: "검색 결과가 없습니다" + 재시도 안내
+  └── 에러: 에러 메시지 + "다시 시도" 버튼
 ```
 
 ### 3️⃣ **검사신청 플로우**
@@ -252,7 +276,7 @@ MySQL Tables:
 
 | 메소드 | 엔드포인트 | 인증 | 기능 | 사용 화면 |
 |--------|------------|------|------|-----------|
-| POST | `/api/login` | ❌ | 로그인 인증, JWT 토큰 발급 | login_screen.dart |
+| POST | `/api/login` | ❌ | 데이터베이스 기반 로그인 인증, JWT 토큰 발급 | login_screen.dart |
 | GET | `/api/assemblies?search=XXX` | ❌ | ASSEMBLY 검색 (끝 3자리) | main.dart |
 | POST | `/api/inspection-requests` | ✅ | 검사신청 생성 (배치, 선착순 중복 체크) | main.dart |
 | GET | `/api/inspection-requests?date=YYYY-MM-DD&requester=NAME&process_type=TYPE` | ✅ | 검사신청 조회 (레벨별, 다중 필터) | main.dart |
@@ -260,18 +284,30 @@ MySQL Tables:
 | PUT | `/api/inspection-requests/{id}/approve` | ✅ | 검사신청 승인 (Level 3+) | main.dart |
 | PUT | `/api/inspection-requests/{id}/confirm` | ✅ | 검사신청 확정 (Level 3+, assembly_items 연동) | main.dart |
 | DELETE | `/api/inspection-requests/{id}` | ✅ | 검사신청 취소 (Level별 권한, 확정된 항목 롤백) | main.dart |
+| GET | `/api/admin/users` | ✅ | 사용자 목록 조회 (Level 5+) | admin_dashboard_screen.dart |
+| POST | `/api/admin/users` | ✅ | 사용자 생성 (Level 5+) | admin_dashboard_screen.dart |
+| PUT | `/api/admin/users/{id}` | ✅ | 사용자 정보 수정 (Level 5+) | admin_dashboard_screen.dart |
+| DELETE | `/api/admin/users/{id}` | ✅ | 사용자 비활성화 (Level 5+) | admin_dashboard_screen.dart |
+| DELETE | `/api/admin/users/{id}/delete-permanently` | ✅ | 사용자 완전 삭제 (Level 5+) | admin_dashboard_screen.dart |
 
 ---
 
 ## 👥 **사용자 권한 시스템**
 
-### **테스트 계정**
-| 레벨 | 계정 | 권한 | 기능 |
-|------|------|------|------|
-| Admin | a/a | 전체 | 모든 기능 사용 |
-| Level 1 | seojin/1234, sookang/1234, gyeongin/1234 | 외부업체 | 검색, LIST UP, 검사신청, 본인 신청만 확인, 대기중 상태만 취소 |
-| Level 3 | dshi_hy/1234 | DSHI 현장직원 | Level 1 + 전체 검사신청 관리, 3단계 워크플로우, 신청자/공정별 필터링, 모든 상태 취소 |
-| Level 5 | a/a | DSHI 시스템관리자 | Level 3 + 관리자 기능 |
+### **계정 관리 시스템**
+| 레벨 | 권한 | 기능 |
+|------|------|------|
+| Level 1 | 외부업체 | 검색, LIST UP, 검사신청, 본인 신청만 확인, 대기중 상태만 취소 |
+| Level 3 | DSHI 현장직원 | Level 1 + 전체 검사신청 관리, 3단계 워크플로우, 신청자/공정별 필터링, 모든 상태 취소 |
+| Level 5 | DSHI 시스템관리자 | Level 3 + Admin Dashboard, 사용자 관리, 서버 설정 |
+
+### **사용자 관리 특징**
+- 📊 **데이터베이스 기반**: 모든 계정은 MySQL `users` 테이블에서 관리
+- 🔧 **동적 생성**: Admin Dashboard에서 실시간 사용자 생성/수정/삭제
+- 🔐 **비밀번호 관리**: 생성/수정 시 사용자 정의 비밀번호 설정
+- 🎯 **권한 제어**: Level 5 이상만 사용자 관리 접근 가능
+- ⚡ **실시간 반영**: 변경사항 즉시 로그인 시스템에 반영
+- 🛡️ **보안 강화**: 하드코딩된 계정 정보 완전 제거
 
 ---
 
@@ -319,13 +355,15 @@ DSHI_RPA/APP/
 ├── 📱 dshi_field_app/ (Flutter 앱)
 │   ├── lib/
 │   │   ├── main.dart ⭐
-│   │   └── login_screen.dart ⭐
+│   │   ├── login_screen.dart ⭐
+│   │   └── admin_dashboard_screen.dart ⭐ (신규)
 │   ├── pubspec.yaml
 │   └── android/app/src/main/AndroidManifest.xml
 ├── 🔧 flask_server.py ⭐
 ├── ⚙️ config_env.py ⭐
 ├── 📊 import_data.py
 ├── 📄 assembly_data.xlsx
+├── 📄 create_users_table.sql ⭐ (신규)
 ├── 📖 README.md
 └── 📚 docs/
     ├── development_r0.md
@@ -381,12 +419,15 @@ flutter build apk --release --split-per-abi
 ## 📝 **주요 특징**
 
 ### ✅ **구현 완료된 기능**
-- 🔐 JWT 토큰 기반 인증 시스템
-- 🔍 ASSEMBLY 검색 (끝 3자리 번호)
-- 📋 LIST UP 시스템 (다중 선택, 저장, 중복 제거)
-- 📅 검사신청 (날짜별, 공정별, 선착순 중복 체크)
-- 📊 검사신청 확인 (레벨별 권한, 실시간 업데이트)
-- 🎯 Level 3+ 고급 관리 기능:
+- 🔐 **JWT 토큰 기반 인증 시스템** (100% 데이터베이스 기반)
+- 🔍 **ASSEMBLY 검색** (끝 3자리 번호, 상태별 피드백)
+  - 🔄 검색 상태 관리 (초기/로딩/성공/빈결과/에러)
+  - ⏳ 단순한 로딩 인디케이터 (CircularProgressIndicator)
+  - ❌ 에러 메시지 및 재시도 기능
+- 📋 **LIST UP 시스템** (다중 선택, 저장, 중복 제거)
+- 📅 **검사신청** (날짜별, 공정별, 선착순 중복 체크)
+- 📊 **검사신청 확인** (레벨별 권한, 실시간 업데이트)
+- 🎯 **Level 3+ 고급 관리 기능**:
   - 👥 신청자별 필터링 (드롭다운)
   - 🔧 공정별 필터링 (NDE, VIDI, GALV, SHOT, PAINT, PACKING)
   - ☑️ 전체 선택/해제 기능
@@ -394,14 +435,28 @@ flutter build apk --release --split-per-abi
   - ✅ 승인 기능 (대기중 → 승인됨)
   - 🔵 확정 기능 (승인됨 → 확정됨, assembly_items 연동)
   - ❌ 모든 상태 취소 가능 (확정된 항목 롤백 포함)
+- 🔧 **Admin Dashboard** (Level 5+ 전용):
+  - 👥 완전한 사용자 관리 (생성/수정/삭제/비활성화)
+  - 🔐 비밀번호 관리 (생성 시 설정, 수정 시 변경 가능)
+  - 🎯 권한별 색상 구분 및 동적 레벨 관리
+  - ⚙️ 서버 설정 (Admin 전용으로 이동)
+  - 🗑️ 완전 삭제 기능 (되돌릴 수 없음 경고)
+  - 🔄 실시간 반영 (변경사항 즉시 로그인에 적용)
+- 🛡️ **보안 강화**:
+  - 하드코딩된 계정 정보 완전 제거
+  - 서버 설정 일반 사용자 접근 차단
+  - 자기 자신 삭제 방지
+- 🎨 **UI/UX 개선**:
+  - 깔끔한 로그인 화면 (불필요한 정보 제거)
+  - 안전한 로그아웃 기능
+  - 일관된 메시지 시스템
+  - 검색 상태별 적절한 피드백
 - 🌐 **외부 접속 지원**: 공인 IP + 포트포워딩으로 어디서든 접속 가능
 - 📱 **실제 배포 완료**: APK 빌드 및 스마트폰 설치 가능
-- ⚙️ **동적 서버 구성**: 로그인 화면에서 서버 URL 변경 가능, 자동 저장/복원
-- 📱 **일관된 UI**: 모든 화면에서 통일된 상단 메시지 표시
 - ⌨️ **향상된 키패드 UX**: 검색 버튼 지원 + 연속 검색을 위한 키패드 유지
-- 🔄 실시간 데이터 동기화
-- 🛡️ 트랜잭션 기반 데이터 무결성
-- 📱 한국어 지원, 태블릿 최적화 UI
+- 🔄 **실시간 데이터 동기화**
+- 🛡️ **트랜잭션 기반 데이터 무결성**
+- 📱 **한국어 지원, 태블릿 최적화 UI**
 
 ### 🚧 **향후 구현 예정**
 - 📄 PDF 도면 연동 (Level 3+)
@@ -412,46 +467,62 @@ flutter build apk --release --split-per-abi
 
 ## 🚀 **2025-07-16 주요 업데이트**
 
-### **외부 접속 설정 완료**
-- ✅ **공인 IP 확인**: 203.251.108.199
-- ✅ **라우터 포트포워딩**: 5001 포트 → 192.168.0.5:5001
-- ✅ **Flask 서버 루트 경로 추가**: `/` 핸들러 구현
-- ✅ **외부 접속 테스트**: 모바일 데이터에서 정상 접속 확인
+### **Admin Dashboard 완전 구현**
+- ✅ **admin_dashboard_screen.dart**: Level 5+ 전용 관리자 화면 신규 추가
+  - 사용자 생성/수정/삭제/비활성화 완전 구현
+  - 비밀번호 관리 (생성 시 설정, 수정 시 변경 가능)
+  - 권한별 색상 구분 (Level 1-5)
+  - 완전 삭제 기능 (되돌릴 수 없음 경고)
+  - 서버 설정 관리 (일반 사용자 접근 차단)
+- ✅ **Flask 서버 Admin API**: `/api/admin/*` 엔드포인트 구현
+  - GET/POST/PUT/DELETE 사용자 관리
+  - 권한 기반 접근 제어 (Level 5+ 전용)
+  - 완전 삭제 별도 엔드포인트
 
-### **동적 서버 URL 구성 완료**
-- ✅ **login_screen.dart**: 동적 서버 URL 설정 UI 추가
-  - 접을 수 있는 서버 설정 섹션
-  - URL 유효성 검사 (http/https 프로토콜 확인)
-  - 실시간 저장 및 로드
-  - 연결 테스트 버튼
-- ✅ **main.dart**: 모든 화면에서 SharedPreferences 서버 URL 로드
-- ✅ **SharedPreferences 통합**: 앱 재시작 후에도 설정 유지
+### **데이터베이스 기반 사용자 관리 완료**
+- ✅ **하드코딩 제거**: 모든 하드코딩된 사용자 정보 완전 삭제
+- ✅ **get_user_info() 함수**: 통합된 사용자 정보 조회 시스템
+- ✅ **create_users_table.sql**: 사용자 테이블 생성 스크립트
+- ✅ **실시간 반영**: Admin Dashboard 변경사항 즉시 로그인에 적용
+- ✅ **MySQL users 테이블**: company 컬럼 추가 및 스키마 완성
 
-### **UI/UX 개선 완료**
-- ✅ **통일된 메시지 시스템**: 모든 SnackBar를 상단 메시지로 통일
-  - 로그인 성공/실패 메시지
-  - 서버 연결 테스트 메시지
-  - LIST UP 저장 메시지
-  - 검사신청 관련 모든 메시지
-- ✅ **키패드 UX 개선**: 
-  - 완료 버튼 → 검색 버튼 변경
-  - 검색 후 키패드 유지 (연속 검색 지원)
-  - 안내 문구 "완료를 누르세요" → "검색을 누르세요"
-- ✅ **FocusNode 기반 포커스 관리**: 검색 후 자동 포커스 유지
+### **UI/UX 보안 강화**
+- ✅ **로그인 화면 정리**: 
+  - 서버 설정 UI 제거 (Admin 전용으로 이동)
+  - 테스트 계정 정보 제거 (보안 강화)
+  - 깔끔한 로그인 인터페이스
+- ✅ **로그아웃 기능 수정**: 
+  - 토큰 완전 제거
+  - 안전한 화면 전환
+  - 에러 처리 개선
+- ✅ **사용자 경험 개선**:
+  - "사용자명" → "ID", "비밀번호" → "PW" 라벨 변경
+  - 동적 권한 레벨 처리 (DropdownButton 에러 해결)
+  - 상태별 적절한 피드백 메시지
 
-### **APK 빌드 성공**
-- ✅ **32비트 ARM**: app-armeabi-v7a-release.apk (7.8MB)
-- ✅ **64비트 ARM**: app-arm64-v8a-release.apk (8.3MB)  
-- ✅ **x86**: app-x86_64-release.apk (8.4MB)
-- ✅ **위치**: `E:\DSHI_RPA\APP\dshi_field_app\build\app\outputs\flutter-apk\`
+### **검색 기능 개선**
+- ✅ **검색 상태 관리**: SearchState enum 도입
+  - 초기/로딩/성공/빈결과/에러 5단계 상태
+  - 상태별 적절한 UI 표시
+- ✅ **로딩 인디케이터**: 단순한 CircularProgressIndicator + "검색 중..."
+- ✅ **에러 처리**: 
+  - 서버 연결 오류, 네트워크 오류 구분
+  - "검색 결과가 없습니다" 메시지
+  - "다시 시도" 버튼으로 복구 지원
 
-### **완전한 배포 환경 구축**
-- 🎯 **유연한 네트워크 지원**: 공인 IP, 로컬 네트워크, 개발 환경 모두 지원
-- 🎯 **사용자 편의성**: 앱에서 직접 서버 주소 변경 가능
-- 🎯 **실제 현장 배포**: 스마트폰 직접 설치 및 사용 가능
-- 🎯 **네트워크 독립성**: ngrok 등 외부 서비스 불필요
+### **버그 수정**
+- ✅ **검사신청 확인 404 오류**: 하드코딩 제거 누락 수정
+- ✅ **사용자 수정 다이얼로그**: switch 표현식 호환성 문제 해결
+- ✅ **모든 API 일관성**: 데이터베이스 기반 통합 사용자 정보 사용
+
+### **보안 및 권한 개선**
+- 🔐 **완전한 권한 분리**: 
+  - Level 1-3: 일반 사용자 기능
+  - Level 5+: Admin Dashboard 접근
+- 🛡️ **자기 보호**: 자기 자신 삭제 방지
+- 🔒 **데이터 무결성**: 트랜잭션 기반 안전한 데이터 처리
 
 ---
 
 *📅 최종 업데이트: 2025-07-16*  
-*🎯 상태: UI/UX 개선 완료 - 사용자 경험 최적화*
+*🎯 상태: Admin Dashboard 완전 구현 - 데이터베이스 기반 사용자 관리 시스템 완료*
