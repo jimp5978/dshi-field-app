@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,6 +7,14 @@ import 'dart:convert';
 import 'login_screen.dart';
 
 void main() {
+  // 화면 회전 허용 설정
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
   runApp(const DSHIFieldApp());
 }
 
@@ -50,7 +59,6 @@ class AssemblySearchScreen extends StatefulWidget {
 }
 
 class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
-  String _assemblyCode = '';
   List<AssemblyItem> _searchResults = [];
   Set<int> _selectedItems = <int>{};
   List<AssemblyItem> _savedList = []; // 저장된 항목들
@@ -73,32 +81,21 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
     });
   }
 
-  // 숫자 키패드 버튼 클릭 처리
-  void _onNumberPressed(String number) {
-    setState(() {
-      _assemblyCode += number;
-    });
-  }
+  // 검색 컨트롤러 추가
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
-  // 백스페이스 처리
-  void _onBackspacePressed() {
-    setState(() {
-      if (_assemblyCode.isNotEmpty) {
-        _assemblyCode = _assemblyCode.substring(0, _assemblyCode.length - 1);
-      }
-    });
-  }
-
-  // 전체 삭제 (DEL)
-  void _onDeletePressed() {
-    setState(() {
-      _assemblyCode = '';
-    });
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   // 실제 서버 API 호출
   Future<void> _onSearchPressed() async {
-    if (_assemblyCode.isEmpty) {
+    String searchText = _searchController.text.trim();
+    if (searchText.isEmpty) {
       _showMessage('검색어를 입력하세요');
       return;
     }
@@ -108,7 +105,7 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
     });
 
     try {
-      final url = Uri.parse('$_serverUrl/api/assemblies?search=$_assemblyCode');
+      final url = Uri.parse('$_serverUrl/api/assemblies?search=$searchText');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -125,7 +122,7 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
             )).toList();
             _selectedItems.clear();
             // 검색 후 입력창 자동 삭제
-            _assemblyCode = '';
+            _searchController.clear();
           });
           
           _showMessage('${_searchResults.length}개 결과를 찾았습니다');
@@ -159,6 +156,12 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
       SnackBar(
         content: Text(message),
         duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).size.height - 150,
+          right: 20,
+          left: 20,
+        ),
       ),
     );
   }
@@ -224,13 +227,7 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
         _selectedItems.clear();
       });
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${selectedAssemblies.length}개 항목이 리스트에 저장되었습니다'),
-          duration: const Duration(seconds: 2),
-          backgroundColor: Colors.green,
-        ),
-      );
+      _showMessage('${selectedAssemblies.length}개 항목이 리스트에 저장되었습니다');
     }
   }
 
@@ -255,231 +252,164 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // 상단 영역 (LIST 버튼, 타이틀, 검사신청 확인 버튼)
+            // 상단 버튼 영역 (LIST, 검사신청확인)
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // LIST 버튼
-                ElevatedButton(
-                  onPressed: _showSavedList,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    minimumSize: const Size(100, 48),
-                  ),
-                  child: Text(
-                    'LIST (${_savedList.length})',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                // 타이틀
-                const Text(
-                  'ASSEMBLY 검색',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _showSavedList,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      minimumSize: const Size(0, 48),
+                    ),
+                    child: Text(
+                      'LIST (${_savedList.length})',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
+                const SizedBox(width: 16),
                 // 검사신청 확인 버튼
-                ElevatedButton(
-                  onPressed: _showInspectionRequests,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    minimumSize: const Size(100, 48),
-                  ),
-                  child: const Text(
-                    '검사신청 확인',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _showInspectionRequests,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      minimumSize: const Size(0, 48),
+                    ),
+                    child: const Text(
+                      '검사신청 확인',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ],
             ),
+            
             const SizedBox(height: 20),
             
-            // 메인 컨텐츠 영역 (가로 배치)
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 왼쪽: 검색 결과 + LIST UP 버튼
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      children: [
-                        // 검색 결과 리스트 (크기 증가, 테두리 제거)
-                        Container(
-                          height: 500, // 400 → 500으로 증가
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: Colors.transparent, // 배경색 투명
-                          ),
-                          child: _searchResults.isEmpty
-                              ? const Center(
-                                  child: Text(
-                                    '검색 결과가 없습니다',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                )
-                              : ListView.builder(
-                                  padding: const EdgeInsets.all(8),
-                                  itemCount: _searchResults.length,
-                                  itemBuilder: (context, index) {
-                                    final item = _searchResults[index];
-                                    return Card(
-                                      margin: const EdgeInsets.only(bottom: 8),
-                                      child: CheckboxListTile(
-                                        value: _selectedItems.contains(index),
-                                        onChanged: (bool? value) {
-                                          setState(() {
-                                            if (value == true) {
-                                              _selectedItems.add(index);
-                                            } else {
-                                              _selectedItems.remove(index);
-                                            }
-                                          });
-                                        },
-                                        title: Text(
-                                          item.assemblyNo,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        subtitle: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text('최종공정: ${item.lastProcess}'),
-                                            Text('완료일자: ${item.completedDate}'),
-                                          ],
-                                        ),
-                                        controlAffinity: ListTileControlAffinity.leading,
-                                      ),
-                                    );
-                                  },
-                                ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  const SizedBox(width: 20),
-                  
-                  // 오른쪽: 키패드 + 검색 버튼
-                  Expanded(
-                    flex: 1,
-                    child: Column(
-                      children: [
-                        // 입력 표시창 (폰트 크기 증가)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.blue, width: 2),
-                            borderRadius: BorderRadius.circular(8),
-                            color: Colors.grey[100],
-                          ),
-                          child: Text(
-                            _assemblyCode.isEmpty ? 'ASSEMBLY 코드' : _assemblyCode,
-                            style: TextStyle(
-                              fontSize: 24, // 18 → 24로 증가
-                              color: _assemblyCode.isEmpty ? Colors.grey : Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 16), // 입력창과 키패드 사이 여백
-                        
-                        // 숫자 키패드 (여백 제거, 박스 제거)
-                        Expanded(
-                          child: GridView.count(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 6,
-                            mainAxisSpacing: 6,
-                            childAspectRatio: 1.4,
-                            children: [
-                              // 첫 번째 행: 1, 2, 3
-                              _buildNumberButton('1'),
-                              _buildNumberButton('2'),
-                              _buildNumberButton('3'),
-                              // 두 번째 행: 4, 5, 6
-                              _buildNumberButton('4'),
-                              _buildNumberButton('5'),
-                              _buildNumberButton('6'),
-                              // 세 번째 행: 7, 8, 9
-                              _buildNumberButton('7'),
-                              _buildNumberButton('8'),
-                              _buildNumberButton('9'),
-                              // 네 번째 행: DEL, 0, ←
-                              _buildDeleteButton(),
-                              _buildNumberButton('0'),
-                              _buildBackspaceButton(),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+            // 검색 입력창 (안드로이드 기본 키패드 사용)
+            TextField(
+              controller: _searchController,
+              focusNode: _searchFocusNode,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              textInputAction: TextInputAction.search,
+              onSubmitted: (value) {
+                _onSearchPressed();
+                // 검색 후 키패드 유지를 위해 포커스 유지
+                Future.delayed(const Duration(milliseconds: 50), () {
+                  _searchFocusNode.requestFocus();
+                });
+              },
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+              decoration: InputDecoration(
+                hintText: 'ASSEMBLY 코드 입력',
+                hintStyle: const TextStyle(
+                  fontSize: 20,
+                  color: Colors.grey,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.blue, width: 3),
+                ),
+                filled: true,
+                fillColor: Colors.grey[100],
+                contentPadding: const EdgeInsets.all(20),
               ),
             ),
             
-            // 하단 버튼들 (같은 라인에 배치)
-            Row(
-              children: [
-                // LIST UP 버튼
-                Expanded(
-                  flex: 2,
-                  child: SizedBox(
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _onListUpPressed,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+            const SizedBox(height: 20),
+            
+            // 검색 결과 리스트 영역
+            Expanded(
+              child: _searchResults.isEmpty
+                  ? const Center(
+                      child: Text(
+                        '입력창에 3자리 숫자를 입력하고\n검색을 누르세요',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey,
                         ),
+                        textAlign: TextAlign.center,
                       ),
-                      child: const Text(
-                        'LIST UP',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _searchResults.length,
+                      itemBuilder: (context, index) {
+                        final item = _searchResults[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: CheckboxListTile(
+                            value: _selectedItems.contains(index),
+                            onChanged: (bool? value) {
+                              setState(() {
+                                if (value == true) {
+                                  _selectedItems.add(index);
+                                } else {
+                                  _selectedItems.remove(index);
+                                }
+                              });
+                            },
+                            title: Text(
+                              item.assemblyNo,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '최종공정: ${item.lastProcess}',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                                Text(
+                                  '완료일자: ${item.completedDate}',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                              ],
+                            ),
+                            controlAffinity: ListTileControlAffinity.leading,
+                          ),
+                        );
+                      },
                     ),
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // 하단 LIST UP 버튼
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: _onListUpPressed,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                const SizedBox(width: 20),
-                // 검색 버튼
-                Expanded(
-                  flex: 1,
-                  child: SizedBox(
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _onSearchPressed,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        '검색',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
+                child: const Text(
+                  'LIST UP',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -487,60 +417,6 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
     );
   }
 
-  // 숫자 버튼 위젯 (폰트 크기 2배 증가)
-  Widget _buildNumberButton(String number) {
-    return ElevatedButton(
-      onPressed: () => _onNumberPressed(number),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: const BorderSide(color: Colors.grey),
-        ),
-      ),
-      child: Text(
-        number,
-        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  // DEL 버튼
-  Widget _buildDeleteButton() {
-    return ElevatedButton(
-      onPressed: _onDeletePressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.red[100],
-        foregroundColor: Colors.red,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-      child: const Text(
-        'DEL',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  // 백스페이스 버튼
-  Widget _buildBackspaceButton() {
-    return ElevatedButton(
-      onPressed: _onBackspacePressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.orange[100],
-        foregroundColor: Colors.orange,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-      child: const Icon(
-        Icons.backspace,
-        size: 28,
-      ),
-    );
-  }
 }
 
 // 저장된 리스트 화면 (새로운 페이지)
@@ -892,6 +768,12 @@ class _SavedListScreenState extends State<SavedListScreen> {
       SnackBar(
         content: Text(message),
         duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).size.height - 150,
+          right: 20,
+          left: 20,
+        ),
       ),
     );
   }
@@ -1315,7 +1197,16 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
   // 메시지 표시
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).size.height - 150,
+          right: 20,
+          left: 20,
+        ),
+      ),
     );
   }
 
@@ -1874,7 +1765,7 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // 상단 날짜 선택 및 권한 안내
+            // 상단 필터 및 버튼 영역
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -1891,28 +1782,21 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    
+                    // 날짜 선택
                     Row(
                       children: [
-                        const Text('조회 날짜: ', style: TextStyle(fontSize: 16)),
-                        ElevatedButton(
-                          onPressed: _selectDate,
-                          child: Text(
-                            '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}',
-                          ),
-                        ),
+                        const Text('날짜: ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         const SizedBox(width: 8),
                         ElevatedButton(
-                          onPressed: _inspectionRequests.isNotEmpty ? _toggleSelectAll : null,
+                          onPressed: _selectDate,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _selectAll ? Colors.orange : Colors.blue,
-                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.grey[200],
+                            foregroundColor: Colors.black,
                           ),
-                          child: Text(_selectAll ? '전체해제' : '전체선택'),
-                        ),
-                        const Spacer(),
-                        ElevatedButton(
-                          onPressed: _loadInspectionRequests,
-                          child: const Text('새로고침'),
+                          child: Text(
+                            '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')} ▼',
+                          ),
                         ),
                       ],
                     ),
@@ -1920,14 +1804,16 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
                     // Level 3+ 전용 신청자 필터
                     if (userLevel >= 3) ...[
                       const SizedBox(height: 16),
+                      
+                      // 신청자 필터
                       Row(
                         children: [
-                          const Text('신청자 필터: ', style: TextStyle(fontSize: 16)),
+                          const Text('신청자: ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: DropdownButton<String>(
                               value: _selectedRequester,
-                              hint: const Text('전체'),
+                              hint: const Text('전체 ▼'),
                               onChanged: (String? newValue) {
                                 setState(() {
                                   _selectedRequester = newValue;
@@ -1950,15 +1836,18 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
                           ),
                         ],
                       ),
+                      
                       const SizedBox(height: 16),
+                      
+                      // 공정 필터
                       Row(
                         children: [
-                          const Text('공정별 필터: ', style: TextStyle(fontSize: 16)),
+                          const Text('공정: ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: DropdownButton<String>(
                               value: _selectedProcessType,
-                              hint: const Text('전체'),
+                              hint: const Text('전체 ▼'),
                               onChanged: (String? newValue) {
                                 setState(() {
                                   _selectedProcessType = newValue;
@@ -1982,6 +1871,33 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
                         ],
                       ),
                     ],
+                    
+                    const SizedBox(height: 16),
+                    
+                    // 새로고침과 전체선택 버튼
+                    Row(
+                      children: [
+                        ElevatedButton(
+                          onPressed: _loadInspectionRequests,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
+                          child: const Text('새로고침'),
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton(
+                          onPressed: _inspectionRequests.isNotEmpty ? _toggleSelectAll : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _selectAll ? Colors.orange : Colors.blue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
+                          child: Text(_selectAll ? '전체해제' : '전체선택'),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),

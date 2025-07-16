@@ -8,3 +8,10 @@ python flask_server.py
 
 
 cd dshi_field_app
+
+
+DSHI Field Pad 프로젝트를 계속 작업하고 있습니다.
+  공인 IP(203.251.108.199) 설정 완료했고 APK도 빌드했습니다.
+
+  먼저 /mnt/e/DSHI_RPA/APP/docs/app_structure_map.md 파일을 읽어서 
+  현재 상태와 구조를 파악해주세요.

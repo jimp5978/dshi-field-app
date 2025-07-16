@@ -19,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _serverUrlController = TextEditingController();
   bool _isLoading = false;
   bool _showServerSettings = false;
+  bool _rememberCredentials = false;
 
   // Flask 서버 URL (실제 IP 주소 사용)
   String _serverUrl = 'http://203.251.108.199:5001';
@@ -27,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _loadServerUrl();
+    _loadSavedCredentials();
     _serverUrlController.text = _serverUrl;
   }
 
@@ -51,6 +53,41 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _saveServerUrl() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('server_url', _serverUrl);
+  }
+  
+  // 저장된 아이디/비밀번호 로드
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _rememberCredentials = prefs.getBool('remember_credentials') ?? false;
+      if (_rememberCredentials) {
+        _usernameController.text = prefs.getString('saved_username') ?? '';
+        _passwordController.text = prefs.getString('saved_password') ?? '';
+      }
+    });
+  }
+  
+  // 서버 URL 유효성 검사
+  bool _isValidServerUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https') && uri.hasAuthority;
+    } catch (e) {
+      return false;
+    }
+  }
+  
+  // 아이디/비밀번호 저장
+  Future<void> _saveCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('remember_credentials', _rememberCredentials);
+    if (_rememberCredentials) {
+      await prefs.setString('saved_username', _usernameController.text);
+      await prefs.setString('saved_password', _passwordController.text);
+    } else {
+      await prefs.remove('saved_username');
+      await prefs.remove('saved_password');
+    }
   }
 
   // 권한 레벨별 화면 이동
@@ -81,12 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
         print('서버 연결 성공: ${data['message']}');
         
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('서버 연결 성공: ${data['message']}'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          _showMessage('서버 연결 성공: ${data['message']}');
         }
       } else {
         print('서버 연결 실패: ${response.statusCode}');
@@ -95,12 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
       print('서버 연결 오류: $e');
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('서버 연결 오류: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showMessage('서버 연결 오류: $e');
       }
     }
   }
@@ -156,13 +183,11 @@ class _LoginScreenState extends State<LoginScreen> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
         
+        // 로그인 성공 시 아이디/비밀번호 저장 (체크박스가 선택된 경우)
+        await _saveCredentials();
+        
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('로그인 성공! ${user['full_name']} (Level $permissionLevel)'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          _showMessage('로그인 성공! ${user['full_name']} (Level $permissionLevel)');
           
           // 권한 레벨에 따른 화면 이동
           _navigateToMainScreen(user);
@@ -176,23 +201,13 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message'] ?? '로그인 실패'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          _showMessage(result['message'] ?? '로그인 실패');
         }
       }
 
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('로그인 오류: $error'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showMessage('로그인 오류: $error');
       }
     } finally {
       if (mounted) {
@@ -201,6 +216,22 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     }
+  }
+
+  // 메시지 표시 함수 (상단에 표시)
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).size.height - 150,
+          right: 20,
+          left: 20,
+        ),
+      ),
+    );
   }
 
   @override
@@ -273,47 +304,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 
                 const SizedBox(height: 16),
                 
-                // 서버 설정 버튼
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _showServerSettings = !_showServerSettings;
-                    });
-                  },
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(_showServerSettings ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
-                      const SizedBox(width: 4),
-                      const Text('서버 설정'),
-                    ],
-                  ),
-                ),
-                
-                // 서버 URL 입력 필드 (접을 수 있음)
-                if (_showServerSettings) ...[
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _serverUrlController,
-                    decoration: const InputDecoration(
-                      labelText: '서버 주소',
-                      prefixIcon: Icon(Icons.dns),
-                      border: OutlineInputBorder(),
-                      filled: true,
-                      fillColor: Colors.white,
-                      hintText: 'http://203.251.108.199:5001',
-                    ),
-                    onChanged: (value) {
-                      _serverUrl = value;
-                      _saveServerUrl();
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '현재 서버: $_serverUrl',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
                 
                 const SizedBox(height: 16),
                 
@@ -336,7 +326,27 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
+                
+                // 아이디/비밀번호 기억 체크박스
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _rememberCredentials,
+                      onChanged: (value) {
+                        setState(() {
+                          _rememberCredentials = value ?? false;
+                        });
+                      },
+                    ),
+                    const Text(
+                      '아이디/비밀번호 기억',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 16),
                 
                 // 로그인 버튼
                 ElevatedButton(
@@ -369,25 +379,94 @@ class _LoginScreenState extends State<LoginScreen> {
                 
                 const SizedBox(height: 16),
                 
-                // 서버 연결 테스트 버튼
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _testServerConnection,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    '서버 연결 테스트',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                // 서버 설정 버튼
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _showServerSettings = !_showServerSettings;
+                    });
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_showServerSettings ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
+                      const SizedBox(width: 4),
+                      const Text('서버 설정'),
+                    ],
                   ),
                 ),
+                
+                // 서버 URL 입력 필드 (접을 수 있음)
+                if (_showServerSettings) ...[
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _serverUrlController,
+                    decoration: const InputDecoration(
+                      labelText: '서버 주소',
+                      prefixIcon: Icon(Icons.dns),
+                      border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Colors.white,
+                      hintText: 'http://203.251.108.199:5001',
+                    ),
+                    onChanged: (value) {
+                      if (_isValidServerUrl(value) || value.isEmpty) {
+                        _serverUrl = value;
+                        _saveServerUrl();
+                      }
+                    },
+                    validator: (value) {
+                      if (value != null && value.isNotEmpty && !_isValidServerUrl(value)) {
+                        return '올바른 서버 주소를 입력하세요 (예: http://192.168.1.100:5001)';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '현재 서버: $_serverUrl',
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _testServerConnection,
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.wifi_find, size: 16),
+                            SizedBox(width: 4),
+                            Text('연결 테스트', style: TextStyle(fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                
+                const SizedBox(height: 16),
+                
+                // 서버 연결 테스트 버튼 (주석 처리 - 나중에 필요할 수 있음)
+                // ElevatedButton(
+                //   onPressed: _isLoading ? null : _testServerConnection,
+                //   style: ElevatedButton.styleFrom(
+                //     backgroundColor: Colors.orange,
+                //     foregroundColor: Colors.white,
+                //     padding: const EdgeInsets.symmetric(vertical: 16),
+                //     shape: RoundedRectangleBorder(
+                //       borderRadius: BorderRadius.circular(8),
+                //     ),
+                //   ),
+                //   child: const Text(
+                //     '서버 연결 테스트',
+                //     style: TextStyle(
+                //       fontSize: 18,
+                //       fontWeight: FontWeight.bold,
+                //     ),
+                //   ),
+                // ),
                 
                 const SizedBox(height: 24),
                 
