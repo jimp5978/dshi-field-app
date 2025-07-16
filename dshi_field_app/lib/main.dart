@@ -56,8 +56,22 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
   List<AssemblyItem> _savedList = []; // 저장된 항목들
   bool _isLoading = false;
   
-  // 서버 URL
-  static const String _serverUrl = 'http://192.168.0.5:5001';
+  // 서버 URL (SharedPreferences에서 로드)
+  String _serverUrl = 'http://203.251.108.199:5001';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadServerUrl();
+  }
+
+  // 저장된 서버 URL 로드
+  Future<void> _loadServerUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _serverUrl = prefs.getString('server_url') ?? 'http://203.251.108.199:5001';
+    });
+  }
 
   // 숫자 키패드 버튼 클릭 처리
   void _onNumberPressed(String number) {
@@ -550,15 +564,24 @@ class _SavedListScreenState extends State<SavedListScreen> {
   bool _selectAll = false;
   late DateTime _selectedDate; // 기본값을 내일로 설정
   
-  // 서버 URL
-  static const String _serverUrl = 'http://192.168.0.5:5001';
+  // 서버 URL (SharedPreferences에서 로드)
+  String _serverUrl = 'http://203.251.108.199:5001';
 
   @override
   void initState() {
     super.initState();
+    _loadServerUrl();
     _savedList = List.from(widget.savedList);
     // 기본값을 내일로 설정
     _selectedDate = DateTime.now().add(const Duration(days: 1));
+  }
+
+  // 저장된 서버 URL 로드
+  Future<void> _loadServerUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _serverUrl = prefs.getString('server_url') ?? 'http://203.251.108.199:5001';
+    });
   }
 
   // 전체 선택/해제
@@ -1101,6 +1124,7 @@ class InspectionRequestScreen extends StatefulWidget {
 class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
   DateTime _selectedDate = DateTime.now();
   List<InspectionRequest> _inspectionRequests = [];
+  List<InspectionRequest> _allInspectionRequests = []; // 필터링 전 전체 데이터
   bool _isLoading = false;
   Set<int> _selectedItems = <int>{}; // 선택된 항목 인덱스
   bool _selectAll = false; // 전체 선택 상태
@@ -1108,49 +1132,25 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
   // Level 3+ 전용 필터링 변수
   List<String> _availableRequesters = [];
   String? _selectedRequester;
-  List<String> _availableProcessTypes = ['NDE', 'VIDI', 'GALV', 'SHOT', 'PAINT', 'PACKING'];
+  List<String> _availableProcessTypes = [];
   String? _selectedProcessType;
   
-  // 서버 URL
-  static const String _serverUrl = 'http://192.168.0.5:5001';
+  // 서버 URL (SharedPreferences에서 로드)
+  String _serverUrl = 'http://203.251.108.199:5001';
 
   @override
   void initState() {
     super.initState();
-    // Level 3+ 사용자인 경우 신청자 목록 로드
-    if (widget.userInfo['permission_level'] >= 3) {
-      _loadAvailableRequesters();
-    }
+    _loadServerUrl();
     _loadInspectionRequests();
   }
 
-  // 신청자 목록 로드 (Level 3+ 전용)
-  Future<void> _loadAvailableRequesters() async {
-    try {
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final String? token = prefs.getString('auth_token');
-      
-      if (token == null) return;
-
-      final url = Uri.parse('$_serverUrl/api/inspection-requests/requesters');
-      final response = await http.get(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success'] == true) {
-          setState(() {
-            _availableRequesters = List<String>.from(data['requesters']);
-          });
-        }
-      }
-    } catch (e) {
-      print('신청자 목록 로딩 오류: $e');
-    }
+  // 저장된 서버 URL 로드
+  Future<void> _loadServerUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _serverUrl = prefs.getString('server_url') ?? 'http://203.251.108.199:5001';
+    });
   }
 
   // 검사신청 목록 로드 (실제 API 호출)
@@ -1169,19 +1169,9 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
         return;
       }
 
-      // API 호출 (날짜별 + 신청자 필터링)
+      // API 호출 (날짜별 필터링만)
       final String dateParam = _formatDate(_selectedDate);
       String urlString = '$_serverUrl/api/inspection-requests?date=$dateParam';
-      
-      // Level 3+ 사용자이고 필터가 선택된 경우 추가
-      if (widget.userInfo['permission_level'] >= 3) {
-        if (_selectedRequester != null) {
-          urlString += '&requester=${Uri.encodeComponent(_selectedRequester!)}';
-        }
-        if (_selectedProcessType != null) {
-          urlString += '&process_type=${Uri.encodeComponent(_selectedProcessType!)}';
-        }
-      }
       
       final url = Uri.parse(urlString);
       
@@ -1198,7 +1188,7 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
         if (data['success'] == true) {
           setState(() {
             // 취소된 항목 제외하고 목록 생성
-            _inspectionRequests = (data['requests'] as List)
+            List<InspectionRequest> allRequests = (data['requests'] as List)
                 .where((requestData) => requestData['status'] != '취소됨')
                 .map((requestData) {
               // 날짜 파싱 개선 (다양한 형식 지원)
@@ -1266,9 +1256,29 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
               );
             }).toList();
             
+            // 전체 데이터 저장 (필터 옵션 생성용)
+            _allInspectionRequests = List.from(allRequests);
+            
+            // 클라이언트 측 필터링 적용 (Level 3+만)
+            if (widget.userInfo['permission_level'] >= 3) {
+              if (_selectedRequester != null) {
+                allRequests = allRequests.where((request) => 
+                    request.requestedBy == _selectedRequester).toList();
+              }
+              if (_selectedProcessType != null) {
+                allRequests = allRequests.where((request) => 
+                    request.inspectionType == _selectedProcessType).toList();
+              }
+            }
+            
+            _inspectionRequests = allRequests;
+            
             // 전체 선택 상태 초기화
             _selectedItems.clear();
             _selectAll = false;
+            
+            // 필터 옵션 업데이트 (전체 데이터 기반)
+            _updateAvailableFilters();
           });
         } else {
           _showMessage(data['message'] ?? '데이터 로딩 실패');
@@ -1307,6 +1317,61 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+
+  // 전체 데이터에서 실제 존재하는 신청자/공정 목록 추출
+  void _updateAvailableFilters() {
+    if (widget.userInfo['permission_level'] >= 3) {
+      // 전체 데이터에서 신청자들만 추출 (중복 제거)
+      Set<String> requesters = _allInspectionRequests
+          .map((request) => request.requestedBy)
+          .toSet();
+      
+      // 전체 데이터에서 공정 타입들만 추출 (중복 제거)
+      Set<String> processTypes = _allInspectionRequests
+          .map((request) => request.inspectionType)
+          .toSet();
+      
+      setState(() {
+        _availableRequesters = requesters.toList()..sort();
+        _availableProcessTypes = processTypes.toList()..sort();
+        
+        // 선택된 필터가 전체 데이터에 없으면 초기화
+        if (_selectedRequester != null && !requesters.contains(_selectedRequester)) {
+          _selectedRequester = null;
+        }
+        if (_selectedProcessType != null && !processTypes.contains(_selectedProcessType)) {
+          _selectedProcessType = null;
+        }
+      });
+    }
+  }
+
+  // 클라이언트 측 필터링 적용
+  void _applyClientSideFiltering() {
+    if (widget.userInfo['permission_level'] >= 3) {
+      setState(() {
+        List<InspectionRequest> filteredRequests = List.from(_allInspectionRequests);
+        
+        // 신청자 필터 적용
+        if (_selectedRequester != null) {
+          filteredRequests = filteredRequests.where((request) => 
+              request.requestedBy == _selectedRequester).toList();
+        }
+        
+        // 공정별 필터 적용
+        if (_selectedProcessType != null) {
+          filteredRequests = filteredRequests.where((request) => 
+              request.inspectionType == _selectedProcessType).toList();
+        }
+        
+        _inspectionRequests = filteredRequests;
+        
+        // 선택 상태 초기화
+        _selectedItems.clear();
+        _selectAll = false;
+      });
+    }
   }
 
   // 전체 선택/해제 토글
@@ -1867,7 +1932,7 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
                                 setState(() {
                                   _selectedRequester = newValue;
                                 });
-                                _loadInspectionRequests();
+                                _applyClientSideFiltering();
                               },
                               items: [
                                 const DropdownMenuItem<String>(
@@ -1898,7 +1963,7 @@ class _InspectionRequestScreenState extends State<InspectionRequestScreen> {
                                 setState(() {
                                   _selectedProcessType = newValue;
                                 });
-                                _loadInspectionRequests();
+                                _applyClientSideFiltering();
                               },
                               items: [
                                 const DropdownMenuItem<String>(

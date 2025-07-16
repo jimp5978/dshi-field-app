@@ -16,16 +16,41 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _serverUrlController = TextEditingController();
   bool _isLoading = false;
+  bool _showServerSettings = false;
 
   // Flask 서버 URL (실제 IP 주소 사용)
-  static const String _serverUrl = 'http://192.168.0.5:5001';
+  String _serverUrl = 'http://203.251.108.199:5001';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadServerUrl();
+    _serverUrlController.text = _serverUrl;
+  }
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
+    _serverUrlController.dispose();
     super.dispose();
+  }
+  
+  // 저장된 서버 URL 로드
+  Future<void> _loadServerUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _serverUrl = prefs.getString('server_url') ?? 'http://203.251.108.199:5001';
+      _serverUrlController.text = _serverUrl;
+    });
+  }
+  
+  // 서버 URL 저장
+  Future<void> _saveServerUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('server_url', _serverUrl);
   }
 
   // 권한 레벨별 화면 이동
@@ -245,6 +270,50 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
+                
+                const SizedBox(height: 16),
+                
+                // 서버 설정 버튼
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _showServerSettings = !_showServerSettings;
+                    });
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_showServerSettings ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
+                      const SizedBox(width: 4),
+                      const Text('서버 설정'),
+                    ],
+                  ),
+                ),
+                
+                // 서버 URL 입력 필드 (접을 수 있음)
+                if (_showServerSettings) ...[
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _serverUrlController,
+                    decoration: const InputDecoration(
+                      labelText: '서버 주소',
+                      prefixIcon: Icon(Icons.dns),
+                      border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Colors.white,
+                      hintText: 'http://203.251.108.199:5001',
+                    ),
+                    onChanged: (value) {
+                      _serverUrl = value;
+                      _saveServerUrl();
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '현재 서버: $_serverUrl',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
                 
                 const SizedBox(height: 16),
                 

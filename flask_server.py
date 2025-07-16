@@ -355,8 +355,6 @@ def get_inspection_requests(current_user):
     """검사신청 목록 조회 (Level별 필터링)"""
     try:
         request_date = request.args.get('date')
-        requester_filter = request.args.get('requester')  # 신청자 필터 추가
-        process_type_filter = request.args.get('process_type')  # 공정별 필터 추가
         
         connection = get_db_connection()
         if not connection:
@@ -394,24 +392,18 @@ def get_inspection_requests(current_user):
                     ORDER BY created_at DESC
                 """, (current_user,))
         else:
-            # Level 3+: 전체 검사신청 (신청자 필터 적용)
-            base_query = "SELECT * FROM inspection_requests WHERE 1=1"
-            params = []
-            
+            # Level 3+: 전체 검사신청
             if request_date:
-                base_query += " AND request_date = %s"
-                params.append(request_date)
-            
-            if requester_filter:
-                base_query += " AND requested_by_name = %s"
-                params.append(requester_filter)
-            
-            if process_type_filter:
-                base_query += " AND inspection_type = %s"
-                params.append(process_type_filter)
-            
-            base_query += " ORDER BY created_at DESC"
-            cursor.execute(base_query, params)
+                cursor.execute("""
+                    SELECT * FROM inspection_requests 
+                    WHERE request_date = %s
+                    ORDER BY created_at DESC
+                """, (request_date,))
+            else:
+                cursor.execute("""
+                    SELECT * FROM inspection_requests 
+                    ORDER BY created_at DESC
+                """)
         
         requests = cursor.fetchall()
         
@@ -723,56 +715,14 @@ def cancel_inspection_request(current_user, request_id):
         print(f"검사신청 취소 오류: {e}")
         return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
 
-@app.route('/api/inspection-requests/requesters', methods=['GET'])
-@token_required
-def get_requesters(current_user):
-    """검사신청 신청자 목록 조회 (Level 3+ 전용)"""
-    try:
-        # 실제 사용자 정보
-        test_users = {
-            1: {'username': 'a', 'full_name': 'Admin', 'permission_level': 5},
-            2: {'username': 'seojin', 'full_name': '서진', 'permission_level': 1},
-            3: {'username': 'sookang', 'full_name': '수강', 'permission_level': 1},
-            4: {'username': 'gyeongin', 'full_name': '경인', 'permission_level': 1},
-            5: {'username': 'dshi_hy', 'full_name': 'DSHI 현영', 'permission_level': 3}
-        }
-        
-        if current_user not in test_users:
-            return jsonify({'success': False, 'message': '사용자 정보를 찾을 수 없습니다'}), 404
-        
-        user_info = test_users[current_user]
-        permission_level = user_info['permission_level']
-        
-        # Level 3+ 권한 확인
-        if permission_level < 3:
-            return jsonify({'success': False, 'message': '조회 권한이 없습니다'}), 403
-        
-        connection = get_db_connection()
-        if not connection:
-            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
-        
-        cursor = connection.cursor(dictionary=True)
-        
-        # 검사신청에서 신청자 목록 조회 (중복 제거)
-        cursor.execute("""
-            SELECT DISTINCT requested_by_name
-            FROM inspection_requests 
-            WHERE status != '취소됨'
-            ORDER BY requested_by_name
-        """)
-        
-        requesters = [row['requested_by_name'] for row in cursor.fetchall()]
-        cursor.close()
-        connection.close()
-        
-        return jsonify({
-            'success': True,
-            'requesters': requesters
-        })
-        
-    except Exception as e:
-        print(f"신청자 목록 조회 오류: {e}")
-        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
+@app.route('/')
+def home():
+    """루트 경로 - 서버 상태 확인"""
+    return jsonify({
+        'status': 'ok',
+        'message': 'DSHI Field Pad Server is running',
+        'timestamp': datetime.datetime.now().isoformat()
+    })
 
 @app.route('/api/health', methods=['GET'])
 def health_check():

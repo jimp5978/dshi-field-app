@@ -1,13 +1,13 @@
 # DSHI Field Pad 앱 상세 파일 구조 맵
 
 > 📅 **업데이트**: 2025-07-15  
-> 🎯 **상태**: 검사신청 API 연동 완료 - 실시간 데이터 처리 및 레벨별 권한 구현
+> 🎯 **상태**: Level 3+ 검사신청 관리 시스템 완전 구현 완료 - 3단계 워크플로우 및 고급 필터링 지원
 
 ## 🗂️ 전체 파일 구조
 
 ### 📱 **Flutter 앱 (Frontend)**
 
-#### 📄 **main.dart** ⭐ (앱의 핵심 - 1100+ 줄)
+#### 📄 **main.dart** ⭐ (앱의 핵심 - 1900+ 줄)
 ```
 main.dart
 ├── 🏗️ DSHIFieldApp (앱 전체 설정)
@@ -37,11 +37,18 @@ main.dart
 │   └── _formatDate() → 날짜 YYYY-MM-DD 포맷
 │
 └── 📊 InspectionRequestScreen (검사신청 확인 화면)
-    ├── _loadInspectionRequests() → HTTP GET /api/inspection-requests
+    ├── _loadInspectionRequests() → HTTP GET /api/inspection-requests (필터링 지원)
+    ├── _loadAvailableRequesters() → HTTP GET /api/inspection-requests/requesters
     ├── _selectDate() → 조회 날짜 변경
+    ├── _toggleSelectAll() → 전체 선택/해제 기능
+    ├── _cancelSelectedRequests() → 선택된 항목 취소 (Level별 권한)
+    ├── _approveSelectedRequests() → 선택된 항목 승인 (Level 3+)
+    ├── _confirmSelectedRequests() → 선택된 항목 확정 (Level 3+)
     ├── _showMessage() → 스낵바 메시지 표시
     ├── _formatDate() → 날짜 포맷팅
-    └── 레벨별 데이터 필터링 (Level 1: 본인만, Level 3+: 전체)
+    └── 레벨별 기능:
+        ├── Level 1: 본인 신청만 조회, 대기중 상태만 취소
+        └── Level 3+: 전체 조회, 신청자/공정별 필터링, 3단계 상태 관리
 ```
 
 #### 📄 **login_screen.dart** ⭐ (로그인 전용 - 350+ 줄)
@@ -81,7 +88,7 @@ android/app/src/main/AndroidManifest.xml
 
 ### 🔧 **Backend 서버**
 
-#### 📄 **flask_server.py** ⭐ (API 서버 - 380+ 줄)
+#### 📄 **flask_server.py** ⭐ (API 서버 - 740+ 줄)
 ```
 flask_server.py
 ├── 🔧 서버 설정
@@ -237,8 +244,12 @@ MySQL Tables:
 |--------|------------|------|------|-----------|
 | POST | `/api/login` | ❌ | 로그인 인증, JWT 토큰 발급 | login_screen.dart |
 | GET | `/api/assemblies?search=XXX` | ❌ | ASSEMBLY 검색 (끝 3자리) | main.dart |
-| POST | `/api/inspection-requests` | ✅ | 검사신청 생성 (배치) | main.dart |
-| GET | `/api/inspection-requests?date=YYYY-MM-DD` | ✅ | 검사신청 조회 (레벨별) | main.dart |
+| POST | `/api/inspection-requests` | ✅ | 검사신청 생성 (배치, 선착순 중복 체크) | main.dart |
+| GET | `/api/inspection-requests?date=YYYY-MM-DD&requester=NAME&process_type=TYPE` | ✅ | 검사신청 조회 (레벨별, 다중 필터) | main.dart |
+| GET | `/api/inspection-requests/requesters` | ✅ | 신청자 목록 조회 (Level 3+) | main.dart |
+| PUT | `/api/inspection-requests/{id}/approve` | ✅ | 검사신청 승인 (Level 3+) | main.dart |
+| PUT | `/api/inspection-requests/{id}/confirm` | ✅ | 검사신청 확정 (Level 3+, assembly_items 연동) | main.dart |
+| DELETE | `/api/inspection-requests/{id}` | ✅ | 검사신청 취소 (Level별 권한, 확정된 항목 롤백) | main.dart |
 
 ---
 
@@ -248,9 +259,31 @@ MySQL Tables:
 | 레벨 | 계정 | 권한 | 기능 |
 |------|------|------|------|
 | Admin | a/a | 전체 | 모든 기능 사용 |
-| Level 1 | l1/l1 | 외부업체 | 검색, LIST UP, 검사신청, 본인 신청만 확인 |
-| Level 3 | l3/l3 | DSHI 현장직원 | Level 1 + 롤백, PDF, 전체 검사신청 확인 |
-| Level 5 | l5/l5 | DSHI 시스템관리자 | Level 3 + 관리자 기능 |
+| Level 1 | seojin/1234, sookang/1234, gyeongin/1234 | 외부업체 | 검색, LIST UP, 검사신청, 본인 신청만 확인, 대기중 상태만 취소 |
+| Level 3 | dshi_hy/1234 | DSHI 현장직원 | Level 1 + 전체 검사신청 관리, 3단계 워크플로우, 신청자/공정별 필터링, 모든 상태 취소 |
+| Level 5 | a/a | DSHI 시스템관리자 | Level 3 + 관리자 기능 |
+
+---
+
+## 🔄 **3단계 검사신청 워크플로우**
+
+### **상태 전환 흐름**
+```
+대기중 (🟡) → 승인됨 (🟢) → 확정됨 (🔵)
+     ↓            ↓            ↓
+   Level 1      Level 3+     Level 3+
+ (본인만 취소)   (승인 처리)   (확정 처리)
+     ↓            ↓            ↓
+   취소됨 (❌)   취소됨 (❌)   취소됨 (❌)
+              ← Level 3+ 모든 상태 취소 가능 →
+```
+
+### **권한별 액션**
+- **Level 1**: 검사신청 생성, 본인 신청 조회, 대기중 상태만 취소
+- **Level 3+**: 전체 신청 조회/관리, 승인/확정 처리, 모든 상태 취소, 필터링
+
+### **확정 시 assembly_items 연동**
+확정 처리 시 해당 공정의 실제 완료 날짜가 assembly_items 테이블에 자동 기록됩니다.
 
 ---
 
@@ -320,14 +353,23 @@ flutter run
 ### ✅ **구현 완료된 기능**
 - 🔐 JWT 토큰 기반 인증 시스템
 - 🔍 ASSEMBLY 검색 (끝 3자리 번호)
-- 📋 LIST UP 시스템 (다중 선택, 저장)
-- 📅 검사신청 (날짜별, 공정별)
+- 📋 LIST UP 시스템 (다중 선택, 저장, 중복 제거)
+- 📅 검사신청 (날짜별, 공정별, 선착순 중복 체크)
 - 📊 검사신청 확인 (레벨별 권한, 실시간 업데이트)
+- 🎯 Level 3+ 고급 관리 기능:
+  - 👥 신청자별 필터링 (드롭다운)
+  - 🔧 공정별 필터링 (NDE, VIDI, GALV, SHOT, PAINT, PACKING)
+  - ☑️ 전체 선택/해제 기능
+  - 📈 3단계 상태 관리 (대기중 → 승인됨 → 확정됨)
+  - ✅ 승인 기능 (대기중 → 승인됨)
+  - 🔵 확정 기능 (승인됨 → 확정됨, assembly_items 연동)
+  - ❌ 모든 상태 취소 가능 (확정된 항목 롤백 포함)
 - 🌐 회사/집 환경 자동 전환
 - 📱 한국어 지원, 태블릿 최적화 UI
+- 🔄 실시간 데이터 동기화
+- 🛡️ 트랜잭션 기반 데이터 무결성
 
 ### 🚧 **향후 구현 예정**
-- 🔄 롤백 기능 (Level 3+)
 - 📄 PDF 도면 연동 (Level 3+)
 - 📤 엑셀 업로드 (Level 3+)
 - 📈 관리자 대시보드 (Level 4-5)
@@ -335,4 +377,4 @@ flutter run
 ---
 
 *📅 최종 업데이트: 2025-07-15*  
-*🎯 상태: 검사신청 시스템 완전 구현 완료*
+*🎯 상태: Level 3+ 검사신청 관리 시스템 완전 구현 완료*
