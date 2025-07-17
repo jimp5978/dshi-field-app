@@ -11,7 +11,21 @@ cd dshi_field_app
 
 
 DSHI Field Pad 프로젝트를 계속 작업하고 있습니다.
-  공인 IP(203.251.108.199) 설정 완료했고 APK도 빌드했습니다.
 
-  먼저 /mnt/e/DSHI_RPA/APP/docs/app_structure_map.md 파일을 읽어서 
-  현재 상태와 구조를 파악해주세요.
+/mnt/e/DSHI_RPA/APP/docs/app_structure_map.md 파일을 읽어서 
+현재 상태와 구조를 파악해주세요.
+
+E:\DSHI_RPA\APP\docs\app_structure_map.md 파일을 읽어서 현재 상태와 구조를 파악해주세요.
+
+데시보드에 대한 정리(우선)
+1. level4이상의 사용자가 볼수 있다.
+2. 그래프를 이용한 시각화가 필요하다.
+3. 
+
+
+사용자 권한 시스템(나중)
+1. 사내 업체내에서 공정별 레벨 권한 분리.
+2. level 1.1 fit-up, nde, final의 권한
+3. level 1.2 shot,paint의 권한
+4. level 1.3 packing의 권한(pack별 정보 화면 구현 예정)
+5. level 2 검사 감독관 권한(모든 공정의 날짜별 신청 확인 및 승인만 할 수 있는 권한. 화면 구현 예정(검사시 문제 코멘트 작성,개별 합/불 판정,등등))

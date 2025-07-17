@@ -1,0 +1,64 @@
+● 집에서 작업하는 방법 (Git 초보자용):
+
+  1. 집에서 처음 설정 (한 번만)
+
+  필요한 프로그램 설치:
+  # Git 설치 (https://git-scm.com/download/win)
+  # Flutter SDK 설치 (https://flutter.dev/docs/get-started/install)
+  # MySQL 설치 (https://dev.mysql.com/downloads/installer/)
+
+  프로젝트 다운로드:
+  # 원하는 폴더에서 (예: C:\work)
+  git clone https://github.com/jimp5978/dshi-field-app.git
+  cd dshi-field-app
+
+  2. 집에서 매번 작업할 때
+
+  작업 시작 전 (최신 코드 받기):
+  git pull
+
+  작업 완료 후 (변경사항 업로드):
+  git add .
+  git commit -m "집에서 작업한 내용"
+  git push
+
+  3. 환경 설정
+
+  집에서 작업할 때 환경변수 설정:
+  set WORK_ENV=home
+
+  config_env.py 파일에서 회사 IP 수정:
+  'host': '회사컴퓨터IP주소',  # 예: '192.168.0.100'
+
+  4. 회사에서 다시 작업할 때
+
+  작업 시작 전:
+  git pull  # 집에서 한 작업 받기
+
+  간단 요약:
+  - 받기: git pull
+  - 올리기: git add . → git commit -m "메시지" → git push
+
+  이 4개 명령어만 알면 됩니다!
+
+
+-----------------------------------
+  집에서 사용법 요약
+
+  1. 프로젝트 받기 (처음만):
+  git clone https://github.com/jimp5978/dshi-field-app.git
+
+  2. 매일 작업 시작 전:
+  git pull
+  set WORK_ENV=home
+
+  3. 작업 완료 후:
+  git add .
+  git commit -m "집에서 작업 완료"
+  git push
+
+  이제 변경사항을 GitHub에 올려보겠습니다:
+
+  git add config_env.py README.md
+  git commit -m "회사-집 환경 설정 완료 및 README 추가"
+  git push

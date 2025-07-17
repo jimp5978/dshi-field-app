@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Level 4 DSHI 생산 관리 대시보드</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #2a2a2a;
+            color: #ffffff;
+            padding: 10px;
+            line-height: 1.2;
+            min-width: 1200px;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .dashboard-container {
+            max-width: 1800px;
+            margin: 0 auto;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background-color: #3a3a3a;
+            padding: 10px 20px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #00d4ff;
+            flex-shrink: 0;
+        }
+        
+        .header h1 {
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .header .update-time {
+            color: #999999;
+            font-size: 13px;
+        }
+        
+        .filter-section {
+            background-color: #3a3a3a;
+            padding: 10px 20px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        
+        .filter-label {
+            color: #cccccc;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .filter-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .filter-btn {
+            background-color: #4a4a4a;
+            color: #ffffff;
+            border: 1px solid #666;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        .filter-btn:hover {
+            background-color: #5a5a5a;
+        }
+        
+        .filter-btn.active {
+            background-color: #00d4ff;
+            border-color: #00d4ff;
+            color: #ffffff;
+        }
+        
+        .custom-date-range {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 15px;
+            padding-left: 15px;
+            border-left: 1px solid #666;
+        }
+        
+        .date-input-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .date-input {
+            background-color: #4a4a4a;
+            border: 1px solid #666;
+            color: #ffffff;
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            width: 120px;
+        }
+        
+        .date-input::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+        
+        .date-separator {
+            color: #cccccc;
+            font-weight: bold;
+            margin: 0 5px;
+        }
+        
+        .apply-btn {
+            background-color: #4CAF50;
+            border: 1px solid #4CAF50;
+            color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .apply-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow: hidden;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            height: 100%;
+        }
+        
+        .left-column {
+            display: grid;
+            grid-template-rows: repeat(4, 1fr);
+            gap: 8px;
+        }
+        
+        .right-column {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .section {
+            background-color: #3a3a3a;
+            border-radius: 6px;
+            padding: 12px;
+            overflow: hidden;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+        
+        /* 1. 전월 대비 물량 변화 카드들 */
+        .volume-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            height: calc(100% - 25px);
+        }
+        
+        .volume-card {
+            background-color: #4a4a4a;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .volume-card.priority-1 {
+            border-left: 3px solid #ffd700;
+        }
+        
+        .volume-card.priority-2 {
+            border-left: 3px solid #ff8c00;
+        }
+        
+        .volume-main {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 2px;
+        }
+        
+        .volume-process {
+            font-size: 10px;
+            color: #ffffff;
+            margin-bottom: 2px;
+        }
+        
+        .volume-change {
+            font-size: 9px;
+            color: #999999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+        }
+        
+        .trend-up {
+            color: #2196F3;
+        }
+        
+        .trend-down {
+            color: #f44336;
+        }
+        
+        .priority-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 8px;
+        }
+        
+        /* 2. 금월 계획 대비 전체 공정율 */
+        .overall-progress {
+            text-align: center;
+            height: calc(100% - 25px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .progress-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin: 5px 0;
+        }
+        
+        .progress-bar-container {
+            position: relative;
+            height: 20px;
+            background-color: #555555;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #66BB6A);
+            border-radius: 10px;
+            width: 87%;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #999999;
+            margin-top: 3px;
+        }
+        
+        /* 3. 업체별 계획 대비 완료율 */
+        .company-progress {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            height: calc(100% - 25px);
+            overflow-y: auto;
+        }
+        
+        .company-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px;
+            background-color: #4a4a4a;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        
+        .company-name {
+            width: 50px;
+            font-weight: 600;
+            color: #ffffff;
+            font-size: 10px;
+        }
+        
+        .dual-progress {
+            flex: 1;
+            height: 14px;
+            position: relative;
+            border-radius: 7px;
+            overflow: hidden;
+        }
+        
+        .plan-progress {
+            width: 100%;
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 7px;
+            position: relative;
+        }
+        
+        .complete-progress {
+            height: 100%;
+            background-color: #2196F3;
+            border-radius: 7px;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 8px;
+            font-weight: bold;
+            color: #ffffff;
+            z-index: 2;
+        }
+        
+        .company-percentage {
+            width: 30px;
+            text-align: right;
+            font-weight: bold;
+            color: #ffffff;
+            font-size: 9px;
+        }
+        
+        /* 4. 공정별 완료율 */
+        .process-progress {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            height: calc(100% - 25px);
+            overflow-y: auto;
+        }
+        
+        .process-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px;
+            background-color: #4a4a4a;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        
+        .process-item.priority {
+            background-color: #4a4a2a;
+        }
+        
+        .process-name {
+            width: 40px;
+            font-weight: 600;
+            color: #ffffff;
+            font-size: 9px;
+        }
+        
+        .process-bar {
+            flex: 1;
+            height: 10px;
+            background-color: #555555;
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .process-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+        
+        .process-fill.priority-1 {
+            background-color: #ffd700;
+        }
+        
+        .process-fill.priority-2 {
+            background-color: #ff8c00;
+        }
+        
+        .process-percentage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 7px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        
+        .process-count {
+            width: 35px;
+            text-align: right;
+            font-weight: 600;
+            color: #ffffff;
+            font-size: 8px;
+        }
+        
+        .process-priority {
+            font-size: 8px;
+        }
+        
+        /* 5. 아이템별 수량 및 중량 현황 */
+        .items-table {
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .table-container {
+            flex: 1;
+            overflow-y: auto;
+            border-radius: 6px;
+        }
+        
+        .table-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .table-container::-webkit-scrollbar-track {
+            background: #4a4a4a;
+            border-radius: 3px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb {
+            background: #666666;
+            border-radius: 3px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
+        
+        thead th {
+            background-color: #4a4a4a;
+            color: #cccccc;
+            padding: 5px 4px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 9px;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        
+        tbody td {
+            padding: 3px 4px;
+            border-bottom: 1px solid #4a4a4a;
+            font-size: 9px;
+        }
+        
+        tbody tr:hover {
+            background-color: #444444;
+        }
+        
+        .assembly-code {
+            color: #00d4ff;
+            font-weight: 500;
+        }
+        
+        .table-total {
+            background-color: #4a4a4a;
+            padding: 5px;
+            margin-top: 5px;
+            border-radius: 3px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 9px;
+            flex-shrink: 0;
+        }
+        
+        /* 6. 공정 문제점 & 이슈 */
+        .issues-section {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .issues-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+        
+        .level3-badge {
+            background-color: #ff9800;
+            color: #ffffff;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-size: 8px;
+            font-weight: 600;
+        }
+        
+        .issues-container {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .issues-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .issues-container::-webkit-scrollbar-track {
+            background: #4a4a4a;
+            border-radius: 2px;
+        }
+        
+        .issues-container::-webkit-scrollbar-thumb {
+            background: #666666;
+            border-radius: 2px;
+        }
+        
+        .issue-item {
+            background-color: #4a4a4a;
+            padding: 6px;
+            border-radius: 3px;
+            border-left: 3px solid #ff5722;
+            flex-shrink: 0;
+        }
+        
+        .issue-content {
+            color: #ffffff;
+            margin-bottom: 3px;
+            line-height: 1.2;
+            font-size: 9px;
+        }
+        
+        .issue-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 8px;
+            color: #aaaaaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- 헤더 -->
+        <div class="header">
+            <h1>DSHI 생산 관리 대시보드 (Level 4)</h1>
+            <div class="update-time">마지막 업데이트: 2025-07-17 22:00</div>
+        </div>
+        
+        <!-- 필터 섹션 -->
+        <div class="filter-section">
+            <span class="filter-label">📅 기간선택:</span>
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="setFilter('week')">이번주</button>
+                <button class="filter-btn" onclick="setFilter('month')">이번달</button>
+                <button class="filter-btn" onclick="setFilter('quarter')">분기별</button>
+            </div>
+            <div class="custom-date-range">
+                <div class="date-input-group">
+                    <input type="date" class="date-input" id="startDate">
+                </div>
+                <span class="date-separator">~</span>
+                <div class="date-input-group">
+                    <input type="date" class="date-input" id="endDate">
+                </div>
+                <button class="apply-btn" onclick="applyCustomDate()">적용</button>
+            </div>
+        </div>
+        
+        <!-- 메인 콘텐츠 -->
+        <div class="main-content">
+            <div class="dashboard-grid">
+                <!-- 왼쪽 컬럼 -->
+                <div class="left-column">
+                    <!-- 1. 전월 대비 물량 변화 -->
+                    <div class="section">
+                        <h2 class="section-title">전월 대비 물량 변화</h2>
+                        <div class="volume-cards">
+                            <div class="volume-card priority-1">
+                                <div class="priority-badge">⭐⭐</div>
+                                <div class="volume-main" style="color: #2196F3;">▲ 75</div>
+                                <div class="volume-process">VIDI 완료</div>
+                                <div class="volume-change">
+                                    <span class="trend-up">65건 지난달</span>
+                                </div>
+                            </div>
+                            
+                            <div class="volume-card priority-2">
+                                <div class="priority-badge">⭐</div>
+                                <div class="volume-main" style="color: #2196F3;">▲ 68</div>
+                                <div class="volume-process">PAINT 완료</div>
+                                <div class="volume-change">
+                                    <span class="trend-up">56건 지난달</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 2. 금월 계획 대비 전체 공정율 -->
+                    <div class="section">
+                        <h2 class="section-title">금월 계획 대비 전체 공정율</h2>
+                        <div class="overall-progress">
+                            <div class="progress-value">87%</div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill"></div>
+                            </div>
+                            <div class="progress-labels">
+                                <span>0%</span>
+                                <span>목표 100%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 3. 업체별 계획 대비 완료율 -->
+                    <div class="section">
+                        <h2 class="section-title">업체별 계획 대비 완료율</h2>
+                        <div class="company-progress">
+                            <div class="company-item">
+                                <div class="company-name">A업체</div>
+                                <div class="dual-progress">
+                                    <div class="plan-progress">
+                                        <div class="complete-progress" style="width: 90%;"></div>
+                                        <div class="progress-text">90%</div>
+                                    </div>
+                                </div>
+                                <div class="company-percentage">90%</div>
+                            </div>
+                            
+                            <div class="company-item">
+                                <div class="company-name">B업체</div>
+                                <div class="dual-progress">
+                                    <div class="plan-progress">
+                                        <div class="complete-progress" style="width: 75%;"></div>
+                                        <div class="progress-text">75%</div>
+                                    </div>
+                                </div>
+                                <div class="company-percentage">75%</div>
+                            </div>
+                            
+                            <div class="company-item">
+                                <div class="company-name">C업체</div>
+                                <div class="dual-progress">
+                                    <div class="plan-progress">
+                                        <div class="complete-progress" style="width: 45%;"></div>
+                                        <div class="progress-text">45%</div>
+                                    </div>
+                                </div>
+                                <div class="company-percentage">45%</div>
+                            </div>
+                            
+                            <div class="company-item">
+                                <div class="company-name">D업체</div>
+                                <div class="dual-progress">
+                                    <div class="plan-progress">
+                                        <div class="complete-progress" style="width: 85%;"></div>
+                                        <div class="progress-text">85%</div>
+                                    </div>
+                                </div>
+                                <div class="company-percentage">85%</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 4. 공정별 완료율 -->
+                    <div class="section">
+                        <h2 class="section-title">공정별 완료율</h2>
+                        <div class="process-progress">
+                            <div class="process-item">
+                                <div class="process-name">Fit-up</div>
+                                <div class="process-bar">
+                                    <div class="process-fill" style="width: 80%;"></div>
+                                    <div class="process-percentage">80%</div>
+                                </div>
+                                <div class="process-count">80/100</div>
+                            </div>
+                            
+                            <div class="process-item">
+                                <div class="process-name">NDE</div>
+                                <div class="process-bar">
+                                    <div class="process-fill" style="width: 60%;"></div>
+                                    <div class="process-percentage">60%</div>
+                                </div>
+                                <div class="process-count">60/100</div>
+                            </div>
+                            
+                            <div class="process-item priority">
+                                <div class="process-name">VIDI</div>
+                                <div class="process-bar">
+                                    <div class="process-fill priority-1" style="width: 75%;"></div>
+                                    <div class="process-percentage">75%</div>
+                                </div>
+                                <div class="process-count">75/100</div>
+                                <div class="process-priority">⭐⭐</div>
+                            </div>
+                            
+                            <div class="process-item">
+                                <div class="process-name">GALV</div>
+                                <div class="process-bar">
+                                    <div class="process-fill" style="width: 50%;"></div>
+                                    <div class="process-percentage">50%</div>
+                                </div>
+                                <div class="process-count">50/100</div>
+                            </div>
+                            
+                            <div class="process-item">
+                                <div class="process-name">SHOT</div>
+                                <div class="process-bar">
+                                    <div class="process-fill" style="width: 40%;"></div>
+                                    <div class="process-percentage">40%</div>
+                                </div>
+                                <div class="process-count">40/100</div>
+                            </div>
+                            
+                            <div class="process-item priority">
+                                <div class="process-name">PAINT</div>
+                                <div class="process-bar">
+                                    <div class="process-fill priority-2" style="width: 68%;"></div>
+                                    <div class="process-percentage">68%</div>
+                                </div>
+                                <div class="process-count">68/100</div>
+                                <div class="process-priority">⭐</div>
+                            </div>
+                            
+                            <div class="process-item">
+                                <div class="process-name">PACKING</div>
+                                <div class="process-bar">
+                                    <div class="process-fill" style="width: 20%;"></div>
+                                    <div class="process-percentage">20%</div>
+                                </div>
+                                <div class="process-count">20/100</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 오른쪽 컬럼 -->
+                <div class="right-column">
+                    <!-- 5. 아이템별 수량 및 중량 현황 -->
+                    <div class="section items-table">
+                        <h2 class="section-title">아이템별 수량 및 중량 현황</h2>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Assembly Code</th>
+                                        <th>수량</th>
+                                        <th>중량(ton)</th>
+                                        <th>업체</th>
+                                        <th>날짜</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="assembly-code">ASM-001-078</td>
+                                        <td>15</td>
+                                        <td>2.3</td>
+                                        <td>A업체</td>
+                                        <td>Jul 17</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="assembly-code">ASM-002-154</td>
+                                        <td>8</td>
+                                        <td>1.8</td>
+                                        <td>B업체</td>
+                                        <td>Jul 17</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="assembly-code">ASM-003-092</td>
+                                        <td>22</td>
+                                        <td>3.2</td>
+                                        <td>A업체</td>
+                                        <td>Jul 16</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="assembly-code">ASM-004-187</td>
+                                        <td>5</td>
+                                        <td>0.9</td>
+                                        <td>C업체</td>
+                                        <td>Jul 16</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="assembly-code">ASM-005-234</td>
+                                        <td>18</td>
+                                        <td>2.7</td>
+                                        <td>D업체</td>
+                                        <td>Jul 15</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="assembly-code">ASM-006-156</td>
+                                        <td>12</td>
+                                        <td>1.9</td>
+                                        <td>B업체</td>
+                                        <td>Jul 15</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="assembly-code">ASM-007-298</td>
+                                        <td>9</td>
+                                        <td>1.4</td>
+                                        <td>C업체</td>
+                                        <td>Jul 14</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="assembly-code">ASM-008-341</td>
+                                        <td>25</td>
+                                        <td>3.8</td>
+                                        <td>A업체</td>
+                                        <td>Jul 14</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="assembly-code">ASM-009-123</td>
+                                        <td>14</td>
+                                        <td>2.1</td>
+                                        <td>D업체</td>
+                                        <td>Jul 13</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="assembly-code">ASM-010-067</td>
+                                        <td>7</td>
+                                        <td>1.2</td>
+                                        <td>B업체</td>
+                                        <td>Jul 13</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="assembly-code">ASM-011-245</td>
+                                        <td>16</td>
+                                        <td>2.5</td>
+                                        <td>C업체</td>
+                                        <td>Jul 12</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="assembly-code">ASM-012-389</td>
+                                        <td>11</td>
+                                        <td>1.7</td>
+                                        <td>A업체</td>
+                                        <td>Jul 12</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="table-total">
+                            총 162개 항목 | 총 중량: 24.5ton
+                        </div>
+                    </div>
+                    
+                    <!-- 6. 공정 문제점 & 이슈 -->
+                    <div class="section issues-section">
+                        <div class="issues-header">
+                            <h2 class="section-title">공정 문제점 & 이슈</h2>
+                            <div class="level3-badge">Level 3 작성</div>
+                        </div>
+                        <div class="issues-container">
+                            <div class="issue-item">
+                                <div class="issue-content">
+                                    VIDI 공정 지연: 검사 장비 정기점검으로 인한 2일 지연 예상. 대체 장비 확보 중.
+                                </div>
+                                <div class="issue-meta">
+                                    <span>작성자: 김현장</span>
+                                    <span>2025-07-17 09:30</span>
+                                </div>
+                            </div>
+                            
+                            <div class="issue-item">
+                                <div class="issue-content">
+                                    PAINT 공정: C업체 납기 지연으로 인한 작업 순서 조정 필요. 우선순위 재검토 요청.
+                                </div>
+                                <div class="issue-meta">
+                                    <span>작성자: 박팀장</span>
+                                    <span>2025-07-17 11:15</span>
+                                </div>
+                            </div>
+                            
+                            <div class="issue-item">
+                                <div class="issue-content">
+                                    이번 달 목표 달성 가능성: 현재 진행률 기준 95% 달성 예상. VIDI 공정 정상화 시 100% 가능.
+                                </div>
+                                <div class="issue-meta">
+                                    <span>작성자: 이주임</span>
+                                    <span>2025-07-17 13:45</span>
+                                </div>
+                            </div>
+                            
+                            <div class="issue-item">
+                                <div class="issue-content">
+                                    SHOT 공정: 새로운 작업자 투입으로 인한 일시적 효율 저하. 교육 완료 후 정상화 예정.
+                                </div>
+                                <div class="issue-meta">
+                                    <span>작성자: 최반장</span>
+                                    <span>2025-07-16 16:20</span>
+                                </div>
+                            </div>
+                            
+                            <div class="issue-item">
+                                <div class="issue-content">
+                                    GALV 공정: 외부업체 납기 지연으로 인한 일정 조정. 대체 업체 검토 중.
+                                </div>
+                                <div class="issue-meta">
+                                    <span>작성자: 정과장</span>
+                                    <span>2025-07-16 14:10</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // DOM 로딩 완료 후 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('대시보드 초기화 시작');
+            
+            // 날짜 입력 필드 이벤트 리스너
+            const startInput = document.getElementById('startDate');
+            const endInput = document.getElementById('endDate');
+            
+            // 날짜 검증
+            startInput.addEventListener('change', function() {
+                if (endInput.value && this.value > endInput.value) {
+                    endInput.value = this.value;
+                }
+                console.log('시작일 선택:', this.value);
+            });
+            
+            endInput.addEventListener('change', function() {
+                if (startInput.value && this.value < startInput.value) {
+                    startInput.value = this.value;
+                }
+                console.log('종료일 선택:', this.value);
+            });
+            
+            // 스케줄 업데이트 시작
+            scheduleNextUpdate();
+        });
+        
+        function setFilter(period) {
+            // 모든 버튼에서 active 클래스 제거
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 클릭된 버튼에 active 클래스 추가
+            event.target.classList.add('active');
+            
+            // 사용자 정의 날짜 초기화
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            
+            // 기간에 따른 데이터 업데이트 로직
+            console.log('선택된 기간:', period);
+            updateDashboardData(period);
+        }
+        
+        function applyCustomDate() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!startDate || !endDate) {
+                alert('시작일과 종료일을 모두 선택해주세요.');
+                return;
+            }
+            
+            if (new Date(startDate) > new Date(endDate)) {
+                alert('시작일은 종료일보다 빠를 수 없습니다.');
+                return;
+            }
+            
+            // 모든 기간 버튼에서 active 클래스 제거
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            console.log('사용자 정의 기간 적용:', startDate, '~', endDate);
+            updateDashboardData('custom', { startDate, endDate });
+        }
+        
+        function updateDashboardData(period, customRange = null) {
+            // 실제 구현 시 API를 통해 데이터를 가져와서 차트 업데이트
+            console.log('대시보드 데이터 업데이트:', period, customRange);
+        }
+        
+        // 매일 저녁 10시 업데이트 스케줄링
+        function scheduleNextUpdate() {
+            const now = new Date();
+            const nextUpdate = new Date();
+            nextUpdate.setHours(22, 0, 0, 0); // 저녁 10시
+            
+            // 만약 현재 시간이 오늘 10시를 지났다면, 다음날 10시로 설정
+            if (now.getTime() > nextUpdate.getTime()) {
+                nextUpdate.setDate(nextUpdate.getDate() + 1);
+            }
+            
+            const timeUntilUpdate = nextUpdate.getTime() - now.getTime();
+            
+            setTimeout(function() {
+                console.log('일일 자동 데이터 새로고침 (오후 10시)');
+                updateDashboardData('daily');
+                
+                // 다음날 업데이트 예약
+                scheduleNextUpdate();
+            }, timeUntilUpdate);
+            
+            console.log('다음 업데이트 예정:', nextUpdate.toLocaleString());
+        }
+        
+        // 창 크기 변경 시 차트 리사이즈 (필요시)
+        window.addEventListener('resize', function() {
+            console.log('창 크기 변경 - 차트 리사이즈');
+        });
+    </script>
+</body>
+</html>
