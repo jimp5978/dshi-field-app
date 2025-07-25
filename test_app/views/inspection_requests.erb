@@ -1,0 +1,117 @@
+<style>
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+    .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 30px; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .header h1 { color: #333; font-size: 28px; margin-bottom: 10px; }
+    .header p { color: #666; font-size: 14px; }
+    .logout-button { 
+        position: absolute; top: 20px; right: 20px; background: #f44336; color: white; 
+        border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; 
+    }
+    .navigation { margin-bottom: 20px; text-align: center; }
+    .nav-button { 
+        background: #2196F3; color: white; border: none; padding: 10px 20px; 
+        border-radius: 4px; cursor: pointer; margin: 0 5px; 
+    }
+    .requests-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    .requests-table th, .requests-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+    .requests-table th { background: #f8f9fa; font-weight: 600; }
+</style>
+
+<div class="container">
+    <button class="logout-button" onclick="location.href='/logout'">로그아웃</button>
+    
+    <div class="header">
+        <h1>🏭 DSHI Dashboard</h1>
+        <p>검사신청 조회</p>
+    </div>
+    
+    <div class="navigation">
+        <button class="nav-button" onclick="location.href='/search'">검색 페이지</button>
+        <button class="nav-button" onclick="location.href='/saved-list'">저장된 리스트</button>
+        <button class="nav-button" onclick="checkAdminAccess()" style="background: #FF6B35;">관리자 패널</button>
+    </div>
+    
+    <div id="requestsContent">
+        <p>검사신청 내역을 불러오는 중...</p>
+    </div>
+</div>
+
+<script>
+// 날짜 포맷팅 함수 (YYYY-MM-DD 형식으로 변환)
+function formatDate(dateString) {
+    if (!dateString || dateString === '-' || dateString === 'null' || dateString === null) {
+        return '-';
+    }
+    
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            return dateString; // 파싱 실패시 원본 반환
+        }
+        
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}`;
+    } catch (error) {
+        return dateString; // 에러시 원본 반환
+    }
+}
+
+// 검사신청 목록 로드
+async function loadInspectionRequests() {
+    try {
+        const response = await fetch('/api/inspection-requests');
+        const data = await response.json();
+        
+        const contentDiv = document.getElementById('requestsContent');
+        
+        if (data.success) {
+            const requests = data.data.requests || [];
+            if (requests.length === 0) {
+                contentDiv.innerHTML = '<p>검사신청 내역이 없습니다.</p>';
+                return;
+            }
+            
+            let html = '<table class="requests-table">';
+            html += '<thead><tr>';
+            html += '<th>조립품 코드</th>';
+            html += '<th>검사 타입</th>';
+            html += '<th>신청일</th>';
+            html += '<th>검사일</th>';
+            html += '<th>신청자</th>';
+            html += '<th>상태</th>';
+            html += '</tr></thead><tbody>';
+            
+            requests.forEach(item => {
+                html += '<tr>';
+                html += `<td>${item.assembly_code}</td>`;
+                html += `<td>${item.inspection_type}</td>`;
+                html += `<td>${formatDate(item.created_at)}</td>`;
+                html += `<td>${formatDate(item.request_date)}</td>`;
+                html += `<td>${item.requested_by_name}</td>`;
+                html += `<td>${item.status || '대기중'}</td>`;
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            contentDiv.innerHTML = html;
+        } else {
+            contentDiv.innerHTML = `<p>오류: ${data.error}</p>`;
+        }
+    } catch (error) {
+        console.error('검사신청 조회 오류:', error);
+        document.getElementById('requestsContent').innerHTML = '<p>검사신청 내역을 불러오는 중 오류가 발생했습니다.</p>';
+    }
+}
+
+// 관리자 접근 권한 확인
+function checkAdminAccess() {
+    location.href = '/admin';
+}
+
+// 페이지 로드 시 실행
+document.addEventListener('DOMContentLoaded', loadInspectionRequests);
+</script>

@@ -1,54 +1,38 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
+# config_env.py - Docker 환경 설정
 import os
+from dotenv import load_dotenv
 
-# 환경 감지
-def get_environment():
-    """현재 환경을 감지합니다 (home/company)"""
-    # 환경변수로 설정하거나, 특정 파일 존재 여부로 판단
-    if os.getenv('WORK_ENV') == 'home':
-        return 'home'
-    else:
-        return 'company'
+# .env 파일 로드 (Docker 컨테이너에서는 환경변수가 자동으로 설정됨)
+load_dotenv()
 
-# 환경별 DB 설정
-def get_db_config():
-    env = get_environment()
-    
-    if env == 'home':
-        # 집에서 작업할 때 - 회사 DB에 원격 접속
-        return {
-            'host': '192.168.0.5',  # 회사 컴퓨터 IP
-            'user': 'field_app_user',
-            'password': 'dshi2025#',
-            'database': 'field_app_db',
-            'charset': 'utf8mb4',
-            'port': 3306
-        }
-    else:
-        # 회사에서 작업할 때 - 로컬 DB
-        return {
-            'host': 'localhost',
-            'user': 'field_app_user', 
-            'password': 'dshi2025#',
-            'database': 'field_app_db',
-            'charset': 'utf8mb4'
-        }
+# 데이터베이스 설정
+DATABASE_CONFIG = {
+    "host": os.getenv("MYSQL_HOST", "localhost"),
+    "port": int(os.getenv("MYSQL_PORT", "3306")),
+    "database": os.getenv("MYSQL_DATABASE", "dshi_field_pad"),
+    "user": os.getenv("MYSQL_USER", "dshi_user"),
+    "password": os.getenv("MYSQL_PASSWORD", "dshi_password_2024"),
+    "charset": "utf8mb4",
+    "autocommit": True
+}
 
-# Flask 서버 설정
-def get_server_config():
-    env = get_environment()
-    
-    if env == 'home':
-        return {
-            'host': '0.0.0.0',
-            'port': 5001,
-            'debug': True
-        }
-    else:
-        return {
-            'host': '0.0.0.0',
-            'port': 5001, 
-            'debug': True
-        }
+# Flask 설정
+FLASK_CONFIG = {
+    "host": os.getenv("FLASK_HOST", "0.0.0.0"),
+    "port": int(os.getenv("FLASK_PORT", "5001")),
+    "debug": os.getenv("FLASK_DEBUG", "false").lower() == "true"
+}
+
+# 환경 설정
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+
+# JWT 설정
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dshi-field-pad-secret-key-2024")
+
+# 파일 경로
+ASSEMBLY_DATA_FILE = os.getenv("ASSEMBLY_DATA_FILE", "./assembly_data.xlsx")
+
+print(f"🔧 환경 설정 로드됨: {ENVIRONMENT}")
+print(f"📊 데이터베이스 호스트: {DATABASE_CONFIG[\"host\"]}")
+print(f"🌐 Flask 서버: {FLASK_CONFIG[\"host\"]}:{FLASK_CONFIG[\"port\"]}")

@@ -1,0 +1,23 @@
+source 'https://rubygems.org'
+
+# Sinatra 웹 프레임워크
+gem 'sinatra', '~> 3.0'
+gem 'sinatra-contrib', '~> 3.0'
+
+# 웹서버 (Docker 환경에서는 puma 권장)
+gem 'puma', '~> 6.0'
+gem 'webrick', '~> 1.8'
+
+# Excel 파일 처리
+gem 'rubyXL', '~> 3.4'
+
+# HTTP 클라이언트 (Flask API 호출용)
+gem 'net-http', '~> 0.3'
+
+# JSON 처리
+gem 'json', '~> 2.6'
+
+# 개발용
+group :development do
+  gem 'rerun', '~> 0.14'
+end

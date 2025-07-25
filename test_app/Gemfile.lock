@@ -1,0 +1,53 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    json (2.6.3)
+    multi_json (1.15.0)
+    mustermann (3.0.0)
+      ruby2_keywords (~> 0.0.1)
+    net-http (0.3.2)
+      uri
+    nio4r (2.5.9)
+    puma (6.4.0)
+      nio4r (~> 2.0)
+    rack (2.2.8)
+    rack-protection (3.1.0)
+      rack (~> 2.2, >= 2.2.4)
+    rerun (0.14.0)
+      listen (~> 3.0)
+    ruby2_keywords (0.0.5)
+    rubyXL (3.4.25)
+      nokogiri (>= 1.10.8)
+      rubyzip (>= 1.3.0)
+    rubyzip (2.3.2)
+    sinatra (3.1.0)
+      mustermann (~> 3.0)
+      rack (~> 2.2, >= 2.2.4)
+      rack-protection (= 3.1.0)
+      tilt (~> 2.0)
+    sinatra-contrib (3.1.0)
+      multi_json
+      mustermann (~> 3.0)
+      rack-protection (= 3.1.0)
+      sinatra (= 3.1.0)
+      tilt (~> 2.0)
+    tilt (2.3.0)
+    uri (0.12.2)
+    webrick (1.8.1)
+
+PLATFORMS
+  x64-mingw-ucrt
+  x86_64-linux
+
+DEPENDENCIES
+  json (~> 2.6)
+  net-http (~> 0.3)
+  puma (~> 6.0)
+  rerun (~> 0.14)
+  rubyXL (~> 3.4)
+  sinatra (~> 3.0)
+  sinatra-contrib (~> 3.0)
+  webrick (~> 1.8)
+
+BUNDLED WITH
+   2.4.10

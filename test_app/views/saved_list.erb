@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSHI Dashboard - 저장된 리스트</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5; min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #2196F3 0%, #21CBF3 100%);
+            color: white; padding: 15px 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header-content {
+            max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;
+        }
+        .header h1 { font-size: 24px; font-weight: 500; }
+        .user-info { font-size: 14px; }
+        .nav-btn, .logout-btn {
+            background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
+            color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none;
+            transition: all 0.3s; margin-left: 10px;
+        }
+        .nav-btn:hover, .logout-btn:hover { background: rgba(255,255,255,0.3); }
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        .card {
+            background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px; overflow: hidden;
+        }
+        .card-header {
+            background: #f8f9fa; padding: 20px; border-bottom: 1px solid #e9ecef;
+            font-size: 18px; font-weight: 600; color: #333;
+        }
+        .card-body { padding: 20px; }
+        .btn {
+            padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;
+            font-size: 14px; font-weight: 500; transition: all 0.3s; text-decoration: none;
+            display: inline-block; text-align: center; margin-right: 10px;
+        }
+        .btn-primary { background: #2196F3; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        table { width: 100%; border-collapse: collapse; border: 1px solid #ddd; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background: #f8f9fa; font-weight: 600; }
+        tr:hover { background-color: #f8f9fa; }
+        .summary-info {
+            background: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+        .checkbox-cell { text-align: center; width: 50px; }
+        .item-checkbox { transform: scale(1.2); cursor: pointer; }
+        .empty-state {
+            text-align: center; padding: 60px 20px; color: #666;
+        }
+        .empty-state h3 { margin-bottom: 10px; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>🏭 DSHI Dashboard</h1>
+            <div class="user-info">
+                👤 <%= (@user_info && @user_info['username']) || 'Unknown' %>님 (Level <%= (@user_info && @user_info['permission_level']) || 'N/A' %>)
+                <a href="/" class="nav-btn">🔍 조립품 검색</a>
+                <a href="/inspection-requests" class="nav-btn">📊 검사신청 조회</a>
+                <% if @user_info && @user_info['permission_level'].to_i >= 2 %>
+                <a href="/admin" class="nav-btn">🔧 관리자 패널</a>
+                <% end %>
+                <a href="/logout" class="logout-btn">로그아웃</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                📋 저장된 리스트
+            </div>
+            <div class="card-body">
+                <% if @saved_list.empty? %>
+                    <div class="empty-state">
+                        <h3>📭 저장된 항목이 없습니다</h3>
+                        <p>조립품 검색에서 항목을 선택하고 저장해보세요.</p>
+                        <a href="/" class="btn btn-primary" style="margin-top: 20px;">🔍 조립품 검색하기</a>
+                    </div>
+                <% else %>
+                    <div class="summary-info" id="summaryInfo">
+                        <strong>📊 요약 정보:</strong> 총 <%= (@saved_list && @saved_list.size) || 0 %>개 항목 | 총 중량: <%= (@total_weight && @total_weight.round(2)) || 0 %> kg
+                    </div>
+                    
+                    <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #2196F3;">
+                        <h4 style="margin-bottom: 15px;">🔍 검사신청</h4>
+                        <div style="display: flex; gap: 15px; align-items: end;">
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 500;">검사신청일</label>
+                                <input type="date" id="inspectionDate" 
+                                       style="padding: 10px; border: 2px solid #e1e5e9; border-radius: 6px; font-size: 14px;"
+                                       min="<%= Date.today.strftime("%Y-%m-%d") %>"
+                                       value="<%= (Date.today + 1).strftime("%Y-%m-%d") %>">
+                            </div>
+                            <div>
+                                <button id="createInspectionBtn" class="btn btn-success" disabled>검사신청</button>
+                            </div>
+                            <div>
+                                <button id="removeSelectedBtn" class="btn btn-danger" disabled>선택항목 삭제</button>
+                            </div>
+                        </div>
+                        <div id="selectedInfo" style="margin-top: 15px; font-size: 14px; color: #666;">
+                            선택된 항목: 0개
+                        </div>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table id="savedListTable">
+                            <thead>
+                                <tr>
+                                    <th class="checkbox-cell">
+                                        <input type="checkbox" id="selectAllCheckbox">
+                                    </th>
+                                    <th>조립품 코드</th>
+                                    <th>Zone</th>
+                                    <th>Item</th>
+                                    <th>Weight(NET)</th>
+                                    <th>Status</th>
+                                    <th>Last Process</th>
+                                </tr>
+                            </thead>
+                            <tbody id="savedListBody">
+                                <% @saved_list.each_with_index do |assembly, index| %>
+                                    <tr>
+                                        <td class="checkbox-cell">
+                                            <input type="checkbox" class="item-checkbox" data-index="<%= index %>" data-assembly='<%= assembly.to_json %>'>
+                                        </td>
+                                        <td><%= assembly['name'] || 'N/A' %></td>
+                                        <td><%= assembly['location'] || 'N/A' %></td>
+                                        <td><%= assembly['drawing_number'] || 'N/A' %></td>
+                                        <td style="text-align: right;"><%= assembly['weight_net'] || '0' %></td>
+                                        <td><%= assembly['status'] || '-' %></td>
+                                        <td><%= assembly['lastProcess'] || '-' %></td>
+                                    </tr>
+                                <% end %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% end %>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateSelectionButtons() {
+            const selected = document.querySelectorAll('.item-checkbox:checked');
+            const removeBtn = document.getElementById('removeSelectedBtn');
+            const inspectionBtn = document.getElementById('createInspectionBtn');
+            const selectedInfo = document.getElementById('selectedInfo');
+            const summaryInfo = document.getElementById('summaryInfo');
+            
+            if (removeBtn) removeBtn.disabled = selected.length === 0;
+            if (inspectionBtn) inspectionBtn.disabled = selected.length === 0;
+            if (selectedInfo) selectedInfo.textContent = `선택된 항목: ${selected.length}개`;
+            
+            // 요약 정보 동적 업데이트
+            if (summaryInfo && selected.length > 0) {
+                let selectedWeight = 0;
+                Array.from(selected).forEach(checkbox => {
+                    const assembly = JSON.parse(checkbox.dataset.assembly);
+                    selectedWeight += parseFloat(assembly.weight_net || 0);
+                });
+                summaryInfo.innerHTML = `<strong>📊 요약 정보:</strong> 선택된 ${selected.length}개 항목 | 선택된 중량: ${selectedWeight.toFixed(2)} kg`;
+            } else if (summaryInfo) {
+                summaryInfo.innerHTML = `<strong>📊 요약 정보:</strong> 총 <%= (@saved_list && @saved_list.size) || 0 %>개 항목 | 총 중량: <%= (@total_weight && @total_weight.round(2)) || 0 %> kg`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', function() {
+                    const isChecked = this.checked;
+                    document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+                        checkbox.checked = isChecked;
+                    });
+                    updateSelectionButtons();
+                });
+            }
+
+            document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', updateSelectionButtons);
+            });
+
+            const removeSelectedBtn = document.getElementById('removeSelectedBtn');
+            if (removeSelectedBtn) {
+                removeSelectedBtn.addEventListener('click', async function() {
+                    const selected = document.querySelectorAll('.item-checkbox:checked');
+                    if (selected.length > 0 && confirm(`선택된 ${selected.length}개 항목을 삭제하시겠습니까?`)) {
+                        const selectedData = Array.from(selected).map(cb => JSON.parse(cb.dataset.assembly));
+                        const assemblyCodes = selectedData.map(item => item.name);
+                        
+                        try {
+                            const response = await fetch('/api/remove-from-saved-list', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ items: assemblyCodes })
+                            });
+                            
+                            const result = await response.json();
+                            
+                            if (result.success) {
+                                alert(`✅ ${selected.length}개 항목이 삭제되었습니다.`);
+                                location.reload();
+                            } else {
+                                alert(`❌ 삭제 실패: ${result.error}`);
+                            }
+                        } catch (error) {
+                            alert(`❌ 삭제 오류: ${error.message}`);
+                        }
+                    }
+                });
+            }
+
+            const createInspectionBtn = document.getElementById('createInspectionBtn');
+            if (createInspectionBtn) {
+                createInspectionBtn.addEventListener('click', async function() {
+                    const selected = document.querySelectorAll('.item-checkbox:checked');
+                    const inspectionDate = document.getElementById('inspectionDate').value;
+                    
+                    if (selected.length === 0) {
+                        alert('검사신청할 항목을 선택해주세요.');
+                        return;
+                    }
+                    
+                    if (!inspectionDate) {
+                        alert('검사신청일을 선택해주세요.');
+                        return;
+                    }
+                    
+                    const selectedData = Array.from(selected).map(cb => JSON.parse(cb.dataset.assembly));
+                    
+                    // 다음 공정 검증 (백업 파일 로직 적용)
+                    const nextProcesses = selectedData.map(assembly => {
+                        // 공정 순서에 따른 다음 공정 계산
+                        const processes = ['fit_up_date', 'final_date', 'arup_final_date', 'galv_date', 'arup_galv_date', 'shot_date', 'paint_date', 'arup_paint_date'];
+                        const processNames = ['FIT_UP', 'FINAL', 'ARUP_FINAL', 'GALV', 'ARUP_GALV', 'SHOT', 'PAINT', 'ARUP_PAINT'];
+                        
+                        for (let i = 0; i < processes.length; i++) {
+                            const date = assembly[processes[i]];
+                            if (!date || date === '1900-01-01') {
+                                return processNames[i];
+                            }
+                        }
+                        return null; // 모든 공정 완료
+                    });
+                    
+                    const uniqueProcesses = [...new Set(nextProcesses.filter(p => p !== null))];
+                    
+                    if (uniqueProcesses.length > 1) {
+                        const processNames = uniqueProcesses.map(p => {
+                            switch(p) {
+                                case 'FIT_UP': return 'FIT-UP 검사';
+                                case 'FINAL': return 'FINAL 검사';
+                                case 'ARUP_FINAL': return 'ARUP FINAL 검사';
+                                case 'GALV': return 'GALV 검사';
+                                case 'ARUP_GALV': return 'ARUP GALV 검사';
+                                case 'SHOT': return 'SHOT 검사';
+                                case 'PAINT': return 'PAINT 검사';
+                                case 'ARUP_PAINT': return 'ARUP PAINT 검사';
+                                default: return p;
+                            }
+                        }).join(', ');
+                        
+                        alert(`❌ 검사신청 오류\\n\\n선택된 조립품들의 다음 공정이 다릅니다.\\n동일한 공정의 조립품만 선택해주세요.\\n\\n다음 공정들: ${processNames}`);
+                        return;
+                    }
+                    
+                    const commonProcess = uniqueProcesses[0];
+                    let processKoreanName = '';
+                    switch(commonProcess) {
+                        case 'FIT_UP': processKoreanName = 'FIT-UP'; break;
+                        case 'FINAL': processKoreanName = 'FINAL'; break;
+                        case 'ARUP_FINAL': processKoreanName = 'ARUP FINAL'; break;
+                        case 'GALV': processKoreanName = 'GALV'; break;
+                        case 'ARUP_GALV': processKoreanName = 'ARUP GALV'; break;
+                        case 'SHOT': processKoreanName = 'SHOT'; break;
+                        case 'PAINT': processKoreanName = 'PAINT'; break;
+                        case 'ARUP_PAINT': processKoreanName = 'ARUP PAINT'; break;
+                        default: processKoreanName = commonProcess;
+                    }
+                    
+                    const assemblyCodes = selectedData.map(item => item.name);
+                    
+                    const now = new Date();
+                    const dateStr = now.getFullYear() + '년 ' + (now.getMonth() + 1) + '월 ' + now.getDate() + '일 ' + 
+                                   now.getHours() + '시 ' + now.getMinutes() + '분';
+                    
+                    if (!confirm(`검사신청 확인\\n• 대상: ${selected.length}개 항목\\n• 다음 공정: ${processKoreanName} 검사\\n• 검사일: ${inspectionDate}\\n\\n검사신청하시겠습니까?`)) {
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch('/api/create-inspection-request', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                assembly_codes: assemblyCodes,
+                                inspection_type: commonProcess,
+                                request_date: inspectionDate
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            const responseData = result.data;
+                            let message = `✅ 검사신청이 성공적으로 생성되었습니다!\\n\\n📋 신청 항목: ${selectedData.length}개 (${processKoreanName})\\n📅 검사일: ${inspectionDate}\\n📅 신청 시간: ${dateStr}`;
+                            
+                            if (responseData.inserted_count > 0) {
+                                message += `\\n✅ 성공: ${responseData.inserted_count}개`;
+                            }
+                            
+                            if (responseData.duplicate_items && responseData.duplicate_items.length > 0) {
+                                message += `\\n⚠️ 중복: ${responseData.duplicate_items.length}개 (이미 신청됨)`;
+                                responseData.duplicate_items.forEach(item => {
+                                    message += `\\n  - ${item.assembly_code}: ${item.existing_requester}님이 ${item.existing_date}에 신청`;
+                                });
+                            }
+                            
+                            alert(message);
+                            location.reload();
+                        } else {
+                            alert(`❌ 검사신청 실패: ${result.error}`);
+                        }
+                    } catch (error) {
+                        alert(`❌ 검사신청 오류: ${error.message}`);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

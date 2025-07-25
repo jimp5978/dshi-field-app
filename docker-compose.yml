@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # MySQL 데이터베이스
+  mysql:
+    image: mysql:8.0
+    container_name: dshi_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - dshi_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Flask API 서버
+  flask-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.flask
+    container_name: dshi_flask_api
+    restart: unless-stopped
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - FLASK_HOST=${FLASK_HOST}
+      - FLASK_PORT=${FLASK_PORT}
+      - FLASK_DEBUG=${FLASK_DEBUG}
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./assembly_data.xlsx:/app/assembly_data.xlsx
+      - ./logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - dshi_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Sinatra 웹 애플리케이션
+  web:
+    build:
+      context: ./test_app
+      dockerfile: Dockerfile
+    container_name: dshi_web_app
+    restart: unless-stopped
+    environment:
+      - FLASK_API_URL=${FLASK_API_URL}
+      - SINATRA_HOST=${SINATRA_HOST}
+      - SINATRA_PORT=${SINATRA_PORT}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - DEBUG=${DEBUG}
+    ports:
+      - "5007:5007"
+    volumes:
+      - ./test_app/logs:/app/logs
+    depends_on:
+      flask-api:
+        condition: service_healthy
+    networks:
+      - dshi_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  dshi_network:
+    driver: bridge

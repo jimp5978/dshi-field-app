@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSHI Dashboard - 조립품 검색</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5; min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #2196F3 0%, #21CBF3 100%);
+            color: white; padding: 15px 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header-content {
+            max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;
+        }
+        .header h1 { font-size: 24px; font-weight: 500; }
+        .user-info { font-size: 14px; }
+        .logout-btn {
+            background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
+            color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none;
+            transition: all 0.3s; margin-left: 15px;
+        }
+        .logout-btn:hover { background: rgba(255,255,255,0.3); }
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        .card {
+            background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px; overflow: hidden;
+        }
+        .card-header {
+            background: #f8f9fa; padding: 20px; border-bottom: 1px solid #e9ecef;
+            font-size: 18px; font-weight: 600; color: #333;
+        }
+        .card-body { padding: 20px; }
+        .btn {
+            padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;
+            font-size: 14px; font-weight: 500; transition: all 0.3s; text-decoration: none;
+            display: inline-block; text-align: center;
+        }
+        .btn-primary { background: #2196F3; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        table { width: 100%; border-collapse: collapse; border: 1px solid #ddd; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background: #f8f9fa; font-weight: 600; }
+        tr:hover { background-color: #f8f9fa; }
+        .status-box { padding: 15px; border-radius: 6px; margin-bottom: 20px; display: none; }
+        .status-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status-loading { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        input[type="text"] {
+            padding: 12px; border: 2px solid #e1e5e9; border-radius: 6px;
+            font-size: 16px; transition: all 0.3s; width: 200px;
+        }
+        input[type="text"]:focus {
+            outline: none; border-color: #2196F3; box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+        .checkbox-cell { text-align: center; width: 50px; }
+        .item-checkbox, #selectAllCheckbox { transform: scale(1.2); cursor: pointer; }
+        .selection-info {
+            margin-top: 15px; padding: 15px; background: #e3f2fd; border-radius: 6px;
+            border-left: 4px solid #2196F3; display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>🏭 DSHI Dashboard</h1>
+            <div class="user-info">
+                👤 <%= @user_info['username'] || 'Unknown' %>님 (Level <%= @user_info['permission_level'] || 'N/A' %>)
+                <a href="/saved-list" class="logout-btn">📋 저장된 리스트</a>
+                <a href="/inspection-requests" class="logout-btn">📊 검사신청 조회</a>
+                <% if @user_info && @user_info['permission_level'].to_i >= 2 %>
+                <a href="/admin" class="logout-btn" style="background: #FF6B35;">🔧 관리자 패널</a>
+                <% end %>
+                <a href="/logout" class="logout-btn">로그아웃</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                🔍 조립품 검색
+            </div>
+            <div class="card-body">
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <form id="searchForm" style="display: flex; gap: 10px; align-items: center;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">검색어 (끝 3자리)</label>
+                            <input type="text" id="searchInput" placeholder="예: 001, 123, 420" 
+                                   maxlength="3" pattern="[0-9]{1,3}" required>
+                        </div>
+                        <div>
+                            <button type="submit" class="btn btn-primary" id="searchBtn" style="margin-top: 25px;">검색</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="searchStatus" class="status-box">
+                    <span id="statusMessage"></span>
+                </div>
+
+                <div id="searchResults" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 id="resultsTitle">검색 결과</h3>
+                        <div>
+                            <button id="selectAllBtn" class="btn btn-secondary" style="margin-right: 10px;">전체선택</button>
+                            <button id="addToListBtn" class="btn btn-primary" disabled>선택항목 저장</button>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table id="resultsTable">
+                            <thead>
+                                <tr>
+                                    <th class="checkbox-cell">
+                                        <input type="checkbox" id="selectAllCheckbox">
+                                    </th>
+                                    <th>조립품 코드</th>
+                                    <th>Zone</th>
+                                    <th>Item</th>
+                                    <th>Weight(NET)</th>
+                                    <th>Status</th>
+                                    <th>Last Process</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultsBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="selectionInfo" class="selection-info">
+                        <strong>선택된 항목:</strong> <span id="selectedCount">0</span>개 
+                        | <strong>총 중량:</strong> <span id="totalWeight">0</span> kg
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="background: #f8f9fa;">
+            <div class="card-header">🐛 Debug 정보</div>
+            <div class="card-body">
+                <div style="font-family: monospace; font-size: 12px; color: #666;">
+                    <strong>사용자:</strong> <%= @user_info['username'] || 'Unknown' %> (Level <%= @user_info['permission_level'] || 'N/A' %>)<br>
+                    <strong>Flask API:</strong> <%= @flask_api_url %><br>
+                    <strong>현재 시간:</strong> <span id="currentTime"></span><br>
+                    <strong>검색 로그:</strong><br>
+                    <div id="searchLog" style="max-height: 200px; overflow-y: auto; background: white; padding: 10px; margin-top: 5px; border: 1px solid #ddd;">
+                        - 검색 준비 완료<br>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function debugLog(message) {
+            console.log('🐛 DEBUG:', message);
+            const logElement = document.getElementById('searchLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}<br>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        function showStatus(message, type = 'info') {
+            const statusElement = document.getElementById('searchStatus');
+            const messageElement = document.getElementById('statusMessage');
+            
+            messageElement.textContent = message;
+            statusElement.style.display = 'block';
+            statusElement.className = 'status-box status-' + type;
+        }
+        
+        function displayResults(assemblies) {
+            const tbody = document.getElementById('resultsBody');
+            const resultsDiv = document.getElementById('searchResults');
+            const titleElement = document.getElementById('resultsTitle');
+            
+            tbody.innerHTML = '';
+            
+            if (assemblies.length === 0) {
+                showStatus('검색 결과가 없습니다.', 'error');
+                resultsDiv.style.display = 'none';
+                return;
+            }
+            
+            titleElement.textContent = `검색 결과 (${assemblies.length}개)`;
+            resultsDiv.style.display = 'block';
+            
+            debugLog(`첫 번째 항목: ${JSON.stringify(assemblies[0], null, 2)}`);
+            
+            assemblies.forEach((assembly, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="checkbox-cell">
+                        <input type="checkbox" class="item-checkbox" data-index="${index}" data-assembly='${JSON.stringify(assembly)}'>
+                    </td>
+                    <td>${assembly.name || 'N/A'}</td>
+                    <td>${assembly.location || 'N/A'}</td>
+                    <td>${assembly.drawing_number || 'N/A'}</td>
+                    <td style="text-align: right;">${assembly.weight_net || '0'}</td>
+                    <td>${assembly.status || '-'}</td>
+                    <td>${assembly.lastProcess || '-'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            updateSelectionHandlers();
+            updateSelectionInfo();
+            showStatus(`${assemblies.length}개의 조립품을 찾았습니다.`, 'success');
+            debugLog(`검색 결과 표시 완료: ${assemblies.length}개`);
+        }
+        
+        function updateSelectionHandlers() {
+            document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', updateSelectionInfo);
+            });
+            
+            document.getElementById('selectAllCheckbox').addEventListener('change', function() {
+                const isChecked = this.checked;
+                document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                });
+                updateSelectionInfo();
+            });
+        }
+        
+        function updateSelectionInfo() {
+            const checkboxes = document.querySelectorAll('.item-checkbox:checked');
+            const count = checkboxes.length;
+            let totalWeight = 0;
+            
+            checkboxes.forEach(checkbox => {
+                const assembly = JSON.parse(checkbox.dataset.assembly);
+                totalWeight += parseFloat(assembly.weight_net || 0);
+            });
+            
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('totalWeight').textContent = totalWeight.toFixed(2);
+            document.getElementById('selectionInfo').style.display = count > 0 ? 'block' : 'none';
+            document.getElementById('addToListBtn').disabled = count === 0;
+            
+            debugLog(`선택 업데이트: ${count}개, 총 중량: ${totalWeight.toFixed(2)}kg`);
+        }
+        
+        async function performSearch(searchTerm) {
+            debugLog(`검색 시작: "${searchTerm}"`);
+            showStatus('검색 중...', 'loading');
+            
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: searchTerm })
+                });
+                
+                debugLog(`API 응답: ${response.status}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const assemblies = data.data && data.data.assemblies ? data.data.assemblies : [];
+                debugLog(`응답 데이터 수신: ${assemblies.length}개`);
+                
+                if (!data.success) {
+                    throw new Error(data.error || '검색 실패');
+                }
+                
+                displayResults(assemblies);
+                
+            } catch (error) {
+                debugLog(`검색 오류: ${error.message}`);
+                showStatus(`검색 오류: ${error.message}`, 'error');
+                document.getElementById('searchResults').style.display = 'none';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            debugLog('조립품 검색 페이지 로드 완료');
+            
+            function updateTime() {
+                document.getElementById('currentTime').textContent = new Date().toLocaleString();
+            }
+            updateTime();
+            setInterval(updateTime, 1000);
+            
+            const searchForm = document.getElementById('searchForm');
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            
+            searchForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const searchTerm = searchInput.value.trim();
+                if (searchTerm.length === 0) {
+                    alert('검색어를 입력해주세요.');
+                    return;
+                }
+                
+                if (!/^[0-9]{1,3}$/.test(searchTerm)) {
+                    alert('숫자 1-3자리만 입력 가능합니다.');
+                    return;
+                }
+                
+                searchBtn.textContent = '검색 중...';
+                searchBtn.disabled = true;
+                
+                performSearch(searchTerm).finally(() => {
+                    searchBtn.textContent = '검색';
+                    searchBtn.disabled = false;
+                });
+            });
+            
+            searchInput.addEventListener('input', function(e) {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+            
+            document.getElementById('selectAllBtn').addEventListener('click', function() {
+                const allCheckboxes = document.querySelectorAll('.item-checkbox');
+                const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+                const isAllSelected = Array.from(allCheckboxes).every(cb => cb.checked);
+                
+                allCheckboxes.forEach(checkbox => {
+                    checkbox.checked = !isAllSelected;
+                });
+                selectAllCheckbox.checked = !isAllSelected;
+                
+                updateSelectionInfo();
+            });
+            
+            document.getElementById('addToListBtn').addEventListener('click', async function() {
+                const selected = document.querySelectorAll('.item-checkbox:checked');
+                const selectedData = Array.from(selected).map(cb => JSON.parse(cb.dataset.assembly));
+                
+                let totalWeight = 0;
+                selectedData.forEach(item => totalWeight += parseFloat(item.weight_net || 0));
+                
+                debugLog(`저장 리스트 추가 시도: ${selected.length}개, ${totalWeight.toFixed(2)}kg`);
+                
+                try {
+                    const response = await fetch('/api/save-list', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ items: selectedData })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        const now = new Date();
+                        const dateStr = now.getFullYear() + '년 ' + (now.getMonth() + 1) + '월 ' + now.getDate() + '일 ' + 
+                                       now.getHours() + '시 ' + now.getMinutes() + '분';
+                        
+                        alert(`✅ ${selected.length}개 항목이 저장되었습니다\\n총 중량: ${totalWeight.toFixed(2)} kg | 저장된 항목: ${result.total}개`);
+                        debugLog(`저장 완료: 총 ${result.total}개 항목`);
+                        
+                        // 저장된 항목들의 체크박스 해제 및 검색 결과에서 제거
+                        const savedAssemblyCodes = selectedData.map(item => item.name);
+                        const remainingRows = Array.from(document.querySelectorAll('#resultsTable tbody tr')).filter(row => {
+                            const checkbox = row.querySelector('.item-checkbox');
+                            const assembly = JSON.parse(checkbox.dataset.assembly);
+                            return !savedAssemblyCodes.includes(assembly.name);
+                        });
+                        
+                        const tbody = document.getElementById('resultsBody');
+                        tbody.innerHTML = '';
+                        remainingRows.forEach(row => tbody.appendChild(row));
+                        
+                        // UI 업데이트
+                        updateSelectionInfo();
+                        const remainingCount = remainingRows.length;
+                        if (remainingCount === 0) {
+                            document.getElementById('searchResults').style.display = 'none';
+                            showStatus('모든 검색 결과가 저장되었습니다.', 'success');
+                        } else {
+                            document.getElementById('resultsTitle').textContent = `검색 결과 (${remainingCount}개)`;
+                        }
+                    } else {
+                        alert(`❌ 저장 실패: ${result.error}`);
+                        debugLog(`저장 실패: ${result.error}`);
+                    }
+                } catch (error) {
+                    alert(`❌ 저장 오류: ${error.message}`);
+                    debugLog(`저장 오류: ${error.message}`);
+                }
+            });
+            
+            searchInput.focus();
+            debugLog('모든 이벤트 리스너 설정 완료');
+        });
+    </script>
+</body>
+</html>
