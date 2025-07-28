@@ -200,9 +200,9 @@
                     <td class="checkbox-cell">
                         <input type="checkbox" class="item-checkbox" data-index="${index}" data-assembly='${JSON.stringify(assembly)}'>
                     </td>
-                    <td>${assembly.name || 'N/A'}</td>
-                    <td>${assembly.location || 'N/A'}</td>
-                    <td>${assembly.drawing_number || 'N/A'}</td>
+                    <td>${assembly.assembly_code || 'N/A'}</td>
+                    <td>${assembly.zone || 'N/A'}</td>
+                    <td>${assembly.item || 'N/A'}</td>
                     <td style="text-align: right;">${assembly.weight_net || '0'}</td>
                     <td>${assembly.status || '-'}</td>
                     <td>${assembly.lastProcess || '-'}</td>
@@ -266,7 +266,7 @@
                 }
                 
                 const data = await response.json();
-                const assemblies = data.data && data.data.assemblies ? data.data.assemblies : [];
+                const assemblies = data.data || [];
                 debugLog(`응답 데이터 수신: ${assemblies.length}개`);
                 
                 if (!data.success) {
@@ -362,11 +362,11 @@
                         debugLog(`저장 완료: 총 ${result.total}개 항목`);
                         
                         // 저장된 항목들의 체크박스 해제 및 검색 결과에서 제거
-                        const savedAssemblyCodes = selectedData.map(item => item.name);
+                        const savedAssemblyCodes = selectedData.map(item => item.assembly_code);
                         const remainingRows = Array.from(document.querySelectorAll('#resultsTable tbody tr')).filter(row => {
                             const checkbox = row.querySelector('.item-checkbox');
                             const assembly = JSON.parse(checkbox.dataset.assembly);
-                            return !savedAssemblyCodes.includes(assembly.name);
+                            return !savedAssemblyCodes.includes(assembly.assembly_code);
                         });
                         
                         const tbody = document.getElementById('resultsBody');

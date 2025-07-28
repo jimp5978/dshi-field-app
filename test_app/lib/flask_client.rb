@@ -55,7 +55,7 @@ class FlaskClient
     AppLogger.debug("검색어: #{query}")
     
     begin
-      url = "#{@base_url}/api/assemblies?search=#{query}"
+      url = "#{@base_url}/api/assemblies/search?q=#{query}"
       AppLogger.debug("Flask API 요청: #{url}")
       
       uri = URI(url)
@@ -64,15 +64,15 @@ class FlaskClient
       http.read_timeout = 30
       
       request = Net::HTTP::Get.new(uri)
-      request['Authorization'] = "Bearer #{token}"
+      request['Authorization'] = "Bearer #{token}" if token && !token.empty?
       
       response = http.request(request)
       AppLogger.debug("Flask API 응답: #{response.code}")
       
       if response.code == '200'
         data = JSON.parse(response.body)
-        AppLogger.debug("조립품 개수: #{data.length}")
-        { success: true, data: data }
+        AppLogger.debug("조립품 개수: #{data['data'] ? data['data'].length : 0}")
+        { success: true, data: data['data'] || [] }
       else
         { success: false, error: "검색 중 오류가 발생했습니다 (#{response.code})" }
       end

@@ -244,8 +244,7 @@ def get_assemblies():
         return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
 
 @app.route('/api/assemblies/search', methods=['GET'])
-@token_required
-def search_assemblies(current_user):
+def search_assemblies():
     """조립품 검색"""
     try:
         query = request.args.get('q', '')
@@ -260,21 +259,74 @@ def search_assemblies(current_user):
         cursor = connection.cursor(dictionary=True)
         search_pattern = f"%{query}%"
         
-        cursor.execute("""
-            SELECT id, assembly_name, drawing_number, revision, 
-                   created_date, status
-            FROM assemblies 
-            WHERE assembly_name LIKE %s OR drawing_number LIKE %s
-            ORDER BY created_date DESC
-        """, (search_pattern, search_pattern))
+        # 숫자인지 확인하여 끝 3자리 검색 또는 일반 검색 적용
+        if query.isdigit() and len(query) <= 3:
+            # 끝 3자리 숫자 검색
+            cursor.execute("""
+                SELECT assembly_code, company, zone, item, weight_net,
+                       fit_up_date, final_date, arup_final_date, galv_date, 
+                       arup_galv_date, shot_date, paint_date, arup_paint_date
+                FROM arup_ecs 
+                WHERE RIGHT(assembly_code, 3) = %s
+                ORDER BY assembly_code
+                LIMIT 50
+            """, (query.zfill(3),))  # 3자리로 패딩 (예: "27" -> "027")
+        else:
+            # 일반 검색 (assembly_code나 item에 포함된 경우)
+            search_pattern = f"%{query}%"
+            cursor.execute("""
+                SELECT assembly_code, company, zone, item, weight_net,
+                       fit_up_date, final_date, arup_final_date, galv_date, 
+                       arup_galv_date, shot_date, paint_date, arup_paint_date
+                FROM arup_ecs 
+                WHERE assembly_code LIKE %s OR item LIKE %s
+                ORDER BY assembly_code
+                LIMIT 50
+            """, (search_pattern, search_pattern))
         
         assemblies = cursor.fetchall()
         cursor.close()
         connection.close()
         
+        # 각 조립품에 대해 상태와 마지막 공정 계산
+        processed_assemblies = []
+        for assembly in assemblies:
+            # 공정 순서: FIT_UP → FINAL → ARUP_FINAL → GALV → ARUP_GALV → SHOT → PAINT → ARUP_PAINT
+            processes = [
+                ('FIT_UP', assembly['fit_up_date']),
+                ('FINAL', assembly['final_date']),
+                ('ARUP_FINAL', assembly['arup_final_date']),
+                ('GALV', assembly['galv_date']),
+                ('ARUP_GALV', assembly['arup_galv_date']),
+                ('SHOT', assembly['shot_date']),
+                ('PAINT', assembly['paint_date']),
+                ('ARUP_PAINT', assembly['arup_paint_date'])
+            ]
+            
+            # 완료된 공정들만 필터링 (None과 1900-01-01 제외)
+            completed_processes = []
+            for name, date in processes:
+                if date is not None and str(date) != '1900-01-01' and str(date) != '1900-01-01 00:00:00':
+                    completed_processes.append((name, date))
+            
+            if completed_processes:
+                # 가장 마지막 완료된 공정
+                last_process_name, last_date = completed_processes[-1]
+                status = '완료' if len(completed_processes) == 8 else '진행중'
+                last_process = last_process_name
+            else:
+                last_process = '시작전'
+                status = '대기'
+            
+            # 원본 데이터에 계산된 필드 추가
+            processed_assembly = dict(assembly)
+            processed_assembly['status'] = status
+            processed_assembly['lastProcess'] = last_process
+            processed_assemblies.append(processed_assembly)
+        
         return jsonify({
             'success': True,
-            'data': assemblies
+            'data': processed_assemblies
         })
         
     except Exception as e:
