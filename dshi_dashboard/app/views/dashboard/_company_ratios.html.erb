@@ -1,0 +1,91 @@
+<div class="section" style="flex: 1;">
+    <h2 class="section-title">업체별 계획 대비 완료율</h2>
+    <div class="section-content">
+        <div class="company-progress">
+            <div class="company-item">
+                <div class="company-name">A 업체</div>
+                <div class="company-bar">
+                    <div class="company-fill" style="width: 92%"></div>
+                </div>
+                <div class="company-percentage">92%</div>
+            </div>
+            <div class="company-item">
+                <div class="company-name">B 업체</div>
+                <div class="company-bar">
+                    <div class="company-fill" style="width: 85%"></div>
+                </div>
+                <div class="company-percentage">85%</div>
+            </div>
+            <div class="company-item">
+                <div class="company-name">C 업체</div>
+                <div class="company-bar">
+                    <div class="company-fill" style="width: 78%"></div>
+                </div>
+                <div class="company-percentage">78%</div>
+            </div>
+            <div class="company-item">
+                <div class="company-name">D 업체</div>
+                <div class="company-bar">
+                    <div class="company-fill" style="width: 94%"></div>
+                </div>
+                <div class="company-percentage">94%</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .company-progress {
+        display: flex;
+        flex-direction: column;
+        gap: clamp(8px, 1.5vh, 12px);
+        height: 100%;
+    }
+    
+    .company-item {
+        display: flex;
+        align-items: center;
+        gap: clamp(8px, 1.5vw, 12px);
+        padding: clamp(6px, 1.2vh, 10px);
+        background-color: #4a4a4a;
+        border-radius: clamp(4px, 0.8vh, 6px);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .company-item:hover {
+        background-color: #555555;
+        transform: translateX(3px);
+    }
+    
+    .company-name {
+        color: #ffffff;
+        font-size: clamp(10px, 2vh, 14px);
+        font-weight: 500;
+        min-width: clamp(60px, 12vw, 80px);
+    }
+    
+    .company-bar {
+        flex: 1;
+        height: clamp(6px, 1.2vh, 10px);
+        background-color: #555555;
+        border-radius: clamp(3px, 0.6vh, 5px);
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .company-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #00d4ff, #2196F3);
+        transition: width 0.5s ease;
+        border-radius: clamp(3px, 0.6vh, 5px);
+    }
+    
+    .company-percentage {
+        color: #00d4ff;
+        font-size: clamp(10px, 2vh, 14px);
+        font-weight: bold;
+        min-width: clamp(35px, 7vw, 45px);
+        text-align: right;
+    }
+</style>

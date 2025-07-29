@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSHI Dashboard - 조립품 검색</title>
+    <title>DSHI</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -65,12 +65,82 @@
             margin-top: 15px; padding: 15px; background: #e3f2fd; border-radius: 6px;
             border-left: 4px solid #2196F3; display: none;
         }
+        
+        /* 로딩 스피너 스타일 */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .btn-loading {
+            opacity: 0.7;
+            cursor: not-allowed !important;
+            pointer-events: none;
+        }
+        
+        /* 중앙 로딩 대화상자 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-dialog {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            min-width: 300px;
+        }
+        
+        .loading-dialog .big-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        .loading-dialog h3 {
+            margin: 0;
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .loading-dialog p {
+            margin: 10px 0 0 0;
+            color: #666;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <div class="header-content">
-            <h1>🏭 DSHI Dashboard</h1>
+            <h1>🏭 DSHI</h1>
             <div class="user-info">
                 👤 <%= @user_info['username'] || 'Unknown' %>님 (Level <%= @user_info['permission_level'] || 'N/A' %>)
                 <a href="/saved-list" class="logout-btn">📋 저장된 리스트</a>
@@ -86,18 +156,16 @@
     <div class="container">
         <div class="card">
             <div class="card-header">
-                🔍 조립품 검색
+                🔍 Assembly No 검색
             </div>
             <div class="card-body">
                 <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                    <form id="searchForm" style="display: flex; gap: 10px; align-items: center;">
-                        <div style="flex: 1;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">검색어 (끝 3자리)</label>
+                    <form id="searchForm">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Assembly No (끝 3자리)</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
                             <input type="text" id="searchInput" placeholder="예: 001, 123, 420" 
-                                   maxlength="3" pattern="[0-9]{1,3}" required>
-                        </div>
-                        <div>
-                            <button type="submit" class="btn btn-primary" id="searchBtn" style="margin-top: 25px;">검색</button>
+                                   maxlength="3" pattern="[0-9]{1,3}" required style="flex: 1;">
+                            <button type="submit" class="btn btn-primary" id="searchBtn">검색</button>
                         </div>
                     </form>
                 </div>
@@ -110,7 +178,6 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <h3 id="resultsTitle">검색 결과</h3>
                         <div>
-                            <button id="selectAllBtn" class="btn btn-secondary" style="margin-right: 10px;">전체선택</button>
                             <button id="addToListBtn" class="btn btn-primary" disabled>선택항목 저장</button>
                         </div>
                     </div>
@@ -122,7 +189,7 @@
                                     <th class="checkbox-cell">
                                         <input type="checkbox" id="selectAllCheckbox">
                                     </th>
-                                    <th>조립품 코드</th>
+                                    <th>Assembly No</th>
                                     <th>Zone</th>
                                     <th>Item</th>
                                     <th>Weight(NET)</th>
@@ -142,7 +209,7 @@
             </div>
         </div>
 
-        <div class="card" style="background: #f8f9fa;">
+        <div class="card" style="background: #f8f9fa; display: none;">
             <div class="card-header">🐛 Debug 정보</div>
             <div class="card-body">
                 <div style="font-family: monospace; font-size: 12px; color: #666;">
@@ -159,6 +226,28 @@
     </div>
 
     <script>
+        // 로딩 다이얼로그 함수들
+        function showLoadingDialog(title = '💾 항목 저장 중...', message = '잠시만 기다려주세요. 선택된 항목을 저장하고 있습니다.') {
+            const overlay = document.createElement('div');
+            overlay.className = 'loading-overlay';
+            overlay.id = 'loadingOverlay';
+            overlay.innerHTML = `
+                <div class="loading-dialog">
+                    <div class="big-spinner"></div>
+                    <h3>${title}</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+        
+        function hideLoadingDialog() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.remove();
+            }
+        }
+
         function debugLog(message) {
             console.log('🐛 DEBUG:', message);
             const logElement = document.getElementById('searchLog');
@@ -322,18 +411,6 @@
                 this.value = this.value.replace(/[^0-9]/g, '');
             });
             
-            document.getElementById('selectAllBtn').addEventListener('click', function() {
-                const allCheckboxes = document.querySelectorAll('.item-checkbox');
-                const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-                const isAllSelected = Array.from(allCheckboxes).every(cb => cb.checked);
-                
-                allCheckboxes.forEach(checkbox => {
-                    checkbox.checked = !isAllSelected;
-                });
-                selectAllCheckbox.checked = !isAllSelected;
-                
-                updateSelectionInfo();
-            });
             
             document.getElementById('addToListBtn').addEventListener('click', async function() {
                 const selected = document.querySelectorAll('.item-checkbox:checked');
@@ -343,6 +420,9 @@
                 selectedData.forEach(item => totalWeight += parseFloat(item.weight_net || 0));
                 
                 debugLog(`저장 리스트 추가 시도: ${selected.length}개, ${totalWeight.toFixed(2)}kg`);
+                
+                // 로딩 스피너 표시
+                showLoadingDialog();
                 
                 try {
                     const response = await fetch('/api/save-list', {
@@ -354,11 +434,9 @@
                     const result = await response.json();
                     
                     if (result.success) {
-                        const now = new Date();
-                        const dateStr = now.getFullYear() + '년 ' + (now.getMonth() + 1) + '월 ' + now.getDate() + '일 ' + 
-                                       now.getHours() + '시 ' + now.getMinutes() + '분';
+                        // 저장 완료 후 새로고침 스피너로 변경
+                        showLoadingDialog('🔄 새로고침 중...', '저장이 완료되었습니다. 페이지를 새로고침하고 있습니다.');
                         
-                        alert(`✅ ${selected.length}개 항목이 저장되었습니다\\n총 중량: ${totalWeight.toFixed(2)} kg | 저장된 항목: ${result.total}개`);
                         debugLog(`저장 완료: 총 ${result.total}개 항목`);
                         
                         // 저장된 항목들의 체크박스 해제 및 검색 결과에서 제거
@@ -382,11 +460,22 @@
                         } else {
                             document.getElementById('resultsTitle').textContent = `검색 결과 (${remainingCount}개)`;
                         }
+                        
+                        // 약간의 지연 후 스피너 제거 (UI 업데이트 완료 후)
+                        setTimeout(() => {
+                            hideLoadingDialog();
+                        }, 500);
                     } else {
+                        // 로딩 숨기기
+                        hideLoadingDialog();
+                        
                         alert(`❌ 저장 실패: ${result.error}`);
                         debugLog(`저장 실패: ${result.error}`);
                     }
                 } catch (error) {
+                    // 로딩 숨기기
+                    hideLoadingDialog();
+                    
                     alert(`❌ 저장 오류: ${error.message}`);
                     debugLog(`저장 오류: ${error.message}`);
                 }

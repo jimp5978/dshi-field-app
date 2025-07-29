@@ -272,4 +272,122 @@ class FlaskClient
       { success: false, error: "서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요." }
     end
   end
+  
+  # 저장된 리스트에 항목 추가 API 호출
+  def save_assembly_list(items, token)
+    AppLogger.debug("저장된 리스트 추가 API 호출: #{items.length}개 항목")
+    
+    begin
+      uri = URI("#{@base_url}/api/saved-list")
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.open_timeout = 10
+      http.read_timeout = 30
+      
+      request = Net::HTTP::Post.new(uri)
+      request['Content-Type'] = 'application/json'
+      request['Authorization'] = "Bearer #{token}"
+      request.body = { items: items }.to_json
+      
+      response = http.request(request)
+      AppLogger.debug("Flask API 저장 응답: #{response.code}")
+      
+      if response.code == '200'
+        parsed_response = JSON.parse(response.body)
+        { success: true, message: parsed_response['message'], total: parsed_response['total'] }
+      else
+        error_data = JSON.parse(response.body) rescue {}
+        { success: false, error: error_data['message'] || "저장 중 오류가 발생했습니다 (#{response.code})" }
+      end
+    rescue => e
+      AppLogger.debug("저장된 리스트 추가 API 연결 실패: #{e.message}")
+      { success: false, error: "서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요." }
+    end
+  end
+  
+  # 저장된 리스트 조회 API 호출
+  def get_saved_list(token)
+    AppLogger.debug("저장된 리스트 조회 API 호출")
+    
+    begin
+      uri = URI("#{@base_url}/api/saved-list")
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.open_timeout = 10
+      http.read_timeout = 30
+      
+      request = Net::HTTP::Get.new(uri)
+      request['Authorization'] = "Bearer #{token}"
+      
+      response = http.request(request)
+      AppLogger.debug("Flask API 조회 응답: #{response.code}")
+      
+      if response.code == '200'
+        parsed_response = JSON.parse(response.body)
+        { success: true, items: parsed_response['items'], total: parsed_response['total'] }
+      else
+        error_data = JSON.parse(response.body) rescue {}
+        { success: false, error: error_data['message'] || "조회 중 오류가 발생했습니다 (#{response.code})" }
+      end
+    rescue => e
+      AppLogger.debug("저장된 리스트 조회 API 연결 실패: #{e.message}")
+      { success: false, error: "서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요." }
+    end
+  end
+  
+  # 저장된 리스트에서 특정 항목 삭제 API 호출
+  def delete_saved_item(assembly_code, token)
+    AppLogger.debug("저장된 항목 삭제 API 호출: #{assembly_code}")
+    
+    begin
+      uri = URI("#{@base_url}/api/saved-list/#{assembly_code}")
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.open_timeout = 10
+      http.read_timeout = 30
+      
+      request = Net::HTTP::Delete.new(uri)
+      request['Authorization'] = "Bearer #{token}"
+      
+      response = http.request(request)
+      AppLogger.debug("Flask API 항목 삭제 응답: #{response.code}")
+      
+      if response.code == '200'
+        parsed_response = JSON.parse(response.body)
+        { success: true, message: parsed_response['message'] }
+      else
+        error_data = JSON.parse(response.body) rescue {}
+        { success: false, error: error_data['message'] || "삭제 중 오류가 발생했습니다 (#{response.code})" }
+      end
+    rescue => e
+      AppLogger.debug("저장된 항목 삭제 API 연결 실패: #{e.message}")
+      { success: false, error: "서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요." }
+    end
+  end
+  
+  # 저장된 리스트 전체 삭제 API 호출
+  def clear_saved_list(token)
+    AppLogger.debug("저장된 리스트 전체 삭제 API 호출")
+    
+    begin
+      uri = URI("#{@base_url}/api/saved-list/clear")
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.open_timeout = 10
+      http.read_timeout = 30
+      
+      request = Net::HTTP::Delete.new(uri)
+      request['Authorization'] = "Bearer #{token}"
+      
+      response = http.request(request)
+      AppLogger.debug("Flask API 전체 삭제 응답: #{response.code}")
+      
+      if response.code == '200'
+        parsed_response = JSON.parse(response.body)
+        { success: true, message: parsed_response['message'] }
+      else
+        error_data = JSON.parse(response.body) rescue {}
+        { success: false, error: error_data['message'] || "삭제 중 오류가 발생했습니다 (#{response.code})" }
+      end
+    rescue => e
+      AppLogger.debug("저장된 리스트 전체 삭제 API 연결 실패: #{e.message}")
+      { success: false, error: "서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요." }
+    end
+  end
 end

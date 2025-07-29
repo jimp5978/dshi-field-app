@@ -51,6 +51,17 @@ class App < Sinatra::Base
     }.to_json
   end
   
+  # 코드 업데이트 테스트 엔드포인트 (인증 불필요)
+  get '/test-update' do
+    content_type :json
+    { 
+      message: '🎉 새로운 코드가 실행되고 있습니다!',
+      timestamp: Time.now.strftime('%Y-%m-%d %H:%M:%S'),
+      version: 'updated-v2.0',
+      server_restart_time: '12:11:13'
+    }.to_json
+  end
+  
   # 404 에러 핸들링
   not_found do
     if request.path.start_with?('/api/')

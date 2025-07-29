@@ -1,0 +1,87 @@
+<div class="section" style="flex: 1;">
+    <h2 class="section-title">전월 대비 물량 변화</h2>
+    <div class="section-content">
+        <div class="volume-cards">
+            <div class="volume-card priority-1">
+                <div class="volume-main" style="color: #2196F3;">▲ 75</div>
+                <div class="volume-process">VIDI 완료</div>
+                <div class="volume-change">+36%</div>
+            </div>
+            <div class="volume-card priority-2">
+                <div class="volume-main" style="color: #4CAF50;">▲ 42</div>
+                <div class="volume-process">FORM 완료</div>
+                <div class="volume-change">+28%</div>
+            </div>
+            <div class="volume-card priority-3">
+                <div class="volume-main" style="color: #9C27B0;">▲ 18</div>
+                <div class="volume-process">PACK 완료</div>
+                <div class="volume-change">+12%</div>
+            </div>
+            <div class="volume-card priority-1">
+                <div class="volume-main" style="color: #FF9800;">▲ 93</div>
+                <div class="volume-process">ASSY 완료</div>
+                <div class="volume-change">+45%</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .volume-cards {
+        display: flex;
+        flex-direction: column;
+        gap: clamp(6px, 1.2vh, 10px);
+        height: 100%;
+    }
+    
+    .volume-card {
+        background-color: #4a4a4a;
+        padding: clamp(8px, 1.5vh, 12px);
+        border-radius: clamp(4px, 0.8vh, 6px);
+        border-left: clamp(3px, 0.6vw, 4px) solid;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        min-height: clamp(40px, 8vh, 60px);
+    }
+    
+    .volume-card:hover {
+        background-color: #555555;
+        transform: translateX(5px);
+    }
+    
+    .volume-card.priority-1 {
+        border-left-color: #2196F3;
+    }
+    
+    .volume-card.priority-2 {
+        border-left-color: #4CAF50;
+    }
+    
+    .volume-card.priority-3 {
+        border-left-color: #9C27B0;
+    }
+    
+    .volume-main {
+        font-size: clamp(14px, 3vh, 20px);
+        font-weight: bold;
+        flex: 1;
+    }
+    
+    .volume-process {
+        color: #cccccc;
+        font-size: clamp(10px, 2vh, 14px);
+        flex: 1;
+        text-align: center;
+    }
+    
+    .volume-change {
+        color: #4CAF50;
+        font-size: clamp(10px, 2vh, 14px);
+        font-weight: bold;
+        text-align: right;
+        flex: 1;
+    }
+</style>

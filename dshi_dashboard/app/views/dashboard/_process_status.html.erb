@@ -1,0 +1,98 @@
+<div class="section" style="flex: 1;">
+    <h2 class="section-title">공정별 완료율</h2>
+    <div class="section-content">
+        <div class="process-progress">
+            <div class="process-item">
+                <div class="process-name">VIDI</div>
+                <div class="process-bar">
+                    <div class="process-fill" style="width: 89%"></div>
+                </div>
+                <div class="process-percentage">89%</div>
+            </div>
+            <div class="process-item">
+                <div class="process-name">FORM</div>
+                <div class="process-bar">
+                    <div class="process-fill" style="width: 76%"></div>
+                </div>
+                <div class="process-percentage">76%</div>
+            </div>
+            <div class="process-item">
+                <div class="process-name">PACK</div>
+                <div class="process-bar">
+                    <div class="process-fill" style="width: 92%"></div>
+                </div>
+                <div class="process-percentage">92%</div>
+            </div>
+            <div class="process-item">
+                <div class="process-name">ASSY</div>
+                <div class="process-bar">
+                    <div class="process-fill" style="width: 84%"></div>
+                </div>
+                <div class="process-percentage">84%</div>
+            </div>
+            <div class="process-item">
+                <div class="process-name">TEST</div>
+                <div class="process-bar">
+                    <div class="process-fill" style="width: 67%"></div>
+                </div>
+                <div class="process-percentage">67%</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .process-progress {
+        display: flex;
+        flex-direction: column;
+        gap: clamp(6px, 1.2vh, 10px);
+        height: 100%;
+    }
+    
+    .process-item {
+        display: flex;
+        align-items: center;
+        gap: clamp(8px, 1.5vw, 12px);
+        padding: clamp(6px, 1.2vh, 10px);
+        background-color: #4a4a4a;
+        border-radius: clamp(4px, 0.8vh, 6px);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .process-item:hover {
+        background-color: #555555;
+        transform: translateX(3px);
+    }
+    
+    .process-name {
+        color: #ffffff;
+        font-size: clamp(10px, 2vh, 14px);
+        font-weight: 500;
+        min-width: clamp(50px, 10vw, 70px);
+    }
+    
+    .process-bar {
+        flex: 1;
+        height: clamp(6px, 1.2vh, 10px);
+        background-color: #555555;
+        border-radius: clamp(3px, 0.6vh, 5px);
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .process-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4CAF50, #2196F3);
+        transition: width 0.5s ease;
+        border-radius: clamp(3px, 0.6vh, 5px);
+    }
+    
+    .process-percentage {
+        color: #4CAF50;
+        font-size: clamp(10px, 2vh, 14px);
+        font-weight: bold;
+        min-width: clamp(35px, 7vw, 45px);
+        text-align: right;
+    }
+</style>

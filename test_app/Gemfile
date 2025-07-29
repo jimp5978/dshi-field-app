@@ -14,8 +14,8 @@ gem 'rubyXL', '~> 3.4'
 # HTTP 클라이언트 (Flask API 호출용)
 gem 'net-http', '~> 0.3'
 
-# JSON 처리
-gem 'json', '~> 2.6'
+# JSON 처리 (Ruby 3.3 호환)
+gem 'json', '~> 2.7'
 
 # 개발용
 group :development do

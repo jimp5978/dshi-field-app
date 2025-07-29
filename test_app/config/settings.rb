@@ -10,7 +10,7 @@ require 'digest'
 require 'rubyXL'
 
 # Flask API 설정
-FLASK_API_URL = 'http://203.251.108.199:5001'
+FLASK_API_URL = 'http://localhost:5001'
 
 # 공정 순서 정의 (FIT_UP → FINAL → ARUP_FINAL → GALV → ARUP_GALV → SHOT → PAINT → ARUP_PAINT)
 PROCESS_ORDER = [

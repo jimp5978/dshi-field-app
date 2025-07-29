@@ -59,19 +59,20 @@ def import_assembly_data():
         print("=== DSHI ASSEMBLY 데이터 가져오기 ===")
         print("1. 기존 데이터 유지하고 새 데이터 추가")
         print("2. 전체 삭제 후 새 데이터 입력")
+        print("3. 마지막 날짜 이후 데이터만 업데이트")
         
-        choice = input("선택하세요 (1 또는 2): ").strip()
+        choice = input("선택하세요 (1, 2 또는 3): ").strip()
         
         # 엑셀 파일 읽기
         excel_file = r'E:\DSHI_RPA\APP\assembly_data.xlsx'
         print(f"엑셀 파일 읽는 중: {excel_file}")
         
-        # arup 시트 읽기 (빈 셀을 NaN으로 처리하지 않고, N/A만 명시적으로 처리)
+        # total_arup 시트 읽기 (빈 셀을 NaN으로 처리하지 않고, N/A만 명시적으로 처리)
         try:
-            df = pd.read_excel(excel_file, sheet_name='arup', keep_default_na=False, na_values=['N/A', 'n/a', 'NA', 'na'])
-            print(f"arup 시트에서 {len(df)}개 행을 읽었습니다.")
+            df = pd.read_excel(excel_file, sheet_name='total_arup', keep_default_na=False, na_values=['N/A', 'n/a', 'NA', 'na'])
+            print(f"total_arup 시트에서 {len(df)}개 행을 읽었습니다.")
         except Exception as e:
-            print(f"arup 시트 읽기 실패, 첫 번째 시트 시도: {e}")
+            print(f"total_arup 시트 읽기 실패, 첫 번째 시트 시도: {e}")
             df = pd.read_excel(excel_file, sheet_name=0, keep_default_na=False, na_values=['N/A', 'n/a', 'NA', 'na'])
             print(f"첫 번째 시트에서 {len(df)}개 행을 읽었습니다.")
         
@@ -88,108 +89,148 @@ def import_assembly_data():
         
         try:
             with connection.cursor(pymysql.cursors.DictCursor) as cursor:
-                # 사용자 선택에 따른 데이터 처리
                 if choice == "2":
                     print("기존 데이터 삭제 중...")
-                    cursor.execute("DELETE FROM assembly_items")
+                    cursor.execute("DELETE FROM arup_ecs")
                     print("기존 데이터 삭제 완료")
+                elif choice == "3":
+                    print("마지막 날짜 이후 데이터만 업데이트 진행")
+                    # 1. DB에서 마지막 날짜(last_day) 구하기
+                    cursor.execute("""
+                        SELECT MAX(GREATEST(
+                            IFNULL(fit_up_date, '1900-01-01'),
+                            IFNULL(final_date, '1900-01-01'),
+                            IFNULL(arup_final_date, '1900-01-01'),
+                            IFNULL(galv_date, '1900-01-01'),
+                            IFNULL(arup_galv_date, '1900-01-01'),
+                            IFNULL(shot_date, '1900-01-01'),
+                            IFNULL(paint_date, '1900-01-01'),
+                            IFNULL(arup_paint_date, '1900-01-01')
+                        )) AS last_day FROM arup_ecs
+                    """)
+                    last_day_row = cursor.fetchone()
+                    last_day = last_day_row['last_day'] if last_day_row and last_day_row['last_day'] else datetime(1900, 1, 1).date()
+                    print(f"DB의 마지막 날짜: {last_day}")
+
                 else:
                     print("기존 데이터 유지하며 진행")
                 
-                # 데이터 입력
                 inserted_count = 0
                 skipped_count = 0
                 
                 for index, row in df.iterrows():
                     try:
-                        # arup 시트 컬럼 구조에 맞게 데이터 추출
-                        # ZONE, ITEM, ASSEMBLY, FIT-UP, NDE, FINAL, GALV, SHOT, PAINT, PACKING
-                        zone = str(row.iloc[0]).strip() if not pd.isna(row.iloc[0]) else ''
-                        item = str(row.iloc[1]).strip() if not pd.isna(row.iloc[1]) else ''
-                        assembly_code = str(row.iloc[2]).strip() if not pd.isna(row.iloc[2]) else ''
-                        
-                        # ASSEMBLY 코드가 없으면 건너뛰기
+                        assembly_code = str(row.iloc[0]).strip() if not pd.isna(row.iloc[0]) else ''
+                        company = str(row.iloc[1]).strip() if not pd.isna(row.iloc[1]) else ''
+                        zone = str(row.iloc[2]).strip() if not pd.isna(row.iloc[2]) else ''
+                        item = str(row.iloc[3]).strip() if not pd.isna(row.iloc[3]) else ''
+                        weight_net = float(row.iloc[4]) if not pd.isna(row.iloc[4]) else None
+                        remark = str(row.iloc[13]).strip() if not pd.isna(row.iloc[13]) else ''
+
                         if assembly_code == '' or assembly_code == 'nan':
                             skipped_count += 1
                             continue
-                        
-                        # 각 공정 날짜 처리 (디버그 출력 추가)
-                        if inserted_count < 5:  # 처음 5개 행만 디버그 출력
-                            print(f"디버그 - 행 {index}: NDE값='{row.iloc[4]}' 타입={type(row.iloc[4])}")
-                            print(f"디버그 - 행 {index}: GALV값='{row.iloc[6]}' 타입={type(row.iloc[6])}")
-                        
-                        fit_up_date = clean_process_value(row.iloc[3] if len(row) > 3 else None)     # FIT-UP
-                        nde_date = clean_process_value(row.iloc[4] if len(row) > 4 else None)        # NDE
-                        vidi_date = clean_process_value(row.iloc[5] if len(row) > 5 else None)       # FINAL -> vidi_date
-                        galv_date = clean_process_value(row.iloc[6] if len(row) > 6 else None)       # GALV
-                        shot_date = clean_process_value(row.iloc[7] if len(row) > 7 else None)       # SHOT
-                        paint_date = clean_process_value(row.iloc[8] if len(row) > 8 else None)      # PAINT
-                        packing_date = clean_process_value(row.iloc[9] if len(row) > 9 else None)    # PACKING
-                        
-                        # 데이터베이스에 입력
-                        sql = """
-                        INSERT INTO assembly_items (
-                            zone,
-                            item,
-                            assembly_code, 
-                            fit_up_date, 
-                            nde_date, 
-                            vidi_date, 
-                            galv_date, 
-                            shot_date, 
-                            paint_date, 
-                            packing_date,
-                            updated_at
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        """
-                        
-                        current_time = datetime.now()
-                        cursor.execute(sql, (
-                            zone,
-                            item,
-                            assembly_code,
-                            fit_up_date,
-                            nde_date,
-                            vidi_date,
-                            galv_date,
-                            shot_date,
-                            paint_date,
-                            packing_date,
-                            current_time
-                        ))
-                        
-                        inserted_count += 1
-                        
-                        # 진행 상황 출력
+
+                        fit_up_date = clean_process_value(row.iloc[5] if len(row) > 5 else None)
+                        final_date = clean_process_value(row.iloc[6] if len(row) > 6 else None)
+                        arup_final_date = clean_process_value(row.iloc[7] if len(row) > 7 else None)
+                        galv_date = clean_process_value(row.iloc[8] if len(row) > 8 else None)
+                        arup_galv_date = clean_process_value(row.iloc[9] if len(row) > 9 else None)
+                        shot_date = clean_process_value(row.iloc[10] if len(row) > 10 else None)
+                        paint_date = clean_process_value(row.iloc[11] if len(row) > 11 else None)
+                        arup_paint_date = clean_process_value(row.iloc[12] if len(row) > 12 else None)
+
+                        # 3번: last_day와 같거나 이후의 날짜가 하나라도 있으면 UPDATE
+                        if choice == "3":
+                            date_list = [
+                                fit_up_date, final_date, arup_final_date,
+                                galv_date, arup_galv_date, shot_date,
+                                paint_date, arup_paint_date
+                            ]
+                            # 날짜가 last_day와 같거나 이후인 경우만 업데이트
+                            if not any(d and d >= last_day for d in date_list):
+                                skipped_count += 1
+                                continue
+
+                            # UPDATE (존재하면 갱신, 없으면 INSERT)
+                            sql_update = """
+                            INSERT INTO arup_ecs (
+                                assembly_code, company, zone, item, weight_net,
+                                fit_up_date, final_date, arup_final_date,
+                                galv_date, arup_galv_date, shot_date,
+                                paint_date, arup_paint_date, remark, updated_at
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            ON DUPLICATE KEY UPDATE
+                                company=VALUES(company),
+                                zone=VALUES(zone),
+                                item=VALUES(item),
+                                weight_net=VALUES(weight_net),
+                                fit_up_date=VALUES(fit_up_date),
+                                final_date=VALUES(final_date),
+                                arup_final_date=VALUES(arup_final_date),
+                                galv_date=VALUES(galv_date),
+                                arup_galv_date=VALUES(arup_galv_date),
+                                shot_date=VALUES(shot_date),
+                                paint_date=VALUES(paint_date),
+                                arup_paint_date=VALUES(arup_paint_date),
+                                remark=VALUES(remark),
+                                updated_at=VALUES(updated_at)
+                            """
+                            current_time = datetime.now()
+                            cursor.execute(sql_update, (
+                                assembly_code, company, zone, item, weight_net,
+                                fit_up_date, final_date, arup_final_date,
+                                galv_date, arup_galv_date, shot_date,
+                                paint_date, arup_paint_date, remark, current_time
+                            ))
+                            inserted_count += 1
+                        else:
+                            # 기존 방식 (INSERT)
+                            sql = """
+                            INSERT INTO arup_ecs (
+                                assembly_code, company, zone, item, weight_net,
+                                fit_up_date, final_date, arup_final_date,
+                                galv_date, arup_galv_date, shot_date,
+                                paint_date, arup_paint_date, remark, updated_at
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            """
+                            current_time = datetime.now()
+                            cursor.execute(sql, (
+                                assembly_code, company, zone, item, weight_net,
+                                fit_up_date, final_date, arup_final_date,
+                                galv_date, arup_galv_date, shot_date,
+                                paint_date, arup_paint_date, remark, current_time
+                            ))
+                            inserted_count += 1
+
                         if inserted_count % 100 == 0:
-                            print(f"  {inserted_count}개 입력 완료...")
-                        
+                            print(f"  {inserted_count}개 입력/업데이트 완료...")
+
                     except Exception as e:
                         print(f"행 {index + 1} 처리 중 오류: {e}")
                         skipped_count += 1
                         continue
-                
-                # 커밋
+
                 connection.commit()
-                
-                print(f"=== 데이터 입력 완료 ===")
-                print(f"입력된 데이터: {inserted_count}개")
+                print(f"=== 데이터 입력/업데이트 완료 ===")
+                print(f"입력/업데이트된 데이터: {inserted_count}개")
                 print(f"건너뛴 데이터: {skipped_count}개")
                 
                 # 결과 확인
-                cursor.execute("SELECT COUNT(*) as total FROM assembly_items")
+                cursor.execute("SELECT COUNT(*) as total FROM arup_ecs")
                 total_count = cursor.fetchone()['total']
                 print(f"데이터베이스 총 데이터: {total_count}개")
                 
                 # 샘플 데이터 출력
                 print("\n=== 샘플 데이터 ===")
-                cursor.execute("SELECT * FROM assembly_items LIMIT 5")
+                cursor.execute("SELECT * FROM arup_ecs LIMIT 5")
                 samples = cursor.fetchall()
                 for sample in samples:
-                    print(f"  {sample['zone']} | {sample['item']} | {sample['assembly_code']}: "
+                    print(f"  {sample['company']} | {sample['zone']} | {sample['item']} | {sample['assembly_code']}: "
                           f"Fit-up={sample['fit_up_date']}, "
-                          f"NDE={sample['nde_date']}, "
-                          f"VIDI={sample['vidi_date']}")
+                          f"Final={sample['final_date']}, "
+                          f"ARUP_Paint={sample['arup_paint_date']}, "
+                          f"Remark={sample['remark']}")
                 
                 return True
                 

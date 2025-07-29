@@ -43,13 +43,14 @@
 </style>
 
 <div class="login-container">
-    <div class="debug-indicator">✅ COMPLETE</div>
+    <%# <div class="debug-indicator">✅ COMPLETE</div> %>
     <div class="logo">
-        <h1>🏭 DSHI Dashboard</h1>
-        <p>현장 관리 시스템 - Complete Version</p>
+        <h1>🏭 DSHI</h1>
+        <%# <p>현장 관리 시스템 - Complete Version</p> %>
+        <p>현장 관리 시스템</p>
     </div>
     
-    <div class="debug-info">
+    <div class="debug-info" style="display: none;">
         <strong>✅ Complete Mode</strong><br>
         포트: 5007 | Flask API: <%= FLASK_API_URL %><br>
         Full Flow: Login → Search → Multi-select

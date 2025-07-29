@@ -7,6 +7,7 @@ import jwt
 import datetime
 from functools import wraps
 import os
+import json
 
 app = Flask(__name__)
 CORS(app)
@@ -303,16 +304,29 @@ def search_assemblies():
                 ('ARUP_PAINT', assembly['arup_paint_date'])
             ]
             
-            # 완료된 공정들만 필터링 (None과 1900-01-01 제외)
+            # 완료된 공정들과 불필요한 공정들 구분
             completed_processes = []
+            skipped_processes = []
+            
             for name, date in processes:
-                if date is not None and str(date) != '1900-01-01' and str(date) != '1900-01-01 00:00:00':
-                    completed_processes.append((name, date))
+                if date is not None:
+                    date_str = str(date)
+                    if date_str == '1900-01-01' or date_str == '1900-01-01 00:00:00':
+                        # 1900-01-01은 불필요한 공정 (건너뛰기)
+                        skipped_processes.append(name)
+                    else:
+                        # 실제 완료된 공정
+                        completed_processes.append((name, date))
+            
+            # 전체 공정 수 (8개) - 건너뛴 공정 수 = 필요한 공정 수
+            total_required_processes = 8 - len(skipped_processes)
             
             if completed_processes:
                 # 가장 마지막 완료된 공정
                 last_process_name, last_date = completed_processes[-1]
-                status = '완료' if len(completed_processes) == 8 else '진행중'
+                
+                # 실제 완료된 공정 수가 필요한 공정 수와 같으면 완료
+                status = '완료' if len(completed_processes) >= total_required_processes else '진행중'
                 last_process = last_process_name
             else:
                 last_process = '시작전'
@@ -1066,6 +1080,189 @@ def health_check():
         'message': 'DSHI Field Pad Server is running',
         'timestamp': datetime.datetime.now().isoformat()
     })
+
+@app.route('/api/saved-list', methods=['POST'])
+@token_required
+def save_assembly_list(current_user):
+    """사용자별 저장된 리스트에 아이템 추가"""
+    try:
+        data = request.get_json()
+        items = data.get('items', [])
+        
+        if not items:
+            return jsonify({'success': False, 'message': '저장할 항목이 없습니다'}), 400
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # 각 항목을 저장 (중복 시 업데이트)
+        saved_count = 0
+        updated_count = 0
+        
+        for item in items:
+            assembly_code = item.get('assembly_code')
+            if not assembly_code:
+                continue
+                
+            # 중복 확인
+            cursor.execute("""
+                SELECT id FROM user_saved_lists 
+                WHERE user_id = %s AND assembly_code = %s
+            """, (current_user, assembly_code))
+            
+            existing = cursor.fetchone()
+            
+            if existing:
+                # 업데이트
+                cursor.execute("""
+                    UPDATE user_saved_lists 
+                    SET assembly_data = %s, updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = %s AND assembly_code = %s
+                """, (json.dumps(item), current_user, assembly_code))
+                updated_count += 1
+            else:
+                # 새로 삽입
+                cursor.execute("""
+                    INSERT INTO user_saved_lists (user_id, assembly_code, assembly_data)
+                    VALUES (%s, %s, %s)
+                """, (current_user, assembly_code, json.dumps(item)))
+                saved_count += 1
+        
+        connection.commit()
+        
+        # 총 저장된 항목 수 조회
+        cursor.execute("""
+            SELECT COUNT(*) as total FROM user_saved_lists WHERE user_id = %s
+        """, (current_user,))
+        total_result = cursor.fetchone()
+        total = total_result['total'] if total_result else 0
+        
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'{saved_count}개 항목 추가, {updated_count}개 항목 업데이트',
+            'saved_count': saved_count,
+            'updated_count': updated_count,
+            'total': total
+        })
+        
+    except Exception as e:
+        print(f"저장된 리스트 추가 오류: {e}")
+        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
+
+@app.route('/api/saved-list', methods=['GET'])
+@token_required
+def get_saved_list(current_user):
+    """사용자별 저장된 리스트 조회"""
+    try:
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # 사용자의 저장된 리스트 조회
+        cursor.execute("""
+            SELECT assembly_code, assembly_data, created_at, updated_at
+            FROM user_saved_lists 
+            WHERE user_id = %s
+            ORDER BY updated_at DESC
+        """, (current_user,))
+        
+        saved_items = cursor.fetchall()
+        cursor.close()
+        connection.close()
+        
+        # JSON 데이터 파싱 및 날짜 포맷팅
+        result_items = []
+        for item in saved_items:
+            try:
+                assembly_data = json.loads(item['assembly_data'])
+                assembly_data['saved_at'] = item['created_at'].strftime('%Y-%m-%d %H:%M:%S') if item['created_at'] else ''
+                assembly_data['updated_at'] = item['updated_at'].strftime('%Y-%m-%d %H:%M:%S') if item['updated_at'] else ''
+                result_items.append(assembly_data)
+            except (json.JSONDecodeError, AttributeError) as e:
+                print(f"JSON 파싱 오류: {e}")
+                continue
+        
+        return jsonify({
+            'success': True,
+            'items': result_items,
+            'total': len(result_items)
+        })
+        
+    except Exception as e:
+        print(f"저장된 리스트 조회 오류: {e}")
+        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
+
+@app.route('/api/saved-list/<assembly_code>', methods=['DELETE'])
+@token_required
+def delete_saved_item(current_user, assembly_code):
+    """저장된 리스트에서 특정 항목 삭제"""
+    try:
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor()
+        
+        # 해당 사용자의 항목인지 확인하고 삭제
+        cursor.execute("""
+            DELETE FROM user_saved_lists 
+            WHERE user_id = %s AND assembly_code = %s
+        """, (current_user, assembly_code))
+        
+        if cursor.rowcount == 0:
+            return jsonify({'success': False, 'message': '삭제할 항목을 찾을 수 없습니다'}), 404
+        
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'{assembly_code} 항목이 삭제되었습니다'
+        })
+        
+    except Exception as e:
+        print(f"저장된 항목 삭제 오류: {e}")
+        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
+
+@app.route('/api/saved-list/clear', methods=['DELETE'])
+@token_required
+def clear_saved_list(current_user):
+    """사용자의 저장된 리스트 전체 삭제"""
+    try:
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor()
+        
+        # 해당 사용자의 모든 저장 항목 삭제
+        cursor.execute("""
+            DELETE FROM user_saved_lists WHERE user_id = %s
+        """, (current_user,))
+        
+        deleted_count = cursor.rowcount
+        connection.commit()
+        cursor.close()
+        connection.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'{deleted_count}개 항목이 삭제되었습니다',
+            'deleted_count': deleted_count
+        })
+        
+    except Exception as e:
+        print(f"저장된 리스트 전체 삭제 오류: {e}")
+        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
 
 if __name__ == '__main__':
     print("DSHI Field Pad Server starting...")

@@ -1,0 +1,151 @@
+<div class="section" style="flex: 1;">
+    <div class="section-header-custom">
+        <h2 class="section-title">공정 문제점 & 이슈</h2>
+        <div class="level3-badge">Level 3 작성</div>
+    </div>
+    <div class="section-content">
+        <div class="issues-list">
+            <div class="issue-item priority-1">
+                <div class="issue-header">
+                    <div class="issue-title">장비 A 온도 이상</div>
+                    <div class="issue-time">2024-01-15 14:30</div>
+                </div>
+                <div class="issue-description">VIDI 공정 중 온도가 설정값을 초과하여 작업 지연</div>
+                <div class="issue-status">
+                    <span class="status-critical">긴급</span>
+                </div>
+            </div>
+            <div class="issue-item priority-2">
+                <div class="issue-header">
+                    <div class="issue-title">자재 부족</div>
+                    <div class="issue-time">2024-01-15 10:15</div>
+                </div>
+                <div class="issue-description">FORM 공정용 원자재 재고 부족으로 생산 계획 조정 필요</div>
+                <div class="issue-status">
+                    <span class="status-warning">주의</span>
+                </div>
+            </div>
+            <div class="issue-item priority-3">
+                <div class="issue-header">
+                    <div class="issue-title">품질 검사 대기</div>
+                    <div class="issue-time">2024-01-15 09:45</div>
+                </div>
+                <div class="issue-description">PACK 공정 완료품 품질 검사 인력 부족으로 대기 중</div>
+                <div class="issue-status">
+                    <span class="status-normal">일반</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .section-header-custom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: clamp(10px, 2vh, 16px);
+        padding-bottom: clamp(8px, 1.5vh, 12px);
+        border-bottom: 2px solid #555555;
+    }
+    
+    .level3-badge {
+        background-color: #FF9800;
+        color: #2a2a2a;
+        padding: clamp(4px, 0.8vh, 6px) clamp(8px, 1.5vw, 12px);
+        border-radius: clamp(3px, 0.6vh, 5px);
+        font-size: clamp(8px, 1.6vh, 11px);
+        font-weight: bold;
+    }
+    
+    .issues-list {
+        display: flex;
+        flex-direction: column;
+        gap: clamp(8px, 1.5vh, 12px);
+        height: 100%;
+        overflow-y: auto;
+    }
+    
+    .issue-item {
+        background-color: #4a4a4a;
+        padding: clamp(10px, 2vh, 15px);
+        border-radius: clamp(4px, 0.8vh, 6px);
+        border-left: clamp(3px, 0.6vw, 4px) solid;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .issue-item:hover {
+        background-color: #555555;
+        transform: translateX(3px);
+    }
+    
+    .issue-item.priority-1 {
+        border-left-color: #FF5722;
+    }
+    
+    .issue-item.priority-2 {
+        border-left-color: #FF9800;
+    }
+    
+    .issue-item.priority-3 {
+        border-left-color: #4CAF50;
+    }
+    
+    .issue-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: clamp(6px, 1.2vh, 8px);
+    }
+    
+    .issue-title {
+        color: #ffffff;
+        font-size: clamp(10px, 2vh, 14px);
+        font-weight: 600;
+    }
+    
+    .issue-time {
+        color: #999999;
+        font-size: clamp(8px, 1.6vh, 11px);
+    }
+    
+    .issue-description {
+        color: #cccccc;
+        font-size: clamp(9px, 1.8vh, 12px);
+        line-height: 1.4;
+        margin-bottom: clamp(6px, 1.2vh, 8px);
+    }
+    
+    .issue-status {
+        display: flex;
+        justify-content: flex-end;
+    }
+    
+    .status-critical {
+        background-color: #FF5722;
+        color: #ffffff;
+        padding: clamp(2px, 0.4vh, 4px) clamp(6px, 1.2vw, 8px);
+        border-radius: clamp(3px, 0.6vh, 4px);
+        font-size: clamp(8px, 1.6vh, 10px);
+        font-weight: bold;
+    }
+    
+    .status-warning {
+        background-color: #FF9800;
+        color: #ffffff;
+        padding: clamp(2px, 0.4vh, 4px) clamp(6px, 1.2vw, 8px);
+        border-radius: clamp(3px, 0.6vh, 4px);
+        font-size: clamp(8px, 1.6vh, 10px);
+        font-weight: bold;
+    }
+    
+    .status-normal {
+        background-color: #4CAF50;
+        color: #ffffff;
+        padding: clamp(2px, 0.4vh, 4px) clamp(6px, 1.2vw, 8px);
+        border-radius: clamp(3px, 0.6vh, 4px);
+        font-size: clamp(8px, 1.6vh, 10px);
+        font-weight: bold;
+    }
+</style>

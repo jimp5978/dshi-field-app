@@ -83,40 +83,19 @@ class SearchController < Sinatra::Base
       
       AppLogger.debug("저장 리스트 API 호출")
       AppLogger.debug("저장할 항목 수: #{items.length}")
-      AppLogger.debug("받은 항목들: #{items.map { |item| item['name'] || item['assembly'] }.join(', ')}")
+      AppLogger.debug("받은 항목들: #{items.map { |item| item['assembly_code'] }.join(', ')}")
       
-      # 세션에 저장된 리스트가 없으면 빈 배열로 초기화
-      session[:saved_list] ||= []
-      AppLogger.debug("기존 저장된 항목 수: #{session[:saved_list].length}")
-      AppLogger.debug("기존 저장된 항목들: #{session[:saved_list].map { |item| item['name'] || item['assembly'] }.join(', ')}")
+      # Flask API를 통해 사용자별 저장
+      flask_client = FlaskClient.new
+      result = flask_client.save_assembly_list(items, session[:jwt_token])
       
-      # 중복 제거하면서 새 항목들 추가
-      added_count = 0
-      items.each do |item|
-        # 이미 존재하는지 확인 (name 또는 assembly 코드로 비교)
-        item_code = item['name'] || item['assembly']
-        AppLogger.debug("처리 중인 항목: #{item_code}")
-        
-        duplicate_found = session[:saved_list].any? { |saved_item| 
-          saved_code = saved_item['name'] || saved_item['assembly']
-          AppLogger.debug("비교: #{item_code} vs #{saved_code} = #{saved_code == item_code}")
-          saved_code == item_code
-        }
-        
-        unless duplicate_found
-          session[:saved_list] << item
-          added_count += 1
-          AppLogger.debug("항목 추가 성공: #{item_code} (총 #{session[:saved_list].length}개)")
-        else
-          AppLogger.debug("중복으로 인한 제외: #{item_code}")
-        end
+      if result[:success]
+        AppLogger.debug("Flask API 저장 성공: #{result[:message]}")
+        { success: true, message: result[:message], total: result[:total] }.to_json
+      else
+        AppLogger.debug("Flask API 저장 실패: #{result[:error]}")
+        { success: false, error: result[:error] }.to_json
       end
-      
-      AppLogger.debug("추가된 항목 수: #{added_count}")
-      
-      AppLogger.debug("총 저장된 항목 수: #{session[:saved_list].length}")
-      
-      { success: true, message: "#{items.length}개 항목이 저장되었습니다.", total: session[:saved_list].length }.to_json
       
     rescue JSON::ParserError
       { success: false, error: '잘못된 요청 형식입니다.' }.to_json
@@ -130,10 +109,23 @@ class SearchController < Sinatra::Base
   get '/api/clear-saved-list' do
     content_type :json
     
-    session[:saved_list] = []
-    AppLogger.debug("저장된 리스트 전체 삭제")
-    
-    { success: true, message: '저장된 리스트가 모두 삭제되었습니다.' }.to_json
+    begin
+      # Flask API를 통해 사용자별 전체 삭제
+      flask_client = FlaskClient.new
+      result = flask_client.clear_saved_list(session[:jwt_token])
+      
+      if result[:success]
+        AppLogger.debug("Flask API 전체 삭제 성공: #{result[:message]}")
+        { success: true, message: result[:message] }.to_json
+      else
+        AppLogger.debug("Flask API 전체 삭제 실패: #{result[:error]}")
+        { success: false, error: result[:error] }.to_json
+      end
+      
+    rescue => e
+      AppLogger.debug("저장된 리스트 전체 삭제 오류: #{e.message}")
+      { success: false, error: '삭제 중 오류가 발생했습니다.' }.to_json
+    end
   end
   
   # 저장된 리스트에서 선택 항목 삭제 API
@@ -148,16 +140,23 @@ class SearchController < Sinatra::Base
         return { success: false, error: '삭제할 항목을 선택해주세요.' }.to_json
       end
       
-      session[:saved_list] ||= []
-      original_count = session[:saved_list].length
+      AppLogger.debug("삭제할 항목들: #{items_to_remove}")
       
-      # 선택된 항목들 제거 (name 필드로 비교하도록 수정)
-      session[:saved_list].reject! { |item| items_to_remove.include?(item['name'] || item['assembly']) }
+      # Flask API를 통해 각 항목 삭제
+      flask_client = FlaskClient.new
+      deleted_count = 0
       
-      removed_count = original_count - session[:saved_list].length
-      AppLogger.debug("#{removed_count}개 항목 삭제, 남은 항목: #{session[:saved_list].length}개")
+      items_to_remove.each do |assembly_code|
+        result = flask_client.delete_saved_item(assembly_code, session[:jwt_token])
+        if result[:success]
+          deleted_count += 1
+          AppLogger.debug("항목 삭제 성공: #{assembly_code}")
+        else
+          AppLogger.debug("항목 삭제 실패: #{assembly_code} - #{result[:error]}")
+        end
+      end
       
-      { success: true, message: "#{removed_count}개 항목이 삭제되었습니다.", remaining: session[:saved_list].length }.to_json
+      { success: true, message: "#{deleted_count}개 항목이 삭제되었습니다." }.to_json
       
     rescue JSON::ParserError
       { success: false, error: '잘못된 요청 형식입니다.' }.to_json
@@ -165,6 +164,16 @@ class SearchController < Sinatra::Base
       AppLogger.debug("항목 삭제 API 오류: #{e.message}")
       { success: false, error: '삭제 중 오류가 발생했습니다.' }.to_json
     end
+  end
+  
+  # 현재 시간 테스트 API (코드 업데이트 확인용)
+  get '/api/test-time' do
+    content_type :json
+    { 
+      current_time: Time.now.strftime('%Y-%m-%d %H:%M:%S'),
+      message: '새로운 코드가 실행되고 있습니다!',
+      version: 'updated-v2.0'
+    }.to_json
   end
   
   # 테스트용 데이터 추가 API (임시)

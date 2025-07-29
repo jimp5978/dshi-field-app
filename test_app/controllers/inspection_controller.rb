@@ -45,32 +45,84 @@ class InspectionController < Sinatra::Base
   get '/saved-list' do
     AppLogger.debug("저장된 리스트 페이지 접근")
     
-    # 테스트 데이터 제거 - 실제 저장된 리스트만 표시
-    
-    @saved_list = session[:saved_list] || []
     @user_info = session[:user_info] || {}
+    @saved_list = []
     @total_weight = 0
     
-    AppLogger.debug("저장된 리스트 로드 - 세션 데이터: #{session[:saved_list].inspect}")
-    AppLogger.debug("저장된 리스트 로드 - @saved_list 크기: #{@saved_list.length}")
+    # Flask API를 통해 사용자별 저장된 리스트 조회
+    flask_client = FlaskClient.new
+    result = flask_client.get_saved_list(session[:jwt_token])
     
-    # 검사신청 가능한 항목만 필터링 (모든 공정이 완료되지 않은 항목)
-    @saved_list = @saved_list.select do |item|
-      next_process = ProcessManager.get_next_process(item)
-      !next_process.nil?
+    if result[:success]
+      @saved_list = result[:items] || []
+      AppLogger.debug("Flask API에서 저장된 리스트 조회 성공: #{@saved_list.length}개")
+    else
+      AppLogger.debug("Flask API에서 저장된 리스트 조회 실패: #{result[:error]}")
+      @saved_list = []
     end
     
-    AppLogger.debug("저장된 리스트 조회: 전체 #{session[:saved_list]&.length || 0}개, 검사신청 가능 #{@saved_list.length}개")
-    
-    # 각 항목의 다음 공정 계산
+    # 각 항목의 다음 공정 계산 및 실시간 상태 업데이트
     @next_processes = {}
     @total_weight = 0
     
     @saved_list.each do |item|
+      # 다음 공정 계산
       next_process = ProcessManager.get_next_process(item)
-      @next_processes[item['assembly']] = next_process ? ProcessManager.to_korean(next_process) : '완료'
+      @next_processes[item['assembly_code']] = next_process ? ProcessManager.to_korean(next_process) : '완료'
+      
+      # 실시간 상태 계산 (저장된 데이터의 status/lastProcess 업데이트)
+      processes = [
+        ['FIT_UP', item['fit_up_date']],
+        ['FINAL', item['final_date']],
+        ['ARUP_FINAL', item['arup_final_date']],
+        ['GALV', item['galv_date']],
+        ['ARUP_GALV', item['arup_galv_date']],
+        ['SHOT', item['shot_date']],
+        ['PAINT', item['paint_date']],
+        ['ARUP_PAINT', item['arup_paint_date']]
+      ]
+      
+      # 완료된 공정들과 불필요한 공정들 구분
+      completed_processes = []
+      skipped_processes = []
+      
+      processes.each do |name, date|
+        if date && !date.to_s.empty?
+          date_str = date.to_s
+          if date_str.include?('1900')
+            # 1900-01-01은 불필요한 공정 (건너뛰기)
+            skipped_processes << name
+          else
+            # 실제 완료된 공정
+            completed_processes << [name, date]
+          end
+        end
+      end
+      
+      # 전체 공정 수 (8개) - 건너뛴 공정 수 = 필요한 공정 수
+      total_required_processes = 8 - skipped_processes.length
+      
+      if completed_processes.length > 0
+        # 가장 마지막 완료된 공정
+        last_process_name, last_date = completed_processes.last
+        
+        # 실제 완료된 공정 수가 필요한 공정 수와 같으면 완료
+        status = completed_processes.length >= total_required_processes ? '완료' : '진행중'
+        last_process = last_process_name
+      else
+        last_process = '시작전'
+        status = '대기'
+      end
+      
+      # 저장된 데이터 업데이트
+      item['status'] = status
+      item['lastProcess'] = last_process
+      
       @total_weight += (item['weight_net'] || 0).to_f
+      AppLogger.debug("#{item['assembly_code']} - 다음 공정: #{next_process}, 상태: #{status}, 마지막 공정: #{last_process}")
     end
+    
+    AppLogger.debug("저장된 리스트 조회 결과: #{@saved_list.length}개, 총 중량: #{@total_weight}kg")
     
     erb :saved_list, layout: false  # 원본 HTML 구조를 유지하기 위해 layout 비활성화
   end
@@ -134,13 +186,20 @@ class InspectionController < Sinatra::Base
       AppLogger.debug("검사신청 생성 API 호출")
       AppLogger.debug("검사신청 생성 요청: #{assembly_codes.length}개 항목, 검사일: #{request_date}")
       
-      # 저장된 리스트에서 선택된 항목들의 다음 공정 확인
-      saved_list = session[:saved_list] || []
-      AppLogger.debug("세션 저장된 리스트: #{saved_list.inspect}")
+      # Flask API에서 저장된 리스트 조회
+      flask_client = FlaskClient.new
+      list_result = flask_client.get_saved_list(session[:jwt_token])
+      
+      if !list_result[:success]
+        return { success: false, error: '저장된 리스트를 조회할 수 없습니다.' }.to_json
+      end
+      
+      saved_list = list_result[:items] || []
+      AppLogger.debug("Flask API 저장된 리스트: #{saved_list.length}개")
       AppLogger.debug("요청된 조립품 코드: #{assembly_codes.inspect}")
       
       selected_items = saved_list.select { |item| 
-        item_code = item['name'] || item['assembly']
+        item_code = item['assembly_code']
         AppLogger.debug("항목 코드 확인: #{item_code} - 매칭: #{assembly_codes.include?(item_code)}")
         assembly_codes.include?(item_code)
       }
@@ -186,12 +245,16 @@ class InspectionController < Sinatra::Base
             successful_codes = assembly_codes - duplicate_codes
           end
           
+          # Flask API를 통해 성공한 항목들 삭제
           if successful_codes.length > 0
-            session[:saved_list] = saved_list.reject { |item| successful_codes.include?(item['name'] || item['assembly']) }
             successful_codes.each do |code|
-              AppLogger.debug("저장된 리스트에서 #{code} 제거 완료")
+              delete_result = flask_client.delete_saved_item(code, session[:jwt_token])
+              if delete_result[:success]
+                AppLogger.debug("저장된 리스트에서 #{code} 제거 완료")
+              else
+                AppLogger.debug("저장된 리스트에서 #{code} 제거 실패: #{delete_result[:error]}")
+              end
             end
-            AppLogger.debug("남은 저장된 리스트: #{session[:saved_list].length}개")
           end
           
           if response_data['inserted_count'] > 0

@@ -1,0 +1,142 @@
+<div class="section" style="flex: 2;">
+    <h2 class="section-title">아이템별 수량 및 중량 현황</h2>
+    <div class="section-content">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>아이템명</th>
+                        <th>계획 수량</th>
+                        <th>완료 수량</th>
+                        <th>중량 (kg)</th>
+                        <th>진행률</th>
+                        <th>상태</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="priority-1">
+                        <td>Item-A001</td>
+                        <td>250</td>
+                        <td>235</td>
+                        <td>1,250</td>
+                        <td>94%</td>
+                        <td><span class="status-good">완료</span></td>
+                    </tr>
+                    <tr class="priority-2">
+                        <td>Item-B002</td>
+                        <td>180</td>
+                        <td>156</td>
+                        <td>890</td>
+                        <td>87%</td>
+                        <td><span class="status-progress">진행중</span></td>
+                    </tr>
+                    <tr class="priority-1">
+                        <td>Item-C003</td>
+                        <td>320</td>
+                        <td>298</td>
+                        <td>1,580</td>
+                        <td>93%</td>
+                        <td><span class="status-good">완료</span></td>
+                    </tr>
+                    <tr class="priority-3">
+                        <td>Item-D004</td>
+                        <td>150</td>
+                        <td>89</td>
+                        <td>445</td>
+                        <td>59%</td>
+                        <td><span class="status-delay">지연</span></td>
+                    </tr>
+                    <tr class="priority-2">
+                        <td>Item-E005</td>
+                        <td>200</td>
+                        <td>176</td>
+                        <td>980</td>
+                        <td>88%</td>
+                        <td><span class="status-progress">진행중</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table-container {
+        height: 100%;
+        overflow-y: auto;
+        border-radius: clamp(4px, 0.8vh, 6px);
+        background-color: #4a4a4a;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: clamp(9px, 1.8vh, 12px);
+    }
+    
+    th {
+        background-color: #555555;
+        color: #ffffff;
+        padding: clamp(6px, 1.2vh, 10px);
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid #666666;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    td {
+        padding: clamp(6px, 1.2vh, 10px);
+        border-bottom: 1px solid #555555;
+        color: #cccccc;
+    }
+    
+    tbody tr {
+        transition: background-color 0.3s ease;
+        cursor: pointer;
+    }
+    
+    tbody tr:hover {
+        background-color: #555555;
+    }
+    
+    .priority-1 {
+        border-left: 3px solid #2196F3;
+    }
+    
+    .priority-2 {
+        border-left: 3px solid #4CAF50;
+    }
+    
+    .priority-3 {
+        border-left: 3px solid #9C27B0;
+    }
+    
+    .status-good {
+        background-color: #4CAF50;
+        color: #ffffff;
+        padding: clamp(2px, 0.4vh, 4px) clamp(6px, 1.2vw, 8px);
+        border-radius: clamp(3px, 0.6vh, 4px);
+        font-size: clamp(8px, 1.6vh, 10px);
+        font-weight: bold;
+    }
+    
+    .status-progress {
+        background-color: #2196F3;
+        color: #ffffff;
+        padding: clamp(2px, 0.4vh, 4px) clamp(6px, 1.2vw, 8px);
+        border-radius: clamp(3px, 0.6vh, 4px);
+        font-size: clamp(8px, 1.6vh, 10px);
+        font-weight: bold;
+    }
+    
+    .status-delay {
+        background-color: #FF5722;
+        color: #ffffff;
+        padding: clamp(2px, 0.4vh, 4px) clamp(6px, 1.2vw, 8px);
+        border-radius: clamp(3px, 0.6vh, 4px);
+        font-size: clamp(8px, 1.6vh, 10px);
+        font-weight: bold;
+    }
+</style>

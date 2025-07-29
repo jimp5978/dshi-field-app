@@ -290,8 +290,8 @@
             html += '<th>조립품 코드</th>';
             html += '<th>검사 타입</th>';
             html += '<th>신청일</th>';
-            html += '<th>검사일</th>';
             html += '<th>신청자</th>';
+            html += '<th>검사일</th>';
             html += '<th>상태</th>';
             html += '<th>승인자</th>';
             html += '<th>승인일</th>';
@@ -305,8 +305,8 @@
                 html += `<td>${item.assembly_code}</td>`;
                 html += `<td>${item.inspection_type}</td>`;
                 html += `<td>${formatDate(item.created_at)}</td>`;
-                html += `<td>${formatDate(item.request_date)}</td>`;
                 html += `<td>${item.requested_by_name}</td>`;
+                html += `<td>${formatDate(item.request_date)}</td>`;
                 html += `<td><span class="status-badge ${statusClass}">${item.status || '대기중'}</span></td>`;
                 html += `<td>${item.approved_by_name || '-'}</td>`;
                 html += `<td>${formatDate(item.approved_date)}</td>`;

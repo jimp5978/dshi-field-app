@@ -130,6 +130,8 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
               assemblyNo: item['name'] ?? '',
               lastProcess: item['lastProcess'] ?? '',
               completedDate: item['completedDate'] ?? '',
+              company: item['company'] ?? '',
+              weightNet: (item['weight_net'] ?? 0.0).toDouble(),
             )).toList();
             _selectedItems.clear();
             // 검색 후 입력창 자동 삭제
@@ -229,6 +231,10 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                      'WEIGHT(NET): ${item.weightNet.toStringAsFixed(2)}kg',
+                      style: const TextStyle(fontSize: 16),
+                    ),
                     Text(
                       '최종공정: ${item.lastProcess}',
                       style: const TextStyle(fontSize: 16),
@@ -337,6 +343,17 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
         ),
       ),
     );
+  }
+
+  // 선택된 항목들의 총 중량 계산
+  double _getSelectedItemsTotalWeight() {
+    double totalWeight = 0.0;
+    for (int index in _selectedItems) {
+      if (index < _searchResults.length) {
+        totalWeight += _searchResults[index].weightNet;
+      }
+    }
+    return totalWeight;
   }
 
   // 로그아웃 기능
@@ -513,6 +530,28 @@ class _AssemblySearchScreenState extends State<AssemblySearchScreen> {
             
             const SizedBox(height: 20),
             
+            // 선택된 항목 정보 표시
+            if (_selectedItems.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: Text(
+                  '선택된 항목: ${_selectedItems.length}개 (총 중량: ${_getSelectedItemsTotalWeight().toStringAsFixed(2)}kg)',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+            
             // 하단 LIST UP 버튼
             SizedBox(
               width: double.infinity,
@@ -563,6 +602,26 @@ class _SavedListScreenState extends State<SavedListScreen> {
   
   // 서버 URL (SharedPreferences에서 로드)
   String _serverUrl = 'http://203.251.108.199:5001';
+
+  // 전체 항목들의 총 중량 계산
+  double _getTotalWeight() {
+    double totalWeight = 0.0;
+    for (AssemblyItem item in _savedList) {
+      totalWeight += item.weightNet;
+    }
+    return totalWeight;
+  }
+
+  // 선택된 항목들의 총 중량 계산
+  double _getSelectedItemsTotalWeight() {
+    double totalWeight = 0.0;
+    for (int index in _selectedItems) {
+      if (index < _savedList.length) {
+        totalWeight += _savedList[index].weightNet;
+      }
+    }
+    return totalWeight;
+  }
 
   @override
   void initState() {
@@ -789,15 +848,16 @@ class _SavedListScreenState extends State<SavedListScreen> {
     );
   }
   
-  // 다음 공정 반환
+  // 다음 공정 반환 (8단계 ARUP_ECS 프로젝트)
   String _getNextProcess(String currentProcess) {
     const Map<String, String> processMap = {
-      'Fit-up': 'NDE',
-      'NDE': 'VIDI',
-      'VIDI': 'GALV',
-      'GALV': 'SHOT',
+      'FIT-UP': 'FINAL',
+      'FINAL': 'ARUP_FINAL',
+      'ARUP_FINAL': 'GALV',
+      'GALV': 'ARUP_GALV',
+      'ARUP_GALV': 'SHOT',
       'SHOT': 'PAINT',
-      'PAINT': 'PACKING',
+      'PAINT': 'ARUP_PAINT',
     };
     return processMap[currentProcess] ?? '완료';
   }
@@ -957,7 +1017,15 @@ class _SavedListScreenState extends State<SavedListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('저장된 리스트 (${_savedList.length}개)'),
+        title: Column(
+          children: [
+            Text('저장된 리스트 (${_savedList.length}개)'),
+            Text(
+              '총 중량: ${_getTotalWeight().toStringAsFixed(2)}kg',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.normal),
+            ),
+          ],
+        ),
         centerTitle: true,
       ),
       body: Column(
@@ -1058,6 +1126,7 @@ class _SavedListScreenState extends State<SavedListScreen> {
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Text('WEIGHT(NET): ${item.weightNet.toStringAsFixed(2)}kg'),
                               Text('최종공정: ${item.lastProcess}'),
                               Text('완료일자: ${item.completedDate}'),
                             ],
@@ -1068,6 +1137,34 @@ class _SavedListScreenState extends State<SavedListScreen> {
                     },
                   ),
           ),
+          
+          // 선택된 항목들의 중량 정보 표시
+          if (_selectedItems.isNotEmpty) ...[
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.scale, color: Colors.blue[700], size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    '선택된 ${_selectedItems.length}개 항목 총 중량: ${_getSelectedItemsTotalWeight().toStringAsFixed(2)}kg',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[700],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           
           // 하단 신규 버튼들 (날짜선택, 검사신청)
           Padding(
@@ -2236,10 +2333,14 @@ class AssemblyItem {
   final String assemblyNo;
   final String lastProcess;
   final String completedDate;
+  final String company;
+  final double weightNet;
 
   AssemblyItem({
     required this.assemblyNo,
     required this.lastProcess,
     required this.completedDate,
+    this.company = '',
+    this.weightNet = 0.0,
   });
 }

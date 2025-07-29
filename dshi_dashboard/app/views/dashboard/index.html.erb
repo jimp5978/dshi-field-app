@@ -1,0 +1,24 @@
+<div class="dashboard-grid" data-controller="dashboard">
+    <div class="left-column">
+        <div data-dashboard-target="section">
+            <%= render 'dashboard/volume_changes' %>
+        </div>
+        <div data-dashboard-target="section">
+            <%= render 'dashboard/overall_progress' %>
+        </div>
+        <div data-dashboard-target="section">
+            <%= render 'dashboard/company_ratios' %>
+        </div>
+    </div>
+    <div class="right-column">
+        <div data-dashboard-target="section">
+            <%= render 'dashboard/process_status' %>
+        </div>
+        <div data-dashboard-target="section">
+            <%= render 'dashboard/items_table' %>
+        </div>
+        <div data-dashboard-target="section">
+            <%= render 'dashboard/issues_tracking' %>
+        </div>
+    </div>
+</div>

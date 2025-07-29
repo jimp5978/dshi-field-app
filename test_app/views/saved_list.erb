@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSHI Dashboard - 저장된 리스트</title>
+    <title>DSHI</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -59,15 +59,85 @@
             text-align: center; padding: 60px 20px; color: #666;
         }
         .empty-state h3 { margin-bottom: 10px; color: #333; }
+        
+        /* 로딩 스피너 스타일 */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .btn-loading {
+            opacity: 0.7;
+            cursor: not-allowed !important;
+            pointer-events: none;
+        }
+        
+        /* 중앙 로딩 대화상자 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-dialog {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            min-width: 300px;
+        }
+        
+        .loading-dialog .big-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #28a745;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        .loading-dialog h3 {
+            margin: 0;
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .loading-dialog p {
+            margin: 10px 0 0 0;
+            color: #666;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <div class="header-content">
-            <h1>🏭 DSHI Dashboard</h1>
+            <h1>🏭 DSHI</h1>
             <div class="user-info">
                 👤 <%= (@user_info && @user_info['username']) || 'Unknown' %>님 (Level <%= (@user_info && @user_info['permission_level']) || 'N/A' %>)
-                <a href="/" class="nav-btn">🔍 조립품 검색</a>
+                <a href="/" class="nav-btn">🔍 Assembly 검색</a>
                 <a href="/inspection-requests" class="nav-btn">📊 검사신청 조회</a>
                 <% if @user_info && @user_info['permission_level'].to_i >= 2 %>
                 <a href="/admin" class="nav-btn">🔧 관리자 패널</a>
@@ -83,7 +153,17 @@
                 📋 저장된 리스트
             </div>
             <div class="card-body">
-                <% if @saved_list.empty? %>
+                <!-- 디버그 정보 -->
+                <div style="display: none; background: #fff3cd; padding: 10px; margin-bottom: 15px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+                    <strong>🐛 Debug Info:</strong><br>
+                    @saved_list.nil?: <%= @saved_list.nil? %><br>
+                    @saved_list.class: <%= @saved_list.class %><br>
+                    @saved_list.size: <%= @saved_list.respond_to?(:size) ? @saved_list.size : 'N/A' %><br>
+                    @saved_list.empty?: <%= @saved_list.respond_to?(:empty?) ? @saved_list.empty? : 'N/A' %><br>
+                    First item: <%= @saved_list.respond_to?(:[]) && @saved_list.size > 0 ? @saved_list[0].inspect : 'N/A' %>
+                </div>
+
+                <% if @saved_list.nil? || @saved_list.empty? %>
                     <div class="empty-state">
                         <h3>📭 저장된 항목이 없습니다</h3>
                         <p>조립품 검색에서 항목을 선택하고 저장해보세요.</p>
@@ -123,7 +203,7 @@
                                     <th class="checkbox-cell">
                                         <input type="checkbox" id="selectAllCheckbox">
                                     </th>
-                                    <th>조립품 코드</th>
+                                    <th>Assembly No</th>
                                     <th>Zone</th>
                                     <th>Item</th>
                                     <th>Weight(NET)</th>
@@ -137,9 +217,9 @@
                                         <td class="checkbox-cell">
                                             <input type="checkbox" class="item-checkbox" data-index="<%= index %>" data-assembly='<%= assembly.to_json %>'>
                                         </td>
-                                        <td><%= assembly['name'] || 'N/A' %></td>
-                                        <td><%= assembly['location'] || 'N/A' %></td>
-                                        <td><%= assembly['drawing_number'] || 'N/A' %></td>
+                                        <td><%= assembly['assembly_code'] || 'N/A' %></td>
+                                        <td><%= assembly['zone'] || 'N/A' %></td>
+                                        <td><%= assembly['item'] || 'N/A' %></td>
                                         <td style="text-align: right;"><%= assembly['weight_net'] || '0' %></td>
                                         <td><%= assembly['status'] || '-' %></td>
                                         <td><%= assembly['lastProcess'] || '-' %></td>
@@ -154,6 +234,28 @@
     </div>
 
     <script>
+        // 로딩 다이얼로그 함수들
+        function showLoadingDialog(title = '🔍 검사신청 처리 중...', message = '잠시만 기다려주세요. 검사신청을 처리하고 있습니다.') {
+            const overlay = document.createElement('div');
+            overlay.className = 'loading-overlay';
+            overlay.id = 'loadingOverlay';
+            overlay.innerHTML = `
+                <div class="loading-dialog">
+                    <div class="big-spinner"></div>
+                    <h3>${title}</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+        
+        function hideLoadingDialog() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.remove();
+            }
+        }
+
         function updateSelectionButtons() {
             const selected = document.querySelectorAll('.item-checkbox:checked');
             const removeBtn = document.getElementById('removeSelectedBtn');
@@ -199,9 +301,12 @@
             if (removeSelectedBtn) {
                 removeSelectedBtn.addEventListener('click', async function() {
                     const selected = document.querySelectorAll('.item-checkbox:checked');
-                    if (selected.length > 0 && confirm(`선택된 ${selected.length}개 항목을 삭제하시겠습니까?`)) {
+                    if (selected.length > 0) {
                         const selectedData = Array.from(selected).map(cb => JSON.parse(cb.dataset.assembly));
-                        const assemblyCodes = selectedData.map(item => item.name);
+                        const assemblyCodes = selectedData.map(item => item.assembly_code);
+                        
+                        // 로딩 스피너 표시
+                        showLoadingDialog('🗑️ 항목 삭제 중...', '잠시만 기다려주세요. 선택된 항목을 삭제하고 있습니다.');
                         
                         try {
                             const response = await fetch('/api/remove-from-saved-list', {
@@ -213,12 +318,21 @@
                             const result = await response.json();
                             
                             if (result.success) {
-                                alert(`✅ ${selected.length}개 항목이 삭제되었습니다.`);
+                                // 삭제 완료 후 새로고침 스피너로 변경
+                                showLoadingDialog('🔄 새로고침 중...', '삭제가 완료되었습니다. 페이지를 새로고침하고 있습니다.');
+                                
+                                // 페이지 새로고침
                                 location.reload();
                             } else {
+                                // 로딩 숨기기
+                                hideLoadingDialog();
+                                
                                 alert(`❌ 삭제 실패: ${result.error}`);
                             }
                         } catch (error) {
+                            // 로딩 숨기기
+                            hideLoadingDialog();
+                            
                             alert(`❌ 삭제 오류: ${error.message}`);
                         }
                     }
@@ -243,7 +357,7 @@
                     
                     const selectedData = Array.from(selected).map(cb => JSON.parse(cb.dataset.assembly));
                     
-                    // 다음 공정 검증 (백업 파일 로직 적용)
+                    // 다음 공정 검증 (ProcessManager와 동일한 로직)
                     const nextProcesses = selectedData.map(assembly => {
                         // 공정 순서에 따른 다음 공정 계산
                         const processes = ['fit_up_date', 'final_date', 'arup_final_date', 'galv_date', 'arup_galv_date', 'shot_date', 'paint_date', 'arup_paint_date'];
@@ -251,14 +365,29 @@
                         
                         for (let i = 0; i < processes.length; i++) {
                             const date = assembly[processes[i]];
-                            if (!date || date === '1900-01-01') {
+                            
+                            // 1900-01-01인 경우 불필요한 공정으로 건너뛰기
+                            if (date && (date.includes('1900') || date === '1900-01-01')) {
+                                continue;
+                            }
+                            
+                            // 날짜가 없거나 비어있는 경우 미완료 공정
+                            if (!date || date === '') {
                                 return processNames[i];
                             }
+                            
+                            // 실제 날짜가 있는 경우 완료된 공정이므로 계속 진행
                         }
                         return null; // 모든 공정 완료
                     });
                     
                     const uniqueProcesses = [...new Set(nextProcesses.filter(p => p !== null))];
+                    
+                    // 모든 항목이 완료된 경우
+                    if (uniqueProcesses.length === 0) {
+                        alert('❌ 검사신청 불가\n선택한 항목들은 이미 모든 공정이 완료되었습니다.');
+                        return;
+                    }
                     
                     if (uniqueProcesses.length > 1) {
                         const processNames = uniqueProcesses.map(p => {
@@ -274,8 +403,8 @@
                                 default: return p;
                             }
                         }).join(', ');
-                        
-                        alert(`❌ 검사신청 오류\\n\\n선택된 조립품들의 다음 공정이 다릅니다.\\n동일한 공정의 조립품만 선택해주세요.\\n\\n다음 공정들: ${processNames}`);
+
+                        alert(`❌ 검사신청 오류\n선택된 조립품들의 다음 공정이 다릅니다.\n동일한 공정의 조립품만 선택해주세요.\n다음 공정들: ${processNames}`);
                         return;
                     }
                     
@@ -293,15 +422,18 @@
                         default: processKoreanName = commonProcess;
                     }
                     
-                    const assemblyCodes = selectedData.map(item => item.name);
+                    const assemblyCodes = selectedData.map(item => item.assembly_code);
                     
                     const now = new Date();
                     const dateStr = now.getFullYear() + '년 ' + (now.getMonth() + 1) + '월 ' + now.getDate() + '일 ' + 
                                    now.getHours() + '시 ' + now.getMinutes() + '분';
                     
-                    if (!confirm(`검사신청 확인\\n• 대상: ${selected.length}개 항목\\n• 다음 공정: ${processKoreanName} 검사\\n• 검사일: ${inspectionDate}\\n\\n검사신청하시겠습니까?`)) {
+                    if (!confirm(`검사신청 확인\n• 대상: ${selected.length}개 항목\n• 다음 공정: ${processKoreanName} 검사\n• 검사일: ${inspectionDate}\n\n검사신청하시겠습니까?`)) {
                         return;
                     }
+                    
+                    // 로딩 스피너 표시
+                    showLoadingDialog();
                     
                     try {
                         const response = await fetch('/api/create-inspection-request', {
@@ -318,25 +450,34 @@
                         
                         if (result.success) {
                             const responseData = result.data;
-                            let message = `✅ 검사신청이 성공적으로 생성되었습니다!\\n\\n📋 신청 항목: ${selectedData.length}개 (${processKoreanName})\\n📅 검사일: ${inspectionDate}\\n📅 신청 시간: ${dateStr}`;
-                            
+                            let message = `✅ 검사신청이 성공적으로 생성되었습니다!\n\n📋 신청 항목: ${selectedData.length}개 (${processKoreanName})\n📅 검사일: ${inspectionDate}\n📅 신청 시간: ${dateStr}`;
+
                             if (responseData.inserted_count > 0) {
-                                message += `\\n✅ 성공: ${responseData.inserted_count}개`;
+                                message += `\n✅ 성공: ${responseData.inserted_count}개`;
                             }
                             
                             if (responseData.duplicate_items && responseData.duplicate_items.length > 0) {
-                                message += `\\n⚠️ 중복: ${responseData.duplicate_items.length}개 (이미 신청됨)`;
+                                message += `\n⚠️ 중복: ${responseData.duplicate_items.length}개 (이미 신청됨)`;
                                 responseData.duplicate_items.forEach(item => {
-                                    message += `\\n  - ${item.assembly_code}: ${item.existing_requester}님이 ${item.existing_date}에 신청`;
+                                    message += `\n  - ${item.assembly_code}: ${item.existing_requester}님이 ${item.existing_date}에 신청`;
                                 });
                             }
+                            
+                            // 로딩 숨기기
+                            hideLoadingDialog();
                             
                             alert(message);
                             location.reload();
                         } else {
+                            // 로딩 숨기기
+                            hideLoadingDialog();
+                            
                             alert(`❌ 검사신청 실패: ${result.error}`);
                         }
                     } catch (error) {
+                        // 로딩 숨기기
+                        hideLoadingDialog();
+                        
                         alert(`❌ 검사신청 오류: ${error.message}`);
                     }
                 });

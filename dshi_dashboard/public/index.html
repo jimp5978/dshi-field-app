@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSHI 생산 관리 대시보드</title>
+    
+    <style>
+        :root {
+            --header-height: clamp(50px, 8vh, 80px);
+            --filter-height: clamp(40px, 6vh, 60px);
+            --content-height: calc(100vh - var(--header-height) - var(--filter-height) - 20px);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #2a2a2a;
+            color: #ffffff;
+            padding: 5px;
+            line-height: 1.2;
+            min-width: 768px;
+            height: 100vh;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
+        }
+        
+        .dashboard-container {
+            max-width: 1800px;
+            margin: 0 auto;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background-color: #3a3a3a;
+            padding: clamp(8px, 2vh, 15px) clamp(15px, 3vw, 25px);
+            border-radius: clamp(4px, 1vh, 8px);
+            margin-bottom: clamp(6px, 1.5vh, 10px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: clamp(3px, 0.6vw, 6px) solid #00d4ff;
+            flex-shrink: 0;
+            height: var(--header-height);
+        }
+        
+        .header h1 {
+            color: #ffffff;
+            font-size: clamp(14px, 3.5vh, 22px);
+            font-weight: 600;
+        }
+        
+        .header .update-time {
+            color: #999999;
+            font-size: clamp(10px, 2.5vh, 16px);
+        }
+        
+        .filter-section {
+            background-color: #3a3a3a;
+            padding: clamp(8px, 2vh, 15px) clamp(15px, 3vw, 25px);
+            border-radius: clamp(4px, 1vh, 8px);
+            margin-bottom: clamp(6px, 1.5vh, 10px);
+            display: flex;
+            align-items: center;
+            gap: clamp(8px, 2vw, 16px);
+            flex-shrink: 0;
+            height: var(--filter-height);
+        }
+        
+        .filter-label {
+            color: #cccccc;
+            font-weight: 500;
+            font-size: clamp(10px, 2.2vh, 15px);
+        }
+        
+        .filter-buttons {
+            display: flex;
+            gap: clamp(3px, 0.8vw, 8px);
+        }
+        
+        .filter-btn {
+            background-color: #4a4a4a;
+            color: #ffffff;
+            border: 1px solid #666;
+            padding: clamp(4px, 1vh, 8px) clamp(8px, 2vw, 16px);
+            border-radius: clamp(3px, 0.6vh, 6px);
+            cursor: pointer;
+            font-size: clamp(10px, 2.2vh, 15px);
+            font-weight: 500;
+            transition: all 0.2s;
+            min-height: clamp(28px, 6vh, 40px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .filter-btn:hover {
+            background-color: #00d4ff;
+            color: #2a2a2a;
+        }
+        
+        .filter-btn.active {
+            background-color: #00d4ff;
+            color: #2a2a2a;
+        }
+        
+        .content {
+            flex: 1;
+            overflow: hidden;
+            height: var(--content-height);
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(8px, 1.5vh, 12px);
+            height: 100%;
+        }
+        
+        .left-column, .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(8px, 1.5vh, 12px);
+            height: 100%;
+        }
+        
+        .section {
+            background-color: #3a3a3a;
+            border-radius: clamp(4px, 1vh, 8px);
+            padding: clamp(12px, 2.5vh, 20px);
+            display: flex;
+            flex-direction: column;
+            border-left: clamp(3px, 0.6vw, 6px) solid #00d4ff;
+            overflow: hidden;
+        }
+        
+        .section-title {
+            color: #ffffff;
+            font-size: clamp(12px, 2.8vh, 18px);
+            font-weight: 600;
+            margin-bottom: clamp(10px, 2vh, 16px);
+            display: flex;
+            align-items: center;
+            gap: clamp(8px, 1.5vw, 12px);
+        }
+        
+        .section-content {
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .volume-cards {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(6px, 1.2vh, 10px);
+            height: 100%;
+        }
+        
+        .volume-card {
+            background-color: #4a4a4a;
+            padding: clamp(8px, 1.5vh, 12px);
+            border-radius: clamp(4px, 0.8vh, 6px);
+            border-left: clamp(3px, 0.6vw, 4px) solid;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            min-height: clamp(40px, 8vh, 60px);
+        }
+        
+        .volume-card:hover {
+            background-color: #555555;
+            transform: translateX(5px);
+        }
+        
+        .volume-card.priority-1 {
+            border-left-color: #2196F3;
+        }
+        
+        .volume-card.priority-2 {
+            border-left-color: #4CAF50;
+        }
+        
+        .volume-card.priority-3 {
+            border-left-color: #9C27B0;
+        }
+        
+        .volume-main {
+            font-size: clamp(14px, 3vh, 20px);
+            font-weight: bold;
+            flex: 1;
+        }
+        
+        .volume-process {
+            color: #cccccc;
+            font-size: clamp(10px, 2vh, 14px);
+            flex: 1;
+            text-align: center;
+        }
+        
+        .volume-change {
+            color: #4CAF50;
+            font-size: clamp(10px, 2vh, 14px);
+            font-weight: bold;
+            text-align: right;
+            flex: 1;
+        }
+        
+        .overall-progress {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            gap: clamp(8px, 1.5vh, 12px);
+        }
+        
+        .progress-value {
+            font-size: clamp(32px, 8vh, 48px);
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+            margin: clamp(8px, 1.5vh, 12px) 0;
+        }
+        
+        .progress-bar-bg {
+            background-color: #555555;
+            height: clamp(8px, 1.5vh, 12px);
+            border-radius: clamp(4px, 0.8vh, 6px);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #2196F3);
+            transition: width 0.5s ease;
+            border-radius: clamp(4px, 0.8vh, 6px);
+        }
+        
+        .progress-details {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(4px, 0.8vh, 6px);
+            width: 100%;
+        }
+        
+        .progress-detail {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: clamp(4px, 0.8vh, 6px) 0;
+            border-bottom: 1px solid #555555;
+        }
+        
+        .detail-label {
+            color: #cccccc;
+            font-size: clamp(10px, 2vh, 14px);
+        }
+        
+        .detail-value {
+            color: #ffffff;
+            font-size: clamp(10px, 2vh, 14px);
+            font-weight: bold;
+        }
+        
+        .company-progress, .process-progress {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(8px, 1.5vh, 12px);
+            height: 100%;
+        }
+        
+        .company-item, .process-item {
+            display: flex;
+            align-items: center;
+            gap: clamp(8px, 1.5vw, 12px);
+            padding: clamp(6px, 1.2vh, 10px);
+            background-color: #4a4a4a;
+            border-radius: clamp(4px, 0.8vh, 6px);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .company-item:hover, .process-item:hover {
+            background-color: #555555;
+            transform: translateX(3px);
+        }
+        
+        .company-name, .process-name {
+            color: #ffffff;
+            font-size: clamp(10px, 2vh, 14px);
+            font-weight: 500;
+            min-width: clamp(60px, 12vw, 80px);
+        }
+        
+        .company-bar, .process-bar {
+            flex: 1;
+            height: clamp(6px, 1.2vh, 10px);
+            background-color: #555555;
+            border-radius: clamp(3px, 0.6vh, 5px);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .company-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #2196F3);
+            transition: width 0.5s ease;
+            border-radius: clamp(3px, 0.6vh, 5px);
+        }
+        
+        .process-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #2196F3);
+            transition: width 0.5s ease;
+            border-radius: clamp(3px, 0.6vh, 5px);
+        }
+        
+        .company-percentage, .process-percentage {
+            color: #00d4ff;
+            font-size: clamp(10px, 2vh, 14px);
+            font-weight: bold;
+            min-width: clamp(35px, 7vw, 45px);
+            text-align: right;
+        }
+        
+        .process-percentage {
+            color: #4CAF50;
+        }
+        
+        .table-container {
+            height: 100%;
+            overflow-y: auto;
+            border-radius: clamp(4px, 0.8vh, 6px);
+            background-color: #4a4a4a;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: clamp(9px, 1.8vh, 12px);
+        }
+        
+        th {
+            background-color: #555555;
+            color: #ffffff;
+            padding: clamp(6px, 1.2vh, 10px);
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #666666;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        td {
+            padding: clamp(6px, 1.2vh, 10px);
+            border-bottom: 1px solid #555555;
+            color: #cccccc;
+        }
+        
+        tbody tr {
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+        }
+        
+        tbody tr:hover {
+            background-color: #555555;
+        }
+        
+        tbody tr.priority-1 {
+            border-left: 3px solid #2196F3;
+        }
+        
+        tbody tr.priority-2 {
+            border-left: 3px solid #4CAF50;
+        }
+        
+        tbody tr.priority-3 {
+            border-left: 3px solid #9C27B0;
+        }
+        
+        .status-good {
+            background-color: #4CAF50;
+            color: #ffffff;
+            padding: clamp(2px, 0.4vh, 4px) clamp(6px, 1.2vw, 8px);
+            border-radius: clamp(3px, 0.6vh, 4px);
+            font-size: clamp(8px, 1.6vh, 10px);
+            font-weight: bold;
+        }
+        
+        .status-progress {
+            background-color: #2196F3;
+            color: #ffffff;
+            padding: clamp(2px, 0.4vh, 4px) clamp(6px, 1.2vw, 8px);
+            border-radius: clamp(3px, 0.6vh, 4px);
+            font-size: clamp(8px, 1.6vh, 10px);
+            font-weight: bold;
+        }
+        
+        .status-delay {
+            background-color: #FF5722;
+            color: #ffffff;
+            padding: clamp(2px, 0.4vh, 4px) clamp(6px, 1.2vw, 8px);
+            border-radius: clamp(3px, 0.6vh, 4px);
+            font-size: clamp(8px, 1.6vh, 10px);
+            font-weight: bold;
+        }
+        
+        .section-header-custom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: clamp(10px, 2vh, 16px);
+            padding-bottom: clamp(8px, 1.5vh, 12px);
+            border-bottom: 2px solid #555555;
+        }
+        
+        .level3-badge {
+            background-color: #FF9800;
+            color: #2a2a2a;
+            padding: clamp(4px, 0.8vh, 6px) clamp(8px, 1.5vw, 12px);
+            border-radius: clamp(3px, 0.6vh, 5px);
+            font-size: clamp(8px, 1.6vh, 11px);
+            font-weight: bold;
+        }
+        
+        .issues-list {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(8px, 1.5vh, 12px);
+            height: 100%;
+            overflow-y: auto;
+        }
+        
+        .issue-item {
+            background-color: #4a4a4a;
+            padding: clamp(10px, 2vh, 15px);
+            border-radius: clamp(4px, 0.8vh, 6px);
+            border-left: clamp(3px, 0.6vw, 4px) solid;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .issue-item:hover {
+            background-color: #555555;
+            transform: translateX(3px);
+        }
+        
+        .issue-item.priority-1 {
+            border-left-color: #FF5722;
+        }
+        
+        .issue-item.priority-2 {
+            border-left-color: #FF9800;
+        }
+        
+        .issue-item.priority-3 {
+            border-left-color: #4CAF50;
+        }
+        
+        .issue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: clamp(6px, 1.2vh, 8px);
+        }
+        
+        .issue-title {
+            color: #ffffff;
+            font-size: clamp(10px, 2vh, 14px);
+            font-weight: 600;
+        }
+        
+        .issue-time {
+            color: #999999;
+            font-size: clamp(8px, 1.6vh, 11px);
+        }
+        
+        .issue-description {
+            color: #cccccc;
+            font-size: clamp(9px, 1.8vh, 12px);
+            line-height: 1.4;
+            margin-bottom: clamp(6px, 1.2vh, 8px);
+        }
+        
+        .issue-status {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .status-critical {
+            background-color: #FF5722;
+            color: #ffffff;
+            padding: clamp(2px, 0.4vh, 4px) clamp(6px, 1.2vw, 8px);
+            border-radius: clamp(3px, 0.6vh, 4px);
+            font-size: clamp(8px, 1.6vh, 10px);
+            font-weight: bold;
+        }
+        
+        .status-warning {
+            background-color: #FF9800;
+            color: #ffffff;
+            padding: clamp(2px, 0.4vh, 4px) clamp(6px, 1.2vw, 8px);
+            border-radius: clamp(3px, 0.6vh, 4px);
+            font-size: clamp(8px, 1.6vh, 10px);
+            font-weight: bold;
+        }
+        
+        .status-normal {
+            background-color: #4CAF50;
+            color: #ffffff;
+            padding: clamp(2px, 0.4vh, 4px) clamp(6px, 1.2vw, 8px);
+            border-radius: clamp(3px, 0.6vh, 4px);
+            font-size: clamp(8px, 1.6vh, 10px);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1>DSHI 생산 관리 대시보드</h1>
+            <div class="update-time">마지막 업데이트: <span id="current-time"></span></div>
+        </div>
+        
+        <div class="filter-section">
+            <div class="filter-label">필터:</div>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">전체</button>
+                <button class="filter-btn" data-filter="priority-1">우선순위 1</button>
+                <button class="filter-btn" data-filter="priority-2">우선순위 2</button>
+                <button class="filter-btn" data-filter="priority-3">우선순위 3</button>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="dashboard-grid">
+                <div class="left-column">
+                    <!-- 전월 대비 물량 변화 -->
+                    <div class="section" style="flex: 1;">
+                        <h2 class="section-title">전월 대비 물량 변화</h2>
+                        <div class="section-content">
+                            <div class="volume-cards">
+                                <div class="volume-card priority-1">
+                                    <div class="volume-main" style="color: #2196F3;">▲ 24</div>
+                                    <div class="volume-process">NDE 검사 완료</div>
+                                    <div class="volume-change">+12.8%</div>
+                                </div>
+                                <div class="volume-card priority-2">
+                                    <div class="volume-main" style="color: #4CAF50;">▲ 18</div>
+                                    <div class="volume-process">VIDI 검사 완료</div>
+                                    <div class="volume-change">+9.2%</div>
+                                </div>
+                                <div class="volume-card priority-1">
+                                    <div class="volume-main" style="color: #FF9800;">▲ 15</div>
+                                    <div class="volume-process">GALV 처리 완료</div>
+                                    <div class="volume-change">+7.5%</div>
+                                </div>
+                                <div class="volume-card priority-3">
+                                    <div class="volume-main" style="color: #9C27B0;">▲ 12</div>
+                                    <div class="volume-process">PACKING 완료</div>
+                                    <div class="volume-change">+5.3%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 금월 계획 대비 전체 공정율 -->
+                    <div class="section" style="flex: 1;">
+                        <h2 class="section-title">금월 계획 대비 전체 공정율</h2>
+                        <div class="section-content">
+                            <div class="overall-progress">
+                                <div class="progress-value">45%</div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-bg">
+                                        <div class="progress-bar-fill" style="width: 45%"></div>
+                                    </div>
+                                </div>
+                                <div class="progress-details">
+                                    <div class="progress-detail">
+                                        <span class="detail-label">계획 조립품:</span>
+                                        <span class="detail-value">373</span>
+                                    </div>
+                                    <div class="progress-detail">
+                                        <span class="detail-label">완료 조립품:</span>
+                                        <span class="detail-value">168</span>
+                                    </div>
+                                    <div class="progress-detail">
+                                        <span class="detail-label">잔여 조립품:</span>
+                                        <span class="detail-value">205</span>
+                                    </div>
+                                    <div class="progress-detail">
+                                        <span class="detail-label">예상 중량:</span>
+                                        <span class="detail-value">2,240톤</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 업체별 계획 대비 완료율 -->
+                    <div class="section" style="flex: 1;">
+                        <h2 class="section-title">업체별 계획 대비 완료율</h2>
+                        <div class="section-content">
+                            <div class="company-progress">
+                                <div class="company-item">
+                                    <div class="company-name">A 블록</div>
+                                    <div class="company-bar">
+                                        <div class="company-fill" style="width: 58%"></div>
+                                    </div>
+                                    <div class="company-percentage">58%</div>
+                                </div>
+                                <div class="company-item">
+                                    <div class="company-name">B 블록</div>
+                                    <div class="company-bar">
+                                        <div class="company-fill" style="width: 42%"></div>
+                                    </div>
+                                    <div class="company-percentage">42%</div>
+                                </div>
+                                <div class="company-item">
+                                    <div class="company-name">C 블록</div>
+                                    <div class="company-bar">
+                                        <div class="company-fill" style="width: 36%"></div>
+                                    </div>
+                                    <div class="company-percentage">36%</div>
+                                </div>
+                                <div class="company-item">
+                                    <div class="company-name">D 블록</div>
+                                    <div class="company-bar">
+                                        <div class="company-fill" style="width: 29%"></div>
+                                    </div>
+                                    <div class="company-percentage">29%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="right-column">
+                    <!-- 공정별 완료율 -->
+                    <div class="section" style="flex: 1;">
+                        <h2 class="section-title">공정별 완료율</h2>
+                        <div class="section-content">
+                            <div class="process-progress">
+                                <div class="process-item">
+                                    <div class="process-name">Fit-up</div>
+                                    <div class="process-bar">
+                                        <div class="process-fill" style="width: 95%"></div>
+                                    </div>
+                                    <div class="process-percentage">95%</div>
+                                </div>
+                                <div class="process-item">
+                                    <div class="process-name">NDE</div>
+                                    <div class="process-bar">
+                                        <div class="process-fill" style="width: 87%"></div>
+                                    </div>
+                                    <div class="process-percentage">87%</div>
+                                </div>
+                                <div class="process-item">
+                                    <div class="process-name">VIDI</div>
+                                    <div class="process-bar">
+                                        <div class="process-fill" style="width: 79%"></div>
+                                    </div>
+                                    <div class="process-percentage">79%</div>
+                                </div>
+                                <div class="process-item">
+                                    <div class="process-name">GALV</div>
+                                    <div class="process-bar">
+                                        <div class="process-fill" style="width: 69%"></div>
+                                    </div>
+                                    <div class="process-percentage">69%</div>
+                                </div>
+                                <div class="process-item">
+                                    <div class="process-name">SHOT</div>
+                                    <div class="process-bar">
+                                        <div class="process-fill" style="width: 61%"></div>
+                                    </div>
+                                    <div class="process-percentage">61%</div>
+                                </div>
+                                <div class="process-item">
+                                    <div class="process-name">PAINT</div>
+                                    <div class="process-bar">
+                                        <div class="process-fill" style="width: 53%"></div>
+                                    </div>
+                                    <div class="process-percentage">53%</div>
+                                </div>
+                                <div class="process-item">
+                                    <div class="process-name">PACKING</div>
+                                    <div class="process-bar">
+                                        <div class="process-fill" style="width: 45%"></div>
+                                    </div>
+                                    <div class="process-percentage">45%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 아이템별 수량 및 중량 현황 -->
+                    <div class="section" style="flex: 2;">
+                        <h2 class="section-title">아이템별 수량 및 중량 현황</h2>
+                        <div class="section-content">
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>아이템명</th>
+                                            <th>계획 수량</th>
+                                            <th>완료 수량</th>
+                                            <th>중량 (kg)</th>
+                                            <th>진행률</th>
+                                            <th>상태</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="priority-1">
+                                            <td>A001-025</td>
+                                            <td>1</td>
+                                            <td>1</td>
+                                            <td>12.5</td>
+                                            <td>100%</td>
+                                            <td><span class="status-good">완료</span></td>
+                                        </tr>
+                                        <tr class="priority-1">
+                                            <td>A001-026</td>
+                                            <td>1</td>
+                                            <td>1</td>
+                                            <td>11.8</td>
+                                            <td>100%</td>
+                                            <td><span class="status-good">완료</span></td>
+                                        </tr>
+                                        <tr class="priority-2">
+                                            <td>B001-014</td>
+                                            <td>1</td>
+                                            <td>1</td>
+                                            <td>15.2</td>
+                                            <td>86%</td>
+                                            <td><span class="status-progress">진행중</span></td>
+                                        </tr>
+                                        <tr class="priority-3">
+                                            <td>C001-008</td>
+                                            <td>1</td>
+                                            <td>1</td>
+                                            <td>8.7</td>
+                                            <td>43%</td>
+                                            <td><span class="status-delay">지연</span></td>
+                                        </tr>
+                                        <tr class="priority-2">
+                                            <td>B001-015</td>
+                                            <td>1</td>
+                                            <td>1</td>
+                                            <td>13.9</td>
+                                            <td>71%</td>
+                                            <td><span class="status-progress">진행중</span></td>
+                                        </tr>
+                                        <tr class="priority-1">
+                                            <td>A001-027</td>
+                                            <td>1</td>
+                                            <td>1</td>
+                                            <td>14.3</td>
+                                            <td>100%</td>
+                                            <td><span class="status-good">완료</span></td>
+                                        </tr>
+                                        <tr class="priority-3">
+                                            <td>D001-003</td>
+                                            <td>1</td>
+                                            <td>1</td>
+                                            <td>6.2</td>
+                                            <td>29%</td>
+                                            <td><span class="status-delay">지연</span></td>
+                                        </tr>
+                                        <tr class="priority-2">
+                                            <td>C001-009</td>
+                                            <td>1</td>
+                                            <td>1</td>
+                                            <td>9.8</td>
+                                            <td>57%</td>
+                                            <td><span class="status-progress">진행중</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 공정 문제점 & 이슈 -->
+                    <div class="section" style="flex: 1;">
+                        <div class="section-header-custom">
+                            <h2 class="section-title">공정 문제점 & 이슈</h2>
+                            <div class="level3-badge">Level 3 작성</div>
+                        </div>
+                        <div class="section-content">
+                            <div class="issues-list">
+                                <div class="issue-item priority-1">
+                                    <div class="issue-header">
+                                        <div class="issue-title">GALV 공정 장비 점검 필요</div>
+                                        <div class="issue-time">2025-01-18 19:15</div>
+                                    </div>
+                                    <div class="issue-description">GALV 라인 3번 장비에서 온도 불안정으로 품질 저하 위험</div>
+                                    <div class="issue-status">
+                                        <span class="status-critical">긴급</span>
+                                    </div>
+                                </div>
+                                <div class="issue-item priority-2">
+                                    <div class="issue-header">
+                                        <div class="issue-title">SHOT 공정 자재 부족</div>
+                                        <div class="issue-time">2025-01-18 17:15</div>
+                                    </div>
+                                    <div class="issue-description">SHOT 블라스팅용 연마재 재고 부족으로 작업 지연 예상</div>
+                                    <div class="issue-status">
+                                        <span class="status-warning">주의</span>
+                                    </div>
+                                </div>
+                                <div class="issue-item priority-2">
+                                    <div class="issue-header">
+                                        <div class="issue-title">18개 조립품 공정 지연</div>
+                                        <div class="issue-time">2025-01-18 15:15</div>
+                                    </div>
+                                    <div class="issue-description">NDE 검사 대기로 인한 후속 공정 지연 발생</div>
+                                    <div class="issue-status">
+                                        <span class="status-warning">주의</span>
+                                    </div>
+                                </div>
+                                <div class="issue-item priority-3">
+                                    <div class="issue-header">
+                                        <div class="issue-title">VIDI 검사 일정 조정</div>
+                                        <div class="issue-time">2025-01-18 14:30</div>
+                                    </div>
+                                    <div class="issue-description">외부 검사기관 일정 변경으로 VIDI 검사 스케줄 재조정 필요</div>
+                                    <div class="issue-status">
+                                        <span class="status-normal">일반</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 현재 시간 표시
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('current-time').textContent = timeString;
+        }
+        
+        // 조립품에 따른 임의 중량 계산 (DSHI 조립품 1개당 평균 6톤 기준)
+        function calculateWeight(quantity) {
+            const baseWeight = 6000; // 조립품 1개당 기본 중량 (kg) - 조선/중공업 특성
+            const variation = (Math.random() - 0.5) * 3000; // ±1.5톤 변동
+            const weightPerUnit = Math.max(3000, baseWeight + variation); // 최소 3톤
+            return Math.round(quantity * weightPerUnit) / 1000; // 톤 단위로 반환
+        }
+        
+        // 실시간 데이터 업데이트 시뮬레이션
+        function updateMetrics() {
+            // 진행률 업데이트
+            const progressBars = document.querySelectorAll('.progress-bar-fill, .company-fill, .process-fill');
+            progressBars.forEach(bar => {
+                const currentWidth = parseInt(bar.style.width);
+                if (currentWidth && currentWidth > 0) {
+                    const variation = (Math.random() - 0.5) * 2; // 변동폭 줄임
+                    const newWidth = Math.max(0, Math.min(100, currentWidth + variation));
+                    bar.style.width = `${Math.round(newWidth)}%`;
+                    
+                    // 해당 퍼센트 텍스트도 업데이트
+                    const percentageElement = bar.closest('.company-item, .process-item')?.querySelector('.company-percentage, .process-percentage');
+                    if (percentageElement) {
+                        percentageElement.textContent = `${Math.round(newWidth)}%`;
+                    }
+                }
+            });
+            
+            // 전체 진행률 업데이트
+            const overallProgress = document.querySelector('.progress-value');
+            if (overallProgress) {
+                const currentValue = parseInt(overallProgress.textContent);
+                const variation = (Math.random() - 0.5) * 2; // 변동폭 줄임
+                const newValue = Math.max(0, Math.min(100, currentValue + variation));
+                overallProgress.textContent = `${Math.round(newValue)}%`;
+                
+                // 해당 진행률 바도 업데이트
+                const progressBar = document.querySelector('.progress-bar-fill');
+                if (progressBar) {
+                    progressBar.style.width = `${Math.round(newValue)}%`;
+                    
+                    // 완료 수량 업데이트
+                    const completedQtyElement = document.querySelector('.detail-value');
+                    if (completedQtyElement && completedQtyElement.textContent !== '373') {
+                        const plannedQty = 373;
+                        const completedQty = Math.round(plannedQty * newValue / 100);
+                        completedQtyElement.textContent = completedQty.toLocaleString();
+                        
+                        // 잔여 수량 업데이트
+                        const remainingQtyElement = completedQtyElement.parentElement.nextElementSibling?.querySelector('.detail-value');
+                        if (remainingQtyElement) {
+                            remainingQtyElement.textContent = (plannedQty - completedQty).toLocaleString();
+                        }
+                        
+                        // 예상 중량 업데이트
+                        const weightElement = remainingQtyElement?.parentElement.nextElementSibling?.querySelector('.detail-value');
+                        if (weightElement) {
+                            const estimatedWeight = calculateWeight(completedQty);
+                            weightElement.textContent = `${estimatedWeight.toLocaleString()}톤`;
+                        }
+                    }
+                }
+            }
+            
+            // 테이블 중량 업데이트
+            const weightCells = document.querySelectorAll('tbody tr td:nth-child(4)');
+            weightCells.forEach(cell => {
+                const quantityCell = cell.previousElementSibling;
+                if (quantityCell) {
+                    const quantity = parseInt(quantityCell.textContent.replace(/,/g, ''));
+                    if (quantity > 0) {
+                        const weight = calculateWeight(quantity);
+                        cell.textContent = weight.toLocaleString();
+                    }
+                }
+            });
+        }
+        
+        // 필터 기능
+        function initializeFilters() {
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const sections = document.querySelectorAll('.section');
+            
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const filterValue = this.dataset.filter;
+                    
+                    // 모든 필터 버튼에서 active 클래스 제거
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    
+                    // 클릭된 버튼에 active 클래스 추가
+                    this.classList.add('active');
+                    
+                    // 섹션 필터링
+                    sections.forEach(section => {
+                        if (filterValue === 'all') {
+                            section.style.display = 'flex';
+                        } else {
+                            const hasPriorityClass = section.querySelector(`.${filterValue}`);
+                            section.style.display = hasPriorityClass ? 'flex' : 'none';
+                        }
+                    });
+                });
+            });
+        }
+        
+        // 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTime();
+            initializeFilters();
+            
+            // 1초마다 시간 업데이트
+            setInterval(updateTime, 1000);
+            
+            // 5초마다 메트릭 업데이트
+            setInterval(updateMetrics, 5000);
+            
+            console.log('🎉 DSHI 생산 관리 대시보드가 성공적으로 로드되었습니다!');
+            console.log('📊 실시간 데이터 업데이트가 시작되었습니다.');
+        });
+    </script>
+</body>
+</html>

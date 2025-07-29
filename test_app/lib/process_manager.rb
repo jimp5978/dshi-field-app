@@ -22,29 +22,25 @@ class ProcessManager
       'ARUP_PAINT' => assembly['arup_paint_date']
     }
     
-    # 마지막 완료된 공정 찾기
-    last_completed_process = nil
+    # 다음 공정을 찾기 (1900-01-01 공정은 건너뛰기)
     PROCESS_ORDER.each do |process|
       date = processes[process]
-      # 날짜가 있고 1900-01-01이 아닌 경우 완료된 것으로 간주
-      if date && date != '1900-01-01' && !date.empty?
-        last_completed_process = process
-      else
-        break # 첫 번째 미완료 공정에서 중단
+      
+      # 1900-01-01인 경우 불필요한 공정으로 건너뛰기
+      if date && (date.include?('1900') || date == '1900-01-01')
+        next
       end
+      
+      # 날짜가 없거나 비어있는 경우 미완료 공정
+      if date.nil? || date.empty?
+        return process
+      end
+      
+      # 실제 날짜가 있는 경우 완료된 공정이므로 계속 진행
     end
     
-    # 다음 공정 반환
-    if last_completed_process.nil?
-      PROCESS_ORDER.first # 첫 번째 공정
-    else
-      current_index = PROCESS_ORDER.index(last_completed_process)
-      if current_index && current_index < PROCESS_ORDER.length - 1
-        PROCESS_ORDER[current_index + 1]
-      else
-        nil # 모든 공정 완료
-      end
-    end
+    # 모든 공정을 확인했는데 미완료 공정이 없으면 완료
+    nil
   end
   
   # 공정명을 한글로 변환

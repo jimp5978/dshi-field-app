@@ -65,6 +65,7 @@ class AuthController < Sinatra::Base
     username = session[:user_info] && session[:user_info]['username']
     AppLogger.debug("로그아웃: #{username}")
     
+    # 세션 데이터 삭제 (저장된 리스트는 데이터베이스에 저장되므로 유지됨)
     session.clear
     redirect '/login'
   end

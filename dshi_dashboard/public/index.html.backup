@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSHI 생산 관리 대시보드</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #ecf0f1;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            color: #bdc3c7;
+        }
+
+        .rails-info {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .rails-info h2 {
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .rails-info p {
+            color: #ecf0f1;
+            font-size: 1.1em;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .dashboard-section {
+            background: #2c3e50;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .dashboard-section:hover {
+            transform: translateY(-5px);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #34495e;
+        }
+
+        .section-icon {
+            font-size: 2em;
+            margin-right: 15px;
+            color: #3498db;
+        }
+
+        .section-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #ecf0f1;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: #34495e;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            transition: background-color 0.3s ease;
+        }
+
+        .metric-card:hover {
+            background: #4a5f7a;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            color: #bdc3c7;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #219653;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .timestamp {
+            text-align: center;
+            color: #95a5a6;
+            font-size: 0.9em;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #34495e;
+        }
+
+        .access-info {
+            background: #e67e22;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .access-info h3 {
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .access-info p {
+            color: #ecf0f1;
+            font-size: 1.1em;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏭 DSHI 생산 관리 대시보드</h1>
+            <p>실시간 생산 현황 및 관리 시스템</p>
+        </div>
+
+        <div class="rails-info">
+            <h2>✅ Rails 8.0.2 사이트 접속 성공!</h2>
+            <p>Rails 프로젝트 구조로 변환된 대시보드가 정상적으로 실행되고 있습니다.</p>
+        </div>
+
+        <div class="access-info">
+            <h3>🌐 사이트 접속 정보</h3>
+            <p>현재 주소: <strong>http://localhost:3000</strong></p>
+            <p>이 페이지는 Rails 8.0.2 기반으로 구축되었습니다.</p>
+        </div>
+
+        <div class="main-grid">
+            <!-- 생산 현황 섹션 -->
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <div class="section-icon">📊</div>
+                    <div class="section-title">생산 현황</div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">1,245</div>
+                        <div class="metric-label">일일 생산량</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">98.5%</div>
+                        <div class="metric-label">품질 지수</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">87.3%</div>
+                        <div class="metric-label">가동률</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">23</div>
+                        <div class="metric-label">불량 건수</div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary">상세 보기</button>
+                    <button class="btn btn-success">보고서 생성</button>
+                </div>
+            </div>
+
+            <!-- 장비 상태 섹션 -->
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <div class="section-icon">⚙️</div>
+                    <div class="section-title">장비 상태</div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">12</div>
+                        <div class="metric-label">가동 장비</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">2</div>
+                        <div class="metric-label">점검 중</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">1</div>
+                        <div class="metric-label">고장</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">95.2%</div>
+                        <div class="metric-label">전체 효율</div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary">장비 관리</button>
+                    <button class="btn btn-warning">점검 일정</button>
+                </div>
+            </div>
+
+            <!-- 품질 관리 섹션 -->
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <div class="section-icon">🔍</div>
+                    <div class="section-title">품질 관리</div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">99.1%</div>
+                        <div class="metric-label">합격률</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">156</div>
+                        <div class="metric-label">검사 완료</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">3</div>
+                        <div class="metric-label">불합격</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">2</div>
+                        <div class="metric-label">재검사 대기</div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary">품질 데이터</button>
+                    <button class="btn btn-danger">불량 분석</button>
+                </div>
+            </div>
+
+            <!-- 재고 관리 섹션 -->
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <div class="section-icon">📦</div>
+                    <div class="section-title">재고 관리</div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">847</div>
+                        <div class="metric-label">원자재</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">1,234</div>
+                        <div class="metric-label">완제품</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">23</div>
+                        <div class="metric-label">부족 항목</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">5</div>
+                        <div class="metric-label">발주 필요</div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary">재고 현황</button>
+                    <button class="btn btn-warning">발주 관리</button>
+                </div>
+            </div>
+
+            <!-- 안전 관리 섹션 -->
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <div class="section-icon">🛡️</div>
+                    <div class="section-title">안전 관리</div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">0</div>
+                        <div class="metric-label">안전사고</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">45</div>
+                        <div class="metric-label">근무 일수</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">12</div>
+                        <div class="metric-label">안전 점검</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">3</div>
+                        <div class="metric-label">개선 사항</div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-success">안전 보고서</button>
+                    <button class="btn btn-primary">점검 기록</button>
+                </div>
+            </div>
+
+            <!-- 인력 관리 섹션 -->
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <div class="section-icon">👥</div>
+                    <div class="section-title">인력 관리</div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">28</div>
+                        <div class="metric-label">총 인원</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">24</div>
+                        <div class="metric-label">출근 인원</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">2</div>
+                        <div class="metric-label">휴가</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">1</div>
+                        <div class="metric-label">교육 참석</div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary">근태 관리</button>
+                    <button class="btn btn-success">교육 일정</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="timestamp">
+            마지막 업데이트: <span id="current-time"></span>
+        </div>
+    </div>
+
+    <script>
+        // 현재 시간 표시
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('current-time').textContent = timeString;
+        }
+
+        // 실시간 데이터 업데이트 시뮬레이션
+        function updateMetrics() {
+            const metrics = document.querySelectorAll('.metric-value');
+            metrics.forEach(metric => {
+                const currentValue = parseInt(metric.textContent.replace(/[^\d]/g, ''));
+                if (!isNaN(currentValue) && currentValue > 0) {
+                    const variation = Math.random() * 10 - 5; // -5 to +5 variation
+                    let newValue = Math.max(0, Math.round(currentValue + variation));
+                    
+                    // 퍼센트 값 처리
+                    if (metric.textContent.includes('%')) {
+                        newValue = Math.min(100, Math.max(0, newValue));
+                        metric.textContent = newValue + '%';
+                    } else {
+                        metric.textContent = newValue;
+                    }
+                }
+            });
+        }
+
+        // 초기 시간 설정
+        updateTime();
+        
+        // 1초마다 시간 업데이트
+        setInterval(updateTime, 1000);
+        
+        // 5초마다 메트릭 업데이트
+        setInterval(updateMetrics, 5000);
+        
+        // 버튼 클릭 이벤트
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('btn')) {
+                alert('Rails 기능 구현 중: ' + e.target.textContent);
+            }
+        });
+
+        // 페이지 로드 시 환영 메시지
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                console.log('🎉 Rails 8.0.2 대시보드가 성공적으로 로드되었습니다!');
+                console.log('📊 실시간 데이터 업데이트가 시작되었습니다.');
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
