@@ -15,11 +15,21 @@ class InspectionController < Sinatra::Base
   set :views, File.dirname(__FILE__) + '/../views'
   set :public_folder, File.dirname(__FILE__) + '/../public'
   
-  # 인증 확인 헬퍼
+  # 인증 확인 헬퍼 - API 경로와 이 컨트롤러에서 처리하는 경로만 대상
   before do
-    unless session[:jwt_token]
-      halt 401, { error: '로그인이 필요합니다.' }.to_json if request.path.start_with?('/api/')
-      redirect '/login' unless request.path.start_with?('/api/')
+    # 이 컨트롤러에서 처리하는 경로들만 인증 확인
+    controller_paths = [
+      '/saved-list',
+      '/api/create-inspection-request',
+      '/api/debug-session'
+    ]
+    
+    # API 경로 또는 이 컨트롤러의 경로인 경우에만 인증 확인
+    if request.path.start_with?('/api/') || controller_paths.include?(request.path)
+      unless session[:jwt_token]
+        halt 401, { error: '로그인이 필요합니다.' }.to_json if request.path.start_with?('/api/')
+        redirect '/login' unless request.path.start_with?('/api/')
+      end
     end
   end
   
@@ -28,18 +38,7 @@ class InspectionController < Sinatra::Base
     "관리자 기능 테스트 성공! #{Time.now}"
   end
   
-  # 관리자 패널 페이지 (최우선)
-  get '/admin' do
-    puts "관리자 패널 라우트 접근됨"
-    # 권한 확인
-    user_info = session[:user_info]
-    if user_info.nil? || user_info['permission_level'].to_i < 2
-      redirect '/'
-    end
-    
-    @user_info = session[:user_info] || {}
-    erb :admin_panel, layout: false
-  end
+  # 검사신청 관리 페이지 (모든 Level 접근 가능) - 이미 app.rb에서 처리하므로 제거
   
   # 저장된 리스트 페이지
   get '/saved-list' do
@@ -61,65 +60,12 @@ class InspectionController < Sinatra::Base
       @saved_list = []
     end
     
-    # 각 항목의 다음 공정 계산 및 실시간 상태 업데이트
-    @next_processes = {}
+    # Flask API에서 이미 상태 계산이 완료된 데이터를 받으므로 총 중량만 계산
     @total_weight = 0
     
     @saved_list.each do |item|
-      # 다음 공정 계산
-      next_process = ProcessManager.get_next_process(item)
-      @next_processes[item['assembly_code']] = next_process ? ProcessManager.to_korean(next_process) : '완료'
-      
-      # 실시간 상태 계산 (저장된 데이터의 status/lastProcess 업데이트)
-      processes = [
-        ['FIT_UP', item['fit_up_date']],
-        ['FINAL', item['final_date']],
-        ['ARUP_FINAL', item['arup_final_date']],
-        ['GALV', item['galv_date']],
-        ['ARUP_GALV', item['arup_galv_date']],
-        ['SHOT', item['shot_date']],
-        ['PAINT', item['paint_date']],
-        ['ARUP_PAINT', item['arup_paint_date']]
-      ]
-      
-      # 완료된 공정들과 불필요한 공정들 구분
-      completed_processes = []
-      skipped_processes = []
-      
-      processes.each do |name, date|
-        if date && !date.to_s.empty?
-          date_str = date.to_s
-          if date_str.include?('1900')
-            # 1900-01-01은 불필요한 공정 (건너뛰기)
-            skipped_processes << name
-          else
-            # 실제 완료된 공정
-            completed_processes << [name, date]
-          end
-        end
-      end
-      
-      # 전체 공정 수 (8개) - 건너뛴 공정 수 = 필요한 공정 수
-      total_required_processes = 8 - skipped_processes.length
-      
-      if completed_processes.length > 0
-        # 가장 마지막 완료된 공정
-        last_process_name, last_date = completed_processes.last
-        
-        # 실제 완료된 공정 수가 필요한 공정 수와 같으면 완료
-        status = completed_processes.length >= total_required_processes ? '완료' : '진행중'
-        last_process = last_process_name
-      else
-        last_process = '시작전'
-        status = '대기'
-      end
-      
-      # 저장된 데이터 업데이트
-      item['status'] = status
-      item['lastProcess'] = last_process
-      
       @total_weight += (item['weight_net'] || 0).to_f
-      AppLogger.debug("#{item['assembly_code']} - 다음 공정: #{next_process}, 상태: #{status}, 마지막 공정: #{last_process}")
+      AppLogger.debug("#{item['assembly_code']} - 상태: #{item['status']}, 마지막 공정: #{item['lastProcess']}, 다음 공정: #{item['nextProcess']}")
     end
     
     AppLogger.debug("저장된 리스트 조회 결과: #{@saved_list.length}개, 총 중량: #{@total_weight}kg")
@@ -127,10 +73,7 @@ class InspectionController < Sinatra::Base
     erb :saved_list, layout: false  # 원본 HTML 구조를 유지하기 위해 layout 비활성화
   end
   
-  # 검사신청 조회 페이지
-  get '/inspection-requests' do
-    erb :inspection_requests, layout: :layout
-  end
+  # 기존 /inspection-requests 페이지는 삭제됨 (검사신청 관리로 통합)
   
   
   # 디버깅용 세션 조회 API
@@ -143,21 +86,116 @@ class InspectionController < Sinatra::Base
     }.to_json
   end
   
-  # 검사신청 조회 API
-  get '/api/inspection-requests' do
+  # 검사신청 관리 API 프록시들
+  get '/api/inspection-management/requests' do
     content_type :json
     
-    user_info = session[:user_info]
-    user_level = user_info['permission_level'].to_i
-    username = user_level == 1 ? user_info['username'] : nil
+    begin
+      # 사용자 정보 조회
+      user_info = session[:user_info] || {}
+      user_level = user_info['permission_level'] || 1
+      username = user_info['username']
+      
+      flask_client = FlaskClient.new
+      result = flask_client.get_inspection_management_requests(session[:jwt_token])
+      
+      if result[:success]
+        result[:data].to_json
+      else
+        { success: false, error: result[:error] }.to_json
+      end
+      
+    rescue => e
+      AppLogger.debug("검사신청 관리 조회 API 오류: #{e.message}")
+      { success: false, error: '검사신청 조회 중 오류가 발생했습니다.' }.to_json
+    end
+  end
+  
+  put '/api/inspection-management/requests/:id/approve' do
+    content_type :json
     
-    flask_client = FlaskClient.new
-    result = flask_client.get_inspection_requests(session[:jwt_token], user_level, username)
+    begin
+      request_id = params[:id].to_i
+      flask_client = FlaskClient.new
+      result = flask_client.approve_inspection_request(request_id, session[:jwt_token])
+      
+      result.to_json
+      
+    rescue => e
+      AppLogger.debug("검사신청 승인 API 오류: #{e.message}")
+      { success: false, message: '검사신청 승인 중 오류가 발생했습니다.' }.to_json
+    end
+  end
+  
+  put '/api/inspection-management/requests/:id/reject' do
+    content_type :json
     
-    if result[:success]
-      { success: true, data: result[:data] }.to_json
-    else
-      { success: false, error: result[:error] }.to_json
+    begin
+      request_id = params[:id].to_i
+      request_body = JSON.parse(request.body.read)
+      reject_reason = request_body['reject_reason'] || '거부됨'
+      
+      flask_client = FlaskClient.new
+      result = flask_client.reject_inspection_request(request_id, reject_reason, session[:jwt_token])
+      
+      result.to_json
+      
+    rescue => e
+      AppLogger.debug("검사신청 거부 API 오류: #{e.message}")
+      { success: false, message: '검사신청 거부 중 오류가 발생했습니다.' }.to_json
+    end
+  end
+  
+  put '/api/inspection-management/requests/:id/confirm' do
+    content_type :json
+    
+    begin
+      request_id = params[:id].to_i
+      request_body = JSON.parse(request.body.read)
+      confirmed_date = request_body['confirmed_date']
+      
+      flask_client = FlaskClient.new
+      result = flask_client.confirm_inspection_request(request_id, confirmed_date, session[:jwt_token])
+      
+      result.to_json
+      
+    rescue => e
+      AppLogger.debug("검사신청 확정 API 오류: #{e.message}")
+      { success: false, message: '검사신청 확정 중 오류가 발생했습니다.' }.to_json
+    end
+  end
+  
+  put '/api/inspection-management/requests/:id/cancel' do
+    content_type :json
+    
+    begin
+      request_id = params[:id].to_i
+      
+      flask_client = FlaskClient.new
+      result = flask_client.delete_inspection_request(request_id, session[:jwt_token])
+      
+      result.to_json
+      
+    rescue => e
+      AppLogger.debug("검사신청 취소 API 오류: #{e.message}")
+      { success: false, message: '검사신청 취소 중 오류가 발생했습니다.' }.to_json
+    end
+  end
+  
+  delete '/api/inspection-management/requests/:id' do
+    content_type :json
+    
+    begin
+      request_id = params[:id].to_i
+      
+      flask_client = FlaskClient.new
+      result = flask_client.delete_inspection_request(request_id, session[:jwt_token])
+      
+      result.to_json
+      
+    rescue => e
+      AppLogger.debug("검사신청 삭제 API 오류: #{e.message}")
+      { success: false, message: '검사신청 삭제 중 오류가 발생했습니다.' }.to_json
     end
   end
   
@@ -277,161 +315,8 @@ class InspectionController < Sinatra::Base
     end
   end
   
-  # 검사신청 승인 API (관리자용)
-  put '/api/inspection-requests/:id/approve' do
-    content_type :json
-    
-    # 권한 확인
-    user_info = session[:user_info]
-    if user_info.nil? || user_info['permission_level'].to_i < 2
-      return { success: false, error: '승인 권한이 없습니다.' }.to_json
-    end
-    
-    begin
-      request_id = params[:id].to_i
-      
-      if request_id <= 0
-        return { success: false, error: '유효하지 않은 요청 ID입니다.' }.to_json
-      end
-      
-      AppLogger.debug("검사신청 승인 API 호출: ID #{request_id}")
-      
-      flask_client = FlaskClient.new
-      result = flask_client.approve_inspection_request(request_id, session[:jwt_token])
-      
-      if result[:success]
-        AppLogger.debug("검사신청 승인 성공: #{result[:data]}")
-        { success: true, message: result[:data]['message'] }.to_json
-      else
-        AppLogger.debug("검사신청 승인 실패: #{result[:error]}")
-        { success: false, error: result[:error] }.to_json
-      end
-      
-    rescue => e
-      AppLogger.debug("검사신청 승인 API 오류: #{e.message}")
-      { success: false, error: '승인 중 오류가 발생했습니다.' }.to_json
-    end
-  end
+  # 검사신청 승인/거부/확정/삭제 API - Flask에서 직접 처리하므로 제거
   
-  # 검사신청 거부 API (관리자용)
-  put '/api/inspection-requests/:id/reject' do
-    content_type :json
-    
-    # 권한 확인
-    user_info = session[:user_info]
-    if user_info.nil? || user_info['permission_level'].to_i < 2
-      return { success: false, error: '거부 권한이 없습니다.' }.to_json
-    end
-    
-    begin
-      request_id = params[:id].to_i
-      request_body = JSON.parse(request.body.read)
-      reject_reason = request_body['reject_reason'] || '거부됨'
-      
-      if request_id <= 0
-        return { success: false, error: '유효하지 않은 요청 ID입니다.' }.to_json
-      end
-      
-      AppLogger.debug("검사신청 거부 API 호출: ID #{request_id}, 사유: #{reject_reason}")
-      
-      flask_client = FlaskClient.new
-      result = flask_client.reject_inspection_request(request_id, reject_reason, session[:jwt_token])
-      
-      if result[:success]
-        AppLogger.debug("검사신청 거부 성공: #{result[:data]}")
-        { success: true, message: result[:data]['message'] }.to_json
-      else
-        AppLogger.debug("검사신청 거부 실패: #{result[:error]}")
-        { success: false, error: result[:error] }.to_json
-      end
-      
-    rescue JSON::ParserError
-      { success: false, error: '잘못된 요청 형식입니다.' }.to_json
-    rescue => e
-      AppLogger.debug("검사신청 거부 API 오류: #{e.message}")
-      { success: false, error: '거부 중 오류가 발생했습니다.' }.to_json
-    end
-  end
-  
-  # 검사신청 확정 API (관리자용)
-  put '/api/inspection-requests/:id/confirm' do
-    content_type :json
-    
-    # 권한 확인
-    user_info = session[:user_info]
-    if user_info.nil? || user_info['permission_level'].to_i < 3
-      return { success: false, error: '확정 권한이 없습니다 (Level 3+ 필요).' }.to_json
-    end
-    
-    begin
-      request_id = params[:id].to_i
-      request_body = JSON.parse(request.body.read)
-      confirmed_date = request_body['confirmed_date']
-      
-      if request_id <= 0
-        return { success: false, error: '유효하지 않은 요청 ID입니다.' }.to_json
-      end
-      
-      if confirmed_date.nil? || confirmed_date.empty?
-        return { success: false, error: '확정 날짜를 입력해주세요.' }.to_json
-      end
-      
-      AppLogger.debug("검사신청 확정 API 호출: ID #{request_id}, 확정일: #{confirmed_date}")
-      
-      flask_client = FlaskClient.new
-      result = flask_client.confirm_inspection_request(request_id, confirmed_date, session[:jwt_token])
-      
-      if result[:success]
-        AppLogger.debug("검사신청 확정 성공: #{result[:data]}")
-        { success: true, message: result[:data]['message'] }.to_json
-      else
-        AppLogger.debug("검사신청 확정 실패: #{result[:error]}")
-        { success: false, error: result[:error] }.to_json
-      end
-      
-    rescue JSON::ParserError
-      { success: false, error: '잘못된 요청 형식입니다.' }.to_json
-    rescue => e
-      AppLogger.debug("검사신청 확정 API 오류: #{e.message}")
-      { success: false, error: '확정 중 오류가 발생했습니다.' }.to_json
-    end
-  end
-  
-  # 검사신청 삭제 API (관리자용)
-  delete '/api/inspection-requests/:id' do
-    content_type :json
-    
-    # 권한 확인 (Level 3+ 필요)
-    user_info = session[:user_info]
-    if user_info.nil? || user_info['permission_level'].to_i < 3
-      return { success: false, error: '삭제 권한이 없습니다 (Level 3+ 필요).' }.to_json
-    end
-    
-    begin
-      request_id = params[:id].to_i
-      
-      if request_id <= 0
-        return { success: false, error: '유효하지 않은 요청 ID입니다.' }.to_json
-      end
-      
-      AppLogger.debug("검사신청 삭제 API 호출: ID #{request_id}")
-      
-      flask_client = FlaskClient.new
-      result = flask_client.delete_inspection_request(request_id, session[:jwt_token])
-      
-      if result[:success]
-        AppLogger.debug("검사신청 삭제 성공: #{result[:data]}")
-        { success: true, message: result[:data]['message'] }.to_json
-      else
-        AppLogger.debug("검사신청 삭제 실패: #{result[:error]}")
-        { success: false, error: result[:error] }.to_json
-      end
-      
-    rescue => e
-      AppLogger.debug("검사신청 삭제 API 오류: #{e.message}")
-      { success: false, error: '삭제 중 오류가 발생했습니다.' }.to_json
-    end
-  end
   
   private
   

@@ -29,16 +29,21 @@ class App < Sinatra::Base
   use InspectionController
   use SearchController
   
-  # 관리자 패널 페이지
-  get '/admin' do
-    # 권한 확인
+  # 검사신청 관리 페이지 (모든 Level 접근 가능)
+  get '/inspection-management' do
+    # 권한 확인 (Level 1+ 모두 접근 가능)
     user_info = session[:user_info]
-    if user_info.nil? || user_info['permission_level'].to_i < 2
-      redirect '/'
+    if user_info.nil? || user_info['permission_level'].to_i < 1
+      redirect '/login'
     end
     
     @user_info = session[:user_info] || {}
-    erb :admin_panel, layout: false
+    erb :inspection_management, layout: false
+  end
+  
+  # 기존 /admin 라우트 호환성 유지 (리디렉션)
+  get '/admin' do
+    redirect '/inspection-management'
   end
   
   # 헬스체크 엔드포인트

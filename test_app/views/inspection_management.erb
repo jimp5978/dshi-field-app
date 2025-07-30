@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSHI Dashboard - 관리자 패널</title>
+    <title>DSHI Dashboard - 검사신청 관리</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -150,12 +150,12 @@
 <body>
     <div class="header">
         <div class="header-content">
-            <h1>🔧 DSHI 관리자 패널</h1>
+            <h1>📋 DSHI 검사신청 관리</h1>
             <div class="user-info">
                 👤 <%= (@user_info && @user_info['username']) || 'Unknown' %>님 (Level <%= (@user_info && @user_info['permission_level']) || 'N/A' %>)
                 <a href="/" class="nav-btn">🔍 조립품 검색</a>
                 <a href="/saved-list" class="nav-btn">📋 저장된 리스트</a>
-                <a href="/inspection-requests" class="nav-btn">📊 검사신청 조회</a>
+                <a href="/inspection-management" class="nav-btn">📊 검사신청 관리</a>
                 <a href="/logout" class="logout-btn">로그아웃</a>
             </div>
         </div>
@@ -208,7 +208,18 @@
                             <button class="btn btn-primary" onclick="clearFilters()" style="background: #6c757d;">🗑️ 필터 초기화</button>
                         </div>
                     </div>
-                    <div class="filter-group" style="margin-top: 15px;">
+                    <!-- Level 1 사용자용 일괄 처리 버튼 -->
+                    <div class="filter-group" style="margin-top: 15px;" id="level1Buttons">
+                        <div>
+                            <button id="bulkCancelBtn" class="btn btn-danger" onclick="bulkCancel()" disabled>❌ 선택 취소</button>
+                        </div>
+                        <div id="selectedInfoLevel1" style="margin-left: 20px; color: #666;">
+                            선택된 항목: 0개
+                        </div>
+                    </div>
+                    
+                    <!-- Level 2+ 사용자용 일괄 처리 버튼 -->
+                    <div class="filter-group" style="margin-top: 15px;" id="adminButtons">
                         <div>
                             <button id="bulkApproveBtn" class="btn btn-success" onclick="bulkApprove()" disabled>✅ 선택 승인</button>
                             <button id="bulkRejectBtn" class="btn btn-danger" onclick="bulkReject()" disabled>❌ 선택 거부</button>
@@ -258,14 +269,41 @@
         // 페이지 로드 시 데이터 불러오기
         document.addEventListener('DOMContentLoaded', loadInspectionRequests);
 
+        // 현재 사용자 권한 레벨 전역 변수
+        let currentUserLevel = <%= (@user_info && @user_info['permission_level']) || 1 %>;
+        
         async function loadInspectionRequests() {
             try {
-                const response = await fetch('/api/inspection-requests');
+                // 캐시 우회를 위해 타임스탬프 추가
+                const timestamp = new Date().getTime();
+                const response = await fetch(`/api/inspection-management/requests?_t=${timestamp}`);
                 const data = await response.json();
                 
                 if (data.success) {
                     allRequests = data.data.requests || [];
+                    currentUserLevel = data.data.user_level || 1;
                     filteredRequests = [...allRequests];
+                    
+                    
+                    // Level별 버튼 표시/숨김 처리
+                    if (currentUserLevel === 1) {
+                        document.getElementById('adminButtons').style.display = 'none';
+                        document.getElementById('level1Buttons').style.display = 'block';
+                        document.querySelector('h4').innerHTML = '🔍 내 검사신청 상태 확인';
+                    } else {
+                        document.getElementById('adminButtons').style.display = 'block';
+                        document.getElementById('level1Buttons').style.display = 'none';
+                        
+                        // Level 2+ 사용자만 '취소됨' 상태 필터 옵션 추가
+                        const statusFilter = document.getElementById('statusFilter');
+                        if (!statusFilter.querySelector('option[value="취소됨"]')) {
+                            const cancelledOption = document.createElement('option');
+                            cancelledOption.value = '취소됨';
+                            cancelledOption.textContent = '취소됨';
+                            statusFilter.appendChild(cancelledOption);
+                        }
+                    }
+                    
                     renderRequests();
                 } else {
                     document.getElementById('requestsContent').innerHTML = `<p>오류: ${data.error}</p>`;
@@ -279,6 +317,7 @@
         function renderRequests() {
             const contentDiv = document.getElementById('requestsContent');
             
+            
             if (filteredRequests.length === 0) {
                 contentDiv.innerHTML = '<div class="empty-state"><h3>📭 검사신청 내역이 없습니다</h3></div>';
                 return;
@@ -286,7 +325,10 @@
             
             let html = '<div style="overflow-x: auto;"><table id="requestsTable">';
             html += '<thead><tr>';
+            
+            // 모든 사용자에게 체크박스 열 표시
             html += '<th class="checkbox-cell"><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>';
+            
             html += '<th>조립품 코드</th>';
             html += '<th>검사 타입</th>';
             html += '<th>신청일</th>';
@@ -301,6 +343,8 @@
             filteredRequests.forEach((item, index) => {
                 const statusClass = getStatusClass(item.status);
                 html += '<tr>';
+                
+                // 모든 사용자에게 체크박스 표시
                 html += `<td class="checkbox-cell"><input type="checkbox" class="item-checkbox" data-id="${item.id}" onchange="updateSelectionButtons()"></td>`;
                 html += `<td>${item.assembly_code}</td>`;
                 html += `<td>${item.inspection_type}</td>`;
@@ -312,13 +356,20 @@
                 html += `<td>${formatDate(item.approved_date)}</td>`;
                 html += `<td>`;
                 
-                if (item.status === '대기중') {
-                    html += `<button class="btn btn-success" onclick="approveRequest(${item.id})" style="font-size: 12px; padding: 4px 8px;">승인</button>`;
-                    html += `<button class="btn btn-danger" onclick="rejectRequest(${item.id})" style="font-size: 12px; padding: 4px 8px;">거부</button>`;
-                } else if (item.status === '승인됨') {
-                    html += `<button class="btn btn-warning" onclick="confirmRequest(${item.id})" style="font-size: 12px; padding: 4px 8px;">확정</button>`;
-                } else {
+                // Level 1 사용자: 개별 관리 버튼 없음 (일괄 처리만 사용)
+                if (currentUserLevel === 1) {
                     html += '-';
+                } 
+                // Level 2+ 사용자: 개별 관리 기능
+                else {
+                    if (item.status === '대기중') {
+                        html += `<button class="btn btn-success" onclick="approveRequest(${item.id})" style="font-size: 12px; padding: 4px 8px;">승인</button>`;
+                        html += `<button class="btn btn-danger" onclick="rejectRequest(${item.id})" style="font-size: 12px; padding: 4px 8px;">거부</button>`;
+                    } else if (item.status === '승인됨' && currentUserLevel >= 3) {
+                        html += `<button class="btn btn-warning" onclick="confirmRequest(${item.id})" style="font-size: 12px; padding: 4px 8px;">확정</button>`;
+                    } else {
+                        html += '-';
+                    }
                 }
                 
                 html += `</td>`;
@@ -394,24 +445,38 @@
 
         function updateSelectionButtons() {
             const selected = document.querySelectorAll('.item-checkbox:checked');
+            
+            // Level 1 사용자용 버튼 업데이트
+            const cancelBtn = document.getElementById('bulkCancelBtn');
+            const selectedInfoLevel1 = document.getElementById('selectedInfoLevel1');
+            if (cancelBtn) {
+                cancelBtn.disabled = selected.length === 0;
+            }
+            if (selectedInfoLevel1) {
+                selectedInfoLevel1.textContent = `선택된 항목: ${selected.length}개`;
+            }
+            
+            // Level 2+ 사용자용 버튼 업데이트
             const approveBtn = document.getElementById('bulkApproveBtn');
             const rejectBtn = document.getElementById('bulkRejectBtn');
             const confirmBtn = document.getElementById('bulkConfirmBtn');
             const deleteBtn = document.getElementById('bulkDeleteBtn');
             const selectedInfo = document.getElementById('selectedInfo');
             
-            approveBtn.disabled = selected.length === 0;
-            rejectBtn.disabled = selected.length === 0;
-            confirmBtn.disabled = selected.length === 0;
-            deleteBtn.disabled = selected.length === 0;
-            selectedInfo.textContent = `선택된 항목: ${selected.length}개`;
+            if (approveBtn) {
+                approveBtn.disabled = selected.length === 0;
+                rejectBtn.disabled = selected.length === 0;
+                confirmBtn.disabled = selected.length === 0;
+                deleteBtn.disabled = selected.length === 0;
+                selectedInfo.textContent = `선택된 항목: ${selected.length}개`;
+            }
         }
 
         async function approveRequest(requestId) {
             if (!confirm('이 검사신청을 승인하시겠습니까?')) return;
             
             try {
-                const response = await fetch(`/api/inspection-requests/${requestId}/approve`, {
+                const response = await fetch(`/api/inspection-management/requests/${requestId}/approve`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -433,7 +498,7 @@
             if (!reason) return;
             
             try {
-                const response = await fetch(`/api/inspection-requests/${requestId}/reject`, {
+                const response = await fetch(`/api/inspection-management/requests/${requestId}/reject`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ reject_reason: reason })
@@ -456,7 +521,7 @@
             if (!confirmedDate) return;
             
             try {
-                const response = await fetch(`/api/inspection-requests/${requestId}/confirm`, {
+                const response = await fetch(`/api/inspection-management/requests/${requestId}/confirm`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ confirmed_date: confirmedDate })
@@ -475,15 +540,15 @@
         }
 
         // 로딩 대화상자 표시/숨김 함수
-        function showLoadingDialog() {
+        function showLoadingDialog(title = '🗑️ 삭제 중입니다...', message = '잠시만 기다려주세요. 선택된 항목을 삭제하고 있습니다.') {
             const overlay = document.createElement('div');
             overlay.className = 'loading-overlay';
             overlay.id = 'loadingOverlay';
             overlay.innerHTML = `
                 <div class="loading-dialog">
                     <div class="big-spinner"></div>
-                    <h3>🗑️ 삭제 중입니다...</h3>
-                    <p>잠시만 기다려주세요. 선택된 항목을 삭제하고 있습니다.</p>
+                    <h3>${title}</h3>
+                    <p>${message}</p>
                 </div>
             `;
             document.body.appendChild(overlay);
@@ -519,7 +584,7 @@
                 for (const checkbox of selected) {
                     const requestId = checkbox.dataset.id;
                     try {
-                        const response = await fetch(`/api/inspection-requests/${requestId}`, {
+                        const response = await fetch(`/api/inspection-management/requests/${requestId}`, {
                             method: 'DELETE',
                             headers: { 'Content-Type': 'application/json' }
                         });
@@ -569,7 +634,7 @@
             for (const checkbox of selected) {
                 const requestId = checkbox.dataset.id;
                 try {
-                    const response = await fetch(`/api/inspection-requests/${requestId}/approve`, {
+                    const response = await fetch(`/api/inspection-management/requests/${requestId}/approve`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' }
                     });
@@ -608,7 +673,7 @@
             for (const checkbox of selected) {
                 const requestId = checkbox.dataset.id;
                 try {
-                    const response = await fetch(`/api/inspection-requests/${requestId}/reject`, {
+                    const response = await fetch(`/api/inspection-management/requests/${requestId}/reject`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ reject_reason: reason })
@@ -648,7 +713,7 @@
             for (const checkbox of selected) {
                 const requestId = checkbox.dataset.id;
                 try {
-                    const response = await fetch(`/api/inspection-requests/${requestId}/confirm`, {
+                    const response = await fetch(`/api/inspection-management/requests/${requestId}/confirm`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ confirmed_date: confirmedDate })
@@ -671,6 +736,83 @@
             }
             alert(message);
             loadInspectionRequests();
+        }
+
+        // Level 1 사용자용 개별 검사신청 취소 함수
+        async function cancelRequest(requestId) {
+            if (!confirm('이 검사신청을 취소하시겠습니까?\n취소된 검사신청은 다시 복구할 수 없습니다.')) return;
+            
+            try {
+                const response = await fetch(`/api/inspection-management/requests/${requestId}/cancel`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('✅ 검사신청이 취소되었습니다.');
+                    loadInspectionRequests();
+                } else {
+                    alert(`❌ 취소 실패: ${result.message}`);
+                }
+            } catch (error) {
+                alert(`❌ 취소 오류: ${error.message}`);
+            }
+        }
+
+        // Level 1 사용자용 일괄 검사신청 취소 함수
+        async function bulkCancel() {
+            const selected = Array.from(document.querySelectorAll('.item-checkbox:checked'));
+            if (selected.length === 0) return;
+            
+            // 확인 대화상자 없이 바로 로딩 스피너 표시
+            showLoadingDialog('❌ 검사신청 취소 중...', '잠시만 기다려주세요. 선택된 항목을 취소하고 있습니다.');
+            
+            // 모든 버튼 비활성화
+            const cancelBtn = document.getElementById('bulkCancelBtn');
+            if (cancelBtn) cancelBtn.disabled = true;
+            
+            try {
+                let successCount = 0;
+                let failedItems = [];
+                
+                for (const checkbox of selected) {
+                    const requestId = checkbox.dataset.id;
+                    try {
+                        const response = await fetch(`/api/inspection-management/requests/${requestId}/cancel`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                        
+                        const result = await response.json();
+                        if (result.success) {
+                            successCount++;
+                        } else {
+                            failedItems.push(requestId);
+                        }
+                    } catch (error) {
+                        failedItems.push(requestId);
+                    }
+                }
+                
+                // 실패한 항목이 있는 경우에만 메시지 표시 (성공 메시지는 표시하지 않음)
+                if (failedItems.length > 0) {
+                    alert(`일부 항목 취소에 실패했습니다.\n❌ 실패: ${failedItems.length}개`);
+                }
+                
+                // 목록 새로고침 (취소된 항목들이 자동으로 숨겨짐)
+                loadInspectionRequests();
+                
+            } finally {
+                // 로딩 스피너 숨김
+                hideLoadingDialog();
+                
+                // 버튼 다시 활성화
+                if (cancelBtn) cancelBtn.disabled = false;
+                
+                // 선택 상태 업데이트
+                updateSelectionButtons();
+            }
         }
     </script>
 </body>

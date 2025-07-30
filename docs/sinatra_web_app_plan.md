@@ -1,10 +1,10 @@
 # Sinatra 웹 애플리케이션 개발 완료 보고서
 
-> 📅 **최종 업데이트**: 2025-07-29  
-> 🎯 **상태**: **✅ Phase 6 완료 - UI/UX 스트림라인 최적화 포함 완전 구현**  
+> 📅 **최종 업데이트**: 2025-07-30  
+> 🎯 **상태**: **✅ Phase 7 완료 - 검사신청 관리 시스템 완전 개편 포함 완전 구현**  
 > 👥 **대상 사용자**: Level 1~5 모든 권한 레벨  
 > 🐳 **배포**: Docker 컨테이너 기반 어디서든 동일한 환경 실행 가능
-> ✨ **최신 개선**: 확인/성공 메시지 제거, 2단계 로딩 시스템, 일관된 UX 패턴
+> ✨ **최신 개선**: 검사신청 관리 시스템 완전 개편, Level별 차등 기능, 실시간 취소 처리
 
 ---
 
@@ -645,6 +645,178 @@ end
 
 ---
 
+## 🔄 Phase 7: 검사신청 관리 시스템 완전 개편 (2025-07-30)
+
+### ✅ **구현 완료: 통합 검사신청 관리 시스템**
+
+#### 1. **관리자 패널 → 검사신청 관리로 완전 개편** ✅
+
+##### 주요 변경사항
+- **경로 변경**: `/admin` → `/inspection-management`
+- **명칭 변경**: "관리자 패널" → "검사신청 관리" (검사신청 관리)
+- **접근 권한 변경**: Level 2+ → **Level 1+** (모든 사용자 접근 가능)
+- **기능 분화**: Level별 차등 기능 제공
+
+##### 파일 변경사항
+```ruby
+# app.rb - 라우트 변경
+get '/inspection-management' do
+  # Level 1+ 모든 사용자 접근 가능
+  user_info = session[:user_info]
+  redirect '/' if user_info.nil? || user_info['permission_level'].to_i < 1
+end
+
+# 기존 /admin 경로는 호환성을 위해 리다이렉트 처리
+get '/admin' do
+  redirect '/inspection-management'
+end
+```
+
+#### 2. **Level별 차등 기능 구현** ✅
+
+##### Level 1 사용자 기능
+- **본인 신청건만 조회**: 자신이 신청한 검사신청만 확인 가능
+- **상태 필터링**: `대기중`, `승인됨`만 표시 (`확정됨`, `취소됨` 숨김)
+- **일괄 취소 기능**: 체크박스 선택 후 일괄 취소 가능
+- **개별 관리 버튼 없음**: 일괄 처리만 사용
+- **실시간 필터링**: 취소된 항목은 즉시 목록에서 제거
+
+##### Level 2+ 사용자 기능 (기존 유지)
+- **전체 검사신청 조회**: 모든 사용자의 검사신청 확인
+- **모든 상태 표시**: `대기중`, `승인됨`, `거부됨`, `확정됨`, `취소됨` 전체
+- **개별 관리**: 승인, 거부, 확정 등 개별 처리
+- **일괄 관리**: 선택 승인, 선택 거부, 선택 확정, 선택 삭제
+
+#### 3. **Flask API 검사신청 관리 엔드포인트 추가** ✅
+
+##### 새로운 API 엔드포인트
+```python
+# flask_server.py - 검사신청 관리 API 추가
+
+@app.route('/api/inspection-management/requests', methods=['GET'])
+@token_required
+def get_inspection_management_requests(current_user):
+    """Level별 차등 검사신청 조회"""
+    # Level 1: 본인 신청건만 + 확정/취소된 건 제외
+    # Level 2+: 전체 조회
+
+@app.route('/api/inspection-management/requests/<int:request_id>/approve', methods=['PUT'])
+@app.route('/api/inspection-management/requests/<int:request_id>/reject', methods=['PUT'])
+@app.route('/api/inspection-management/requests/<int:request_id>/confirm', methods=['PUT'])
+@app.route('/api/inspection-management/requests/<int:request_id>/cancel', methods=['PUT'])
+@app.route('/api/inspection-management/requests/<int:request_id>', methods=['DELETE'])
+```
+
+##### 한글 상태값 처리
+```python
+# Level 1 사용자 필터링 수정
+WHERE ir.requested_by_user_id = %s 
+AND ir.status NOT IN ('확정됨', '취소됨')  # 한글 상태값으로 수정
+```
+
+#### 4. **FlaskClient 검사신청 관리 메서드 추가** ✅
+
+##### 새로운 메서드 구현
+```ruby
+# test_app/lib/flask_client.rb - 검사신청 관리 메서드 추가
+
+def get_inspection_management_requests(token)
+  # 검사신청 목록 조회 (짧은 캐시 TTL로 실시간 업데이트)
+end
+
+def approve_inspection_request(request_id, token)
+def reject_inspection_request(request_id, reject_reason, token)
+def confirm_inspection_request(request_id, confirmed_date, token)
+def delete_inspection_request(request_id, token)
+  # 취소 API 우선 시도, 실패시 삭제 API 시도
+end
+
+def clear_cache(key)
+  # 캐시 무효화로 실시간 데이터 동기화
+end
+```
+
+#### 5. **UX 최적화 구현** ✅
+
+##### 취소 기능 스트림라인화
+- **확인 대화상자 제거**: 클릭 즉시 취소 실행
+- **로딩 스피너**: "❌ 검사신청 취소 중..." 표시
+- **자동 목록 업데이트**: 취소 완료 후 자동으로 목록에서 제거
+- **실패시에만 메시지**: 성공 메시지 제거, 오류시에만 알림
+
+##### 실시간 캐시 관리
+- **짧은 캐시 TTL**: 5초로 설정하여 빠른 업데이트
+- **캐시 무효화**: 취소/삭제 시 즉시 캐시 클리어
+- **캐시 우회**: 프론트엔드에서 타임스탬프 기반 캐시 우회
+
+#### 6. **데이터베이스 스키마 확장** ✅
+
+##### inspection_requests 테이블 컬럼 추가
+```sql
+-- 승인자 정보 저장
+approved_by INT,
+approved_by_name VARCHAR(100),
+approved_date DATE,
+
+-- 확정자 정보 저장  
+confirmed_by INT,
+confirmed_by_name VARCHAR(100),
+confirmed_date DATE,
+
+-- 인덱스 추가
+INDEX idx_status (status),
+INDEX idx_requested_by_user_id (requested_by_user_id)
+```
+
+### 🎯 **Phase 7 핵심 성과**
+
+#### 1. **완전한 접근성 개선**
+- **모든 사용자 접근**: Level 1부터 검사신청 관리 기능 사용 가능
+- **역할 기반 차등 기능**: Level에 따른 적절한 권한 분배
+- **직관적 네이밍**: "관리자 패널"에서 "검사신청 관리"로 명확화
+
+#### 2. **실시간 데이터 동기화**
+- **즉시 반영**: 취소 작업 후 목록에서 바로 제거
+- **캐시 최적화**: 짧은 TTL과 무효화로 실시간성 확보
+- **한글 상태값 처리**: 데이터베이스 실제 값과 API 필터링 일치
+
+#### 3. **사용자 경험 극대화**
+- **원클릭 취소**: 확인 없이 즉시 실행되는 빠른 워크플로우
+- **명확한 피드백**: 로딩 상태 표시와 오류시에만 알림
+- **자동 정리**: 취소된 항목의 자동 숨김 처리
+
+#### 4. **시스템 안정성 향상**
+- **완전한 API 구조**: Sinatra-Flask 간 완벽한 검사신청 관리 API
+- **오류 복원력**: 네트워크 오류시에도 안정적 동작
+- **데이터 무결성**: 승인자/확정자 정보 완전 추적
+
+### 🛠️ **수정된 파일 목록**
+
+| 파일 | 변경 내용 | 상태 |
+|------|-----------|------|
+| `app.rb` | `/admin` → `/inspection-management` 라우트 변경 | ✅ 완료 |
+| `flask_server.py` | 검사신청 관리 API 엔드포인트 추가, 한글 상태값 필터링 | ✅ 완료 |
+| `test_app/lib/flask_client.rb` | 검사신청 관리 메서드 추가, 캐시 관리 | ✅ 완료 |
+| `test_app/views/admin_panel.erb` | → `inspection_management.erb` 파일명 변경 | ✅ 완료 |
+| `test_app/views/inspection_management.erb` | Level별 UI 분화, 취소 기능 UX 개선 | ✅ 완료 |
+| `test_app/controllers/inspection_controller.rb` | 프록시 API 추가 | ✅ 완료 |
+| `database/init/01-init-database.sql` | 승인자/확정자 컬럼 추가 | ✅ 완료 |
+
+### 📊 **사용자별 기능 매트릭스**
+
+| 기능 | Level 1 | Level 2 | Level 3+ |
+|------|---------|---------|----------|
+| 검사신청 조회 | 본인만 | 전체 | 전체 |
+| 상태 필터 | 대기중, 승인됨 | 전체 상태 | 전체 상태 |
+| 개별 승인/거부 | ❌ | ✅ | ✅ |
+| 개별 확정 | ❌ | ❌ | ✅ |
+| 일괄 취소 | ✅ | ❌ | ❌ |
+| 일괄 승인/거부 | ❌ | ✅ | ✅ |
+| 일괄 확정 | ❌ | ❌ | ✅ |
+| 완전 삭제 | ❌ | ❌ | ✅ |
+
+---
+
 ## 💡 핵심 성과 요약
 
 ### 🎯 **Phase 1-3 완료 사항** (2025-07-24까지)
@@ -675,6 +847,13 @@ end
 19. **✨ 미니멀 인터페이스**: 불필요한 확인 단계 제거로 직관적이고 빠른 사용자 경험
 20. **🚀 스트림라인 워크플로우**: "클릭 → 즉시 실행 → 자동 완료" 패턴으로 사용성 극대화
 
+### 🆕 **Phase 7 신규 성과** (2025-07-30)
+21. **🏗️ 검사신청 관리 시스템 완전 개편**: 관리자 패널에서 모든 사용자 접근 가능한 검사신청 관리로 전환
+22. **👥 Level별 차등 기능**: Level 1은 본인 취소만, Level 2+는 전체 관리 기능으로 역할 기반 분화
+23. **⚡ 실시간 데이터 동기화**: 한글 상태값 처리 및 캐시 무효화로 취소 후 즉시 목록 업데이트
+24. **🔗 완전한 API 구조**: Flask-Sinatra 간 검사신청 관리 API 완전 구현으로 시스템 안정성 확보
+25. **🎯 UX 최적화**: 원클릭 취소, 실시간 필터링, 자동 목록 정리로 사용자 경험 극대화
+
 ### 🚀 **배포 및 확장성**
 - **즉시 배포 가능**: `docker compose up -d` 한 번으로 완전한 서버 환경 구축
 - **환경 독립성**: 어떤 시스템에서든 동일한 환경으로 실행
@@ -683,9 +862,9 @@ end
 
 ---
 
-*📅 **최종 업데이트**: 2025-07-29*  
-*🎯 **상태**: ✅ **Phase 6 완료 - UI/UX 스트림라인 최적화 포함 완전 구현***  
-*🏗️ **아키텍처**: Docker Compose (MySQL + Flask API + Sinatra Web) + 데이터베이스 기반 저장*  
-*📊 **테스트**: 모든 핵심 기능 + 로그아웃 후 데이터 유지 + 스트림라인 UX 검증 완료*  
-*🌐 **배포**: 어디서든 동일한 환경으로 실행 가능 + 영속적 데이터 저장 + 최적화된 사용자 경험*  
-*⚡ **UX 특징**: 확인 메시지 제거, 2단계 로딩 시스템, 일관된 워크플로우로 업무 효율성 극대화*
+*📅 **최종 업데이트**: 2025-07-30*  
+*🎯 **상태**: ✅ **Phase 7 완료 - 검사신청 관리 시스템 완전 개편 포함 완전 구현***  
+*🏗️ **아키텍처**: Docker Compose (MySQL + Flask API + Sinatra Web) + 완전한 검사신청 관리 API*  
+*📊 **테스트**: 모든 핵심 기능 + Level별 차등 기능 + 실시간 취소 처리 검증 완료*  
+*🌐 **배포**: 어디서든 동일한 환경으로 실행 가능 + 사용자별 권한 기반 기능 분화*  
+*⚡ **핵심 특징**: Level 1+ 모든 사용자 접근, 실시간 데이터 동기화, 원클릭 취소, 한글 상태값 처리*

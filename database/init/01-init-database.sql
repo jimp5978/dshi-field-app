@@ -21,11 +21,21 @@ CREATE TABLE IF NOT EXISTS inspection_requests (
     request_date DATE NOT NULL,
     status VARCHAR(20) DEFAULT 'pending',
     notes TEXT,
+    approved_by INT,
+    approved_by_name VARCHAR(100),
+    approved_date TIMESTAMP NULL,
+    confirmed_by INT,
+    confirmed_by_name VARCHAR(100),
+    confirmed_date TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_assembly_code (assembly_code),
     INDEX idx_status (status),
-    INDEX idx_request_date (request_date)
+    INDEX idx_request_date (request_date),
+    INDEX idx_approved_by (approved_by),
+    INDEX idx_confirmed_by (confirmed_by),
+    FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (confirmed_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- 사용자별 저장된 리스트 테이블 생성
