@@ -19,12 +19,12 @@
         }
         .header h1 { font-size: 24px; font-weight: 500; }
         .user-info { font-size: 14px; }
-        .logout-btn {
+        .nav-btn, .logout-btn {
             background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
             color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none;
-            transition: all 0.3s; margin-left: 15px;
+            transition: all 0.3s; margin-left: 10px;
         }
-        .logout-btn:hover { background: rgba(255,255,255,0.3); }
+        .nav-btn:hover, .logout-btn:hover { background: rgba(255,255,255,0.3); }
         .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
         .card {
             background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -146,8 +146,11 @@
             </div>
             <div class="user-info">
                 👤 <%= @user_info['username'] || 'Unknown' %>님 (Level <%= @user_info['permission_level'] || 'N/A' %>)
-                <a href="/saved-list" class="logout-btn">📋 저장된 리스트</a>
-                <a href="/inspection-management" class="logout-btn">📋 검사신청 관리</a>
+                <a href="/saved-list" class="nav-btn">📋 저장된 리스트</a>
+                <a href="/inspection-management" class="nav-btn">📝 검사신청 관리</a>
+                <% if (@user_info && @user_info['permission_level'].to_i >= 3) %>
+                <a href="/dashboard" class="nav-btn">📊 대시보드</a>
+                <% end %>
                 <a href="/logout" class="logout-btn">로그아웃</a>
             </div>
         </div>

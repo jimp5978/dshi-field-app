@@ -141,7 +141,10 @@
             <div class="user-info">
                 👤 <%= (@user_info && @user_info['username']) || 'Unknown' %>님 (Level <%= (@user_info && @user_info['permission_level']) || 'N/A' %>)
                 <a href="/" class="nav-btn">🔍 Assembly 검색</a>
-                <a href="/inspection-management" class="nav-btn">📋 검사신청 관리</a>
+                <a href="/inspection-management" class="nav-btn">📝 검사신청 관리</a>
+                <% if (@user_info && @user_info['permission_level'].to_i >= 3) %>
+                <a href="/dashboard" class="nav-btn">📊 대시보드</a>
+                <% end %>
                 <a href="/logout" class="logout-btn">로그아웃</a>
             </div>
         </div>

@@ -1,0 +1,60 @@
+»Ø∞Ê º≥¡§ ∑ŒµÂµ : development
+µ•¿Ã≈Õ∫£¿ÃΩ∫ »£Ω∫∆Æ: localhost
+Flask º≠πˆ: 0.0.0.0:5001
+DSHI Field Pad Server starting...
+Server URL: http://0.0.0.0:5001
+ * Serving Flask app 'flask_server'
+ * Debug mode: on
+\U0001f41b DEBUG [2025-08-03 18:05:38]: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://192.168.0.5:5001
+\U0001f41b DEBUG [2025-08-03 18:05:38]: [33mPress CTRL+C to quit[0m
+\U0001f41b DEBUG [2025-08-03 18:05:38]:  * Restarting with watchdog (windowsapi)
+\U0001f41b DEBUG [2025-08-03 18:05:39]:  * Debugger is active!
+\U0001f41b DEBUG [2025-08-03 18:05:39]:  * Debugger PIN: 116-159-866
+\U0001f41b DEBUG [2025-08-03 18:12:13]: 127.0.0.1 - - [03/Aug/2025 18:12:13] "POST /api/login HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:14:49]: 127.0.0.1 - - [03/Aug/2025 18:14:49] "POST /api/login HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:18:56]: 127.0.0.1 - - [03/Aug/2025 18:18:56] "POST /api/login HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:19:15]: 127.0.0.1 - - [03/Aug/2025 18:19:15] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:19:15]: 127.0.0.1 - - [03/Aug/2025 18:19:15] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:26:31]: 127.0.0.1 - - [03/Aug/2025 18:26:31] "[31m[1mPOST /api/login HTTP/1.1[0m" 401 -
+\U0001f41b DEBUG [2025-08-03 18:31:17]: 127.0.0.1 - - [03/Aug/2025 18:31:17] "POST /api/login HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:32:20]: 127.0.0.1 - - [03/Aug/2025 18:32:20] "[33mGET /health HTTP/1.1[0m" 404 -
+\U0001f41b DEBUG [2025-08-03 18:32:29]: 127.0.0.1 - - [03/Aug/2025 18:32:29] "[31m[1mGET /api/dashboard-data HTTP/1.1[0m" 401 -
+\U0001f41b DEBUG [2025-08-03 18:38:27]: 127.0.0.1 - - [03/Aug/2025 18:38:27] "POST /api/login HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:42:57]: 127.0.0.1 - - [03/Aug/2025 18:42:57] "GET /api/dashboard-data HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:43:10]: 127.0.0.1 - - [03/Aug/2025 18:43:10] "POST /api/login HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:43:20]: 127.0.0.1 - - [03/Aug/2025 18:43:20] "GET /api/dashboard-data HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:46:06]: 127.0.0.1 - - [03/Aug/2025 18:46:06] "GET /api/dashboard-data HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:48:11]: 127.0.0.1 - - [03/Aug/2025 18:48:11] "POST /api/login HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:48:21]: 127.0.0.1 - - [03/Aug/2025 18:48:21] "GET /api/dashboard-data HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:48:28]: 127.0.0.1 - - [03/Aug/2025 18:48:28] "GET /api/saved-list HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:48:36]: 127.0.0.1 - - [03/Aug/2025 18:48:36] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:48:36]: 127.0.0.1 - - [03/Aug/2025 18:48:36] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:48:46]: 127.0.0.1 - - [03/Aug/2025 18:48:46] "GET /api/dashboard-data HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:52:00]: 127.0.0.1 - - [03/Aug/2025 18:52:00] "GET /api/dashboard-data HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:54:05]: 127.0.0.1 - - [03/Aug/2025 18:54:05] "GET /api/dashboard-data HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 18:59:32]: 127.0.0.1 - - [03/Aug/2025 18:59:32] "GET /api/dashboard-data HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 19:02:51]: 127.0.0.1 - - [03/Aug/2025 19:02:51] "GET /api/dashboard-data HTTP/1.1" 200 -
+\U0001f41b DEBUG [2025-08-03 19:17:57]:  * Detected change in 'E:\\DSHI_RPA\\APP\\flask_server.py', reloading
+\U0001f41b DEBUG [2025-08-03 19:17:57]:  * Detected change in 'E:\\DSHI_RPA\\APP\\flask_server.py.tmp.33044.1754216277968', reloading
+»Ø∞Ê º≥¡§ ∑ŒµÂµ : development
+µ•¿Ã≈Õ∫£¿ÃΩ∫ »£Ω∫∆Æ: localhost
+Flask º≠πˆ: 0.0.0.0:5001
+DSHI Field Pad Server starting...
+Server URL: http://0.0.0.0:5001
+\U0001f41b DEBUG [2025-08-03 19:17:58]:  * Restarting with watchdog (windowsapi)
+\U0001f41b DEBUG [2025-08-03 19:17:58]:  * Debugger is active!
+\U0001f41b DEBUG [2025-08-03 19:17:58]:  * Debugger PIN: 116-159-866
+\U0001f41b DEBUG [2025-08-03 19:18:06]:  * Detected change in 'E:\\DSHI_RPA\\APP\\flask_server.py', reloading
+\U0001f41b DEBUG [2025-08-03 19:18:06]:  * Detected change in 'E:\\DSHI_RPA\\APP\\flask_server.py.tmp.33044.1754216286179', reloading
+»Ø∞Ê º≥¡§ ∑ŒµÂµ : development
+µ•¿Ã≈Õ∫£¿ÃΩ∫ »£Ω∫∆Æ: localhost
+Flask º≠πˆ: 0.0.0.0:5001
+DSHI Field Pad Server starting...
+Server URL: http://0.0.0.0:5001
+\U0001f41b DEBUG [2025-08-03 19:18:06]:  * Restarting with watchdog (windowsapi)
+\U0001f41b DEBUG [2025-08-03 19:18:07]:  * Debugger is active!
+\U0001f41b DEBUG [2025-08-03 19:18:07]:  * Debugger PIN: 116-159-866
+\U0001f41b DEBUG [2025-08-03 19:20:41]: 127.0.0.1 - - [03/Aug/2025 19:20:41] "GET /api/dashboard-data HTTP/1.1" 200 -

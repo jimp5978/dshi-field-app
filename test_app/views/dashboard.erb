@@ -1,0 +1,670 @@
+<%
+# 대시보드 데이터 설정 (실제 API 데이터)
+data = @dashboard_data || {}
+total_assemblies = data["total_assemblies"] || 0
+total_weight = data["total_weight"] || 0
+process_completion = data["process_completion"] || {}
+status_distribution = data["status_distribution"] || {}
+monthly_progress = data["monthly_progress"] || {}
+company_distribution = data["company_distribution"] || []
+item_process_completion = data["item_process_completion"] || {}
+last_updated = data["last_updated"] || Time.now.strftime('%Y-%m-%d %H:%M:%S')
+source = data["source"] || "Database"
+%>
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSHI 대시보드</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+  <!-- 헤더 -->
+  <div class="header">
+    <div class="header-content">
+      <div style="display: flex; align-items: center;">
+        <h1 style="margin: 0;">DSHI</h1>
+      </div>
+      <div class="user-info">
+        👤 <%= @user_info['username'] %>님 (Level <%= @user_info['permission_level'] %>)
+        <a href="/search" class="nav-btn">🔍 검색</a>
+        <a href="/saved-list" class="nav-btn">📋 저장된 리스트</a>
+        <a href="/inspection-management" class="nav-btn">📝 검사신청 관리</a>
+        <a href="/logout" class="logout-btn">로그아웃</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 에러 메시지 -->
+  <% if @error_message %>
+  <div class="error-message">
+    <h3>⚠️ 오류 발생</h3>
+    <p><strong>메시지:</strong> <%= @error_message %></p>
+    <div class="error-actions">
+      <button onclick="location.reload()" class="btn btn-primary">🔄 새로고침</button>
+      <button onclick="location.href='/login'" class="btn btn-secondary">🔑 다시 로그인</button>
+    </div>
+  </div>
+  <% end %>
+
+  <!-- 대시보드 그리드 -->
+  <div class="dashboard-grid">
+    <!-- 전체 현황 -->
+    <div class="dashboard-card overview">
+      <h2>📊 전체 현황</h2>
+      <div class="overview-stats">
+        <div class="stat-item">
+          <div class="stat-number"><%= total_assemblies.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse %></div>
+          <div class="stat-label">총 조립품</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number"><%= sprintf("%.1f", total_weight.to_f / 1000) %>K</div>
+          <div class="stat-label">총 중량(톤)</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number"><%= monthly_progress["percentage"] || 0 %>%</div>
+          <div class="stat-label">전체 진행률</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8단계 공정별 완료율 (중량 기준) -->
+    <div class="dashboard-card process-completion">
+      <h2>⚙️ 8단계 공정별 완료율 (중량 기준)</h2>
+      <div class="process-list">
+        <% 
+          process_names = {
+            'FIT_UP' => 'FIT-UP',
+            'FINAL' => 'FINAL', 
+            'ARUP_FINAL' => 'ARUP FINAL',
+            'GALV' => 'GALV',
+            'ARUP_GALV' => 'ARUP GALV',
+            'SHOT' => 'SHOT',
+            'PAINT' => 'PAINT',
+            'ARUP_PAINT' => 'ARUP PAINT'
+          }
+          process_names.each do |key, display_name| 
+        %>
+        <div class="process-item">
+          <div class="process-info">
+            <span class="process-name"><%= display_name %></span>
+            <span class="process-percentage"><%= process_completion[key] || 0 %>%</span>
+          </div>
+          <div class="process-bar">
+            <div class="process-fill" style="width: <%= process_completion[key] || 0 %>%"></div>
+          </div>
+        </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- ITEM별 공정율 (탭 구성) -->
+    <div class="dashboard-card item-process-completion">
+      <h2>📈 ITEM별 공정율</h2>
+      
+      <!-- 탭 헤더 -->
+      <div class="tab-header">
+        <button class="tab-btn active" data-tab="BEAM">BEAM</button>
+        <button class="tab-btn" data-tab="POST">POST</button>
+      </div>
+      
+      <!-- 탭 콘텐츠 -->
+      <div class="tab-content">
+        <!-- BEAM 탭 -->
+        <div class="tab-pane active" id="tab-BEAM">
+          <div class="process-list">
+            <% 
+              process_names = {
+                'FIT_UP' => 'FIT-UP',
+                'FINAL' => 'FINAL', 
+                'ARUP_FINAL' => 'ARUP FINAL',
+                'GALV' => 'GALV',
+                'ARUP_GALV' => 'ARUP GALV',
+                'SHOT' => 'SHOT',
+                'PAINT' => 'PAINT',
+                'ARUP_PAINT' => 'ARUP PAINT'
+              }
+              beam_processes = item_process_completion["BEAM"] || {}
+              process_names.each do |key, display_name| 
+            %>
+            <div class="process-item">
+              <div class="process-info">
+                <span class="process-name"><%= display_name %></span>
+                <span class="process-percentage"><%= beam_processes[key] || 0 %>%</span>
+              </div>
+              <div class="process-bar">
+                <div class="process-fill" style="width: <%= beam_processes[key] || 0 %>%"></div>
+              </div>
+            </div>
+            <% end %>
+          </div>
+        </div>
+        
+        <!-- POST 탭 -->
+        <div class="tab-pane" id="tab-POST">
+          <div class="process-list">
+            <% 
+              post_processes = item_process_completion["POST"] || {}
+              process_names.each do |key, display_name| 
+            %>
+            <div class="process-item">
+              <div class="process-info">
+                <span class="process-name"><%= display_name %></span>
+                <span class="process-percentage"><%= post_processes[key] || 0 %>%</span>
+              </div>
+              <div class="process-bar">
+                <div class="process-fill" style="width: <%= post_processes[key] || 0 %>%"></div>
+              </div>
+            </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 전체 진행률 (중량 기준) -->
+    <div class="dashboard-card monthly-progress">
+      <h2>📅 전체 진행률 (중량 기준)</h2>
+      <div class="progress-summary">
+        <div class="progress-bar-container">
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: <%= monthly_progress["percentage"] || 0 %>%"></div>
+          </div>
+          <div class="progress-text"><%= monthly_progress["percentage"] || 0 %>% 완료</div>
+        </div>
+        <div class="progress-details">
+          <div class="detail-item">
+            <span class="detail-label">전체 중량:</span>
+            <span class="detail-value"><%= sprintf("%.1f", (monthly_progress["planned"] || 0).to_f / 1000) %>K톤</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">완료 중량:</span>
+            <span class="detail-value"><%= sprintf("%.1f", (monthly_progress["completed"] || 0).to_f / 1000) %>K톤</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">잔여 중량:</span>
+            <span class="detail-value"><%= sprintf("%.1f", (monthly_progress["remaining"] || 0).to_f / 1000) %>K톤</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 업체별 분포 -->
+    <div class="dashboard-card company-distribution">
+      <h2>🏢 업체별 분포 (중량 기준)</h2>
+      <div class="company-list">
+        <% company_distribution.each_with_index do |company, index| %>
+          <% next if index >= 8 %> <!-- 상위 8개 업체만 표시 -->
+          <div class="company-item">
+            <div class="company-info">
+              <span class="company-name"><%= company['company'] %></span>
+              <span class="company-percentage"><%= company['percentage'] %>%</span>
+            </div>
+            <div class="company-details">
+              <span class="company-count"><%= company['count'] %>개</span>
+              <span class="company-weight"><%= sprintf("%.1f", company['total_weight'].to_f / 1000) %>K톤</span>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- 데이터 소스 정보 -->
+    <div class="dashboard-card data-source">
+      <h2>💾 데이터 소스</h2>
+      <div class="source-info">
+        <p><strong>소스:</strong> <%= source %></p>
+        <p><strong>업데이트:</strong> <%= last_updated %></p>
+        <p><strong>총 조립품:</strong> <%= total_assemblies.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse %>개</p>
+        <p><strong>총 중량:</strong> <%= sprintf("%.2f", total_weight.to_f) %>톤</p>
+        <div class="refresh-actions">
+          <button onclick="location.reload()" class="refresh-btn">🔄 새로고침</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin: 0;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 {
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.user-info {
+  font-size: 14px;
+}
+
+.nav-btn, .logout-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.3s;
+  margin-left: 10px;
+}
+
+.nav-btn:hover, .logout-btn:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.error-message {
+  background: #fee;
+  color: #c33;
+  padding: 20px;
+  margin: 20px;
+  border-radius: 8px;
+  border: 1px solid #fcc;
+  text-align: left;
+}
+
+.error-message h3 {
+  margin: 0 0 15px 0;
+  color: #d32f2f;
+}
+
+.error-message p {
+  margin: 8px 0;
+}
+
+.error-actions {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.error-actions .btn {
+  margin: 0 10px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn:hover {
+  opacity: 0.8;
+}
+
+
+.dashboard-grid {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.dashboard-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border: 1px solid #e1e8ed;
+}
+
+.dashboard-card h2 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: #333;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 8px;
+}
+
+/* 전체 현황 */
+.overview-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.stat-number {
+  font-size: 24px;
+  font-weight: bold;
+  color: #667eea;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #666;
+}
+
+/* 공정별 완료율 */
+.process-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.process-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.process-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.process-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.process-percentage {
+  font-weight: bold;
+  color: #667eea;
+}
+
+.process-bar {
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.process-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* ITEM별 공정율 탭 스타일 */
+.tab-header {
+  display: flex;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #e1e8ed;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s;
+}
+
+.tab-btn:hover {
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.tab-btn.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.tab-content {
+  position: relative;
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+/* 월별 진행률 */
+.progress-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.progress-bar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progress-bar {
+  height: 20px;
+  background: #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #28a745, #20c997);
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  text-align: center;
+  font-weight: bold;
+  color: #333;
+}
+
+.progress-details {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.detail-item {
+  text-align: center;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.detail-label {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 3px;
+}
+
+.detail-value {
+  font-weight: bold;
+  color: #333;
+}
+
+/* 업체별 분포 */
+.company-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.company-item {
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.company-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.company-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 15px;
+}
+
+.company-percentage {
+  font-weight: bold;
+  color: #667eea;
+  font-size: 14px;
+}
+
+.company-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+}
+
+.company-count {
+  background: #e9ecef;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.company-weight {
+  background: #e7f3ff;
+  color: #0066cc;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* 데이터 소스 */
+.source-info {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.source-info p {
+  margin: 0 0 8px 0;
+}
+
+.refresh-actions {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.refresh-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.refresh-btn:hover {
+  background: #5a6fd8;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    padding: 15px;
+  }
+  
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+  
+  .overview-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .progress-details {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<script>
+// 자동 새로고침 제거됨 - 수동 새로고침 버튼 사용
+// 향후 하루 특정 시간에 새로고침 로직 추가 예정
+
+// 페이지 로드 완료 알림
+console.log('DSHI Dashboard loaded at: ' + new Date().toLocaleString());
+
+// 탭 전환 기능
+document.addEventListener('DOMContentLoaded', function() {
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const targetTab = this.getAttribute('data-tab');
+            
+            // 모든 탭 버튼에서 active 클래스 제거
+            tabBtns.forEach(b => b.classList.remove('active'));
+            // 모든 탭 패널에서 active 클래스 제거
+            tabPanes.forEach(p => p.classList.remove('active'));
+            
+            // 클릭된 탭 버튼에 active 클래스 추가
+            this.classList.add('active');
+            // 해당 탭 패널에 active 클래스 추가
+            const targetPane = document.getElementById('tab-' + targetTab);
+            if (targetPane) {
+                targetPane.classList.add('active');
+            }
+        });
+    });
+});
+</script>
+
+</body>
+</html>

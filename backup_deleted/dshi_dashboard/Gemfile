@@ -1,0 +1,28 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+source 'https://rubygems.org'
+
+# Sinatra Web Framework
+gem 'sinatra', '~> 3.0'
+
+# Web server
+gem 'webrick', '~> 1.8'
+
+# JWT for authentication
+gem 'jwt', '~> 2.7'
+
+# JSON handling (usually included with Ruby)
+gem 'json', '~> 2.6'
+
+# For bundle exec
+gem 'bundler', '~> 2.4'
+
+group :development do
+  gem 'rerun', '~> 0.14' # Auto-restart server on file changes
+end
+
+# Platform-specific gems
+platforms :mingw, :x64_mingw, :mswin do
+  gem 'wdm', '>= 0.1.0' # Windows Directory Monitor
+end

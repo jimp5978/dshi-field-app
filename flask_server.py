@@ -8,12 +8,26 @@ import datetime
 from functools import wraps
 import os
 import json
+import logging
+from datetime import datetime as dt
 
 app = Flask(__name__)
 CORS(app)
 
 # JWT 설정
 app.config['SECRET_KEY'] = 'dshi-field-pad-secret-key-2025'
+
+# 디버그 로깅 설정
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='🐛 DEBUG [%(asctime)s]: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.FileHandler('flask_debug.log', encoding='utf-8'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # MySQL 연결 설정
 from config_env import get_db_config, get_server_config
@@ -1310,6 +1324,7 @@ def get_inspection_management_requests(current_user):
 @token_required
 def approve_inspection_management_request(current_user, request_id):
     """검사신청 승인 (Level 2+ 권한 필요)"""
+    logger.debug(f"검사신청 승인 요청: request_id={request_id}, user_id={current_user}")
     try:
         # 사용자 권한 확인
         connection = get_db_connection()
@@ -1330,15 +1345,18 @@ def approve_inspection_management_request(current_user, request_id):
         request_data = cursor.fetchone()
         
         if not request_data:
+            logger.debug(f"검사신청을 찾을 수 없음: request_id={request_id}")
             return jsonify({'success': False, 'message': '검사신청을 찾을 수 없습니다'}), 404
         
-        if request_data['status'] != 'pending':
+        logger.debug(f"검사신청 현재 상태: {request_data['status']}")
+        if request_data['status'] not in ['pending', '대기중']:
+            logger.debug(f"승인 불가 상태: {request_data['status']}")
             return jsonify({'success': False, 'message': '대기중인 검사신청만 승인할 수 있습니다'}), 400
         
         # 승인 처리
         cursor.execute("""
             UPDATE inspection_requests 
-            SET status = 'approved',
+            SET status = '승인됨',
                 approved_by = %s,
                 approved_by_name = %s,
                 approved_date = CURRENT_DATE,
@@ -1350,13 +1368,14 @@ def approve_inspection_management_request(current_user, request_id):
         cursor.close()
         connection.close()
         
+        logger.debug(f"검사신청 승인 완료: request_id={request_id}, approver={approver['username']}")
         return jsonify({
             'success': True,
             'message': f'검사신청이 승인되었습니다 (승인자: {approver["username"]})'
         })
         
     except Exception as e:
-        print(f"검사신청 승인 오류: {e}")
+        logger.error(f"검사신청 승인 오류: {e}")
         return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
 
 @app.route('/api/inspection-management/requests/<int:request_id>/reject', methods=['PUT'])
@@ -1388,13 +1407,13 @@ def reject_inspection_management_request(current_user, request_id):
         if not request_data:
             return jsonify({'success': False, 'message': '검사신청을 찾을 수 없습니다'}), 404
         
-        if request_data['status'] not in ['pending', 'approved']:
+        if request_data['status'] not in ['pending', '대기중', 'approved', '승인됨']:
             return jsonify({'success': False, 'message': '대기중이거나 승인된 검사신청만 거부할 수 있습니다'}), 400
         
         # 거부 처리
         cursor.execute("""
             UPDATE inspection_requests 
-            SET status = 'rejected',
+            SET status = '거부됨',
                 reject_reason = %s,
                 approved_by = %s,
                 approved_by_name = %s,
@@ -1448,13 +1467,13 @@ def confirm_inspection_management_request(current_user, request_id):
         if not request_data:
             return jsonify({'success': False, 'message': '검사신청을 찾을 수 없습니다'}), 404
         
-        if request_data['status'] != 'approved':
+        if request_data['status'] not in ['approved', '승인됨']:
             return jsonify({'success': False, 'message': '승인된 검사신청만 확정할 수 있습니다'}), 400
         
         # 확정 처리
         cursor.execute("""
             UPDATE inspection_requests 
-            SET status = 'confirmed',
+            SET status = '확정됨',
                 confirmed_by = %s,
                 confirmed_by_name = %s,
                 confirmed_date = %s,
@@ -1505,13 +1524,13 @@ def cancel_inspection_management_request(current_user, request_id):
             return jsonify({'success': False, 'message': '본인이 신청한 검사신청만 취소할 수 있습니다'}), 403
         
         # 대기중 상태인지 확인
-        if request_data['status'] != 'pending':
+        if request_data['status'] not in ['pending', '대기중']:
             return jsonify({'success': False, 'message': '대기중인 검사신청만 취소할 수 있습니다'}), 400
         
         # 취소 처리
         cursor.execute("""
             UPDATE inspection_requests 
-            SET status = 'cancelled',
+            SET status = '취소됨',
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = %s
         """, (request_id,))
@@ -1569,6 +1588,185 @@ def delete_inspection_management_request(current_user, request_id):
         
     except Exception as e:
         print(f"검사신청 삭제 오류: {e}")
+        return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
+
+@app.route('/api/dashboard-data', methods=['GET'])
+@token_required
+def get_dashboard_data(current_user):
+    """대시보드 데이터 제공 API (Level 3+ 권한 필요)"""
+    try:
+        # 사용자 권한 확인
+        user_info = get_user_info(current_user)
+        if not user_info or user_info['permission_level'] < 3:
+            return jsonify({'success': False, 'message': '대시보드 접근 권한이 없습니다 (Level 3+ 필요)'}), 403
+        
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'success': False, 'message': '데이터베이스 연결 실패'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # 1. 전체 통계
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_assemblies,
+                SUM(weight_net) as total_weight
+            FROM arup_ecs 
+            WHERE weight_net IS NOT NULL
+        """)
+        overall_stats = cursor.fetchone()
+        
+        # 2. 8단계 공정별 완료율 (중량 기준)
+        processes = [
+            ('FIT_UP', 'fit_up_date'),
+            ('FINAL', 'final_date'),
+            ('ARUP_FINAL', 'arup_final_date'),
+            ('GALV', 'galv_date'),
+            ('ARUP_GALV', 'arup_galv_date'),
+            ('SHOT', 'shot_date'),
+            ('PAINT', 'paint_date'),
+            ('ARUP_PAINT', 'arup_paint_date')
+        ]
+        
+        process_completion = {}
+        for process_name, date_column in processes:
+            cursor.execute(f"""
+                SELECT COALESCE(SUM(weight_net), 0) as completed_weight
+                FROM arup_ecs 
+                WHERE {date_column} IS NOT NULL 
+                AND {date_column} != '1900-01-01'
+                AND weight_net IS NOT NULL
+            """)
+            result = cursor.fetchone()
+            completed_weight = result['completed_weight']
+            percentage = round((completed_weight / overall_stats['total_weight']) * 100, 1) if overall_stats['total_weight'] > 0 else 0
+            process_completion[process_name] = percentage
+        
+        # 3. 상태별 분포 (중량 기준)
+        # 완료: ARUP_PAINT에 유효한 날짜
+        cursor.execute("""
+            SELECT COALESCE(SUM(weight_net), 0) as completed_weight
+            FROM arup_ecs 
+            WHERE arup_paint_date IS NOT NULL 
+            AND arup_paint_date != '1900-01-01'
+            AND weight_net IS NOT NULL
+        """)
+        completed_weight = cursor.fetchone()['completed_weight']
+        
+        # 진행중: 어떤 공정이라도 시작했지만 ARUP_PAINT는 미완료
+        cursor.execute("""
+            SELECT COALESCE(SUM(weight_net), 0) as in_progress_weight
+            FROM arup_ecs 
+            WHERE (
+                fit_up_date IS NOT NULL AND fit_up_date != '1900-01-01'
+            ) AND (
+                arup_paint_date IS NULL OR arup_paint_date = '1900-01-01'
+            ) AND weight_net IS NOT NULL
+        """)
+        in_progress_weight = cursor.fetchone()['in_progress_weight']
+        
+        # 대기: 모든 공정이 미시작
+        cursor.execute("""
+            SELECT COALESCE(SUM(weight_net), 0) as pending_weight
+            FROM arup_ecs 
+            WHERE (
+                fit_up_date IS NULL OR fit_up_date = '1900-01-01'
+            ) AND weight_net IS NOT NULL
+        """)
+        pending_weight = cursor.fetchone()['pending_weight']
+        
+        status_distribution = {
+            '완료': round((completed_weight / overall_stats['total_weight']) * 100, 1) if overall_stats['total_weight'] > 0 else 0,
+            '진행중': round((in_progress_weight / overall_stats['total_weight']) * 100, 1) if overall_stats['total_weight'] > 0 else 0,
+            '대기': round((pending_weight / overall_stats['total_weight']) * 100, 1) if overall_stats['total_weight'] > 0 else 0
+        }
+        
+        # 4. 업체별 분포 (중량 기준)
+        cursor.execute("""
+            SELECT 
+                company,
+                COUNT(*) as count,
+                SUM(weight_net) as total_weight,
+                ROUND((SUM(weight_net) / %s) * 100, 1) as percentage
+            FROM arup_ecs 
+            WHERE company IS NOT NULL AND weight_net IS NOT NULL
+            GROUP BY company 
+            ORDER BY total_weight DESC
+        """, (overall_stats['total_weight'],))
+        company_data = cursor.fetchall()
+        
+        # 5. 월별 진행률 (현재 월 기준)
+        current_month = dt.now().strftime('%Y-%m')
+        cursor.execute("""
+            SELECT COALESCE(SUM(weight_net), 0) as monthly_completed
+            FROM arup_ecs 
+            WHERE arup_paint_date IS NOT NULL 
+            AND arup_paint_date != '1900-01-01'
+            AND DATE_FORMAT(arup_paint_date, '%Y-%m') = %s
+            AND weight_net IS NOT NULL
+        """, (current_month,))
+        monthly_completed = cursor.fetchone()['monthly_completed']
+        
+        monthly_progress = {
+            'planned': overall_stats['total_weight'],
+            'completed': monthly_completed,
+            'remaining': overall_stats['total_weight'] - completed_weight,
+            'percentage': round((completed_weight / overall_stats['total_weight']) * 100, 1) if overall_stats['total_weight'] > 0 else 0
+        }
+        
+        # 6. ITEM별 8단계 공정률 (BEAM, POST)
+        item_process_completion = {}
+        for item_type in ['BEAM', 'POST']:
+            item_processes = {}
+            
+            # 해당 ITEM의 총 중량 조회
+            cursor.execute("""
+                SELECT COALESCE(SUM(weight_net), 0) as item_total_weight
+                FROM arup_ecs 
+                WHERE item = %s AND weight_net IS NOT NULL
+            """, (item_type,))
+            item_total_weight = cursor.fetchone()['item_total_weight']
+            
+            # 각 공정별 완료율 계산
+            for process_name, date_column in processes:
+                cursor.execute(f"""
+                    SELECT COALESCE(SUM(weight_net), 0) as completed_weight
+                    FROM arup_ecs 
+                    WHERE item = %s 
+                    AND {date_column} IS NOT NULL 
+                    AND {date_column} != '1900-01-01'
+                    AND weight_net IS NOT NULL
+                """, (item_type,))
+                result = cursor.fetchone()
+                completed_weight = result['completed_weight']
+                percentage = round((completed_weight / item_total_weight) * 100, 1) if item_total_weight > 0 else 0
+                item_processes[process_name] = percentage
+            
+            item_process_completion[item_type] = item_processes
+        
+        cursor.close()
+        connection.close()
+        
+        # 최종 응답 데이터
+        dashboard_data = {
+            'source': 'arup_ecs database',
+            'total_assemblies': overall_stats['total_assemblies'],
+            'total_weight': round(overall_stats['total_weight'], 2),
+            'process_completion': process_completion,
+            'status_distribution': status_distribution,
+            'company_distribution': company_data,
+            'monthly_progress': monthly_progress,
+            'item_process_completion': item_process_completion,
+            'last_updated': dt.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': dashboard_data
+        })
+        
+    except Exception as e:
+        logger.error(f"대시보드 데이터 조회 오류: {e}")
         return jsonify({'success': False, 'message': f'서버 오류: {str(e)}'}), 500
 
 if __name__ == '__main__':

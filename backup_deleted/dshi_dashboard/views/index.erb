@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSHI 조립품 대시보드</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .dashboard-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border: 1px solid #e1e5e9;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+        
+        /* 전체 현황 */
+        .overview-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .stat-card {
+            background: #f8f9fc;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+        
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        /* 공정 완료율 */
+        .process-list {
+            space-y: 15px;
+        }
+        
+        .process-item {
+            margin-bottom: 15px;
+        }
+        
+        .process-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .process-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .process-percentage {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e1e5e9;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        /* 상태별 분포 */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .status-item {
+            background: #f8f9fc;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .status-count {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .status-complete { color: #28a745; }
+        .status-progress { color: #007bff; }
+        .status-waiting { color: #ffc107; }
+        .status-delayed { color: #dc3545; }
+        
+        /* 월별 진행률 */
+        .monthly-progress {
+            text-align: center;
+        }
+        
+        .progress-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(#667eea 0deg <%= (@data['monthly_progress']['percentage'] * 3.6).round %>deg, #e1e5e9 <%= (@data['monthly_progress']['percentage'] * 3.6).round %>deg 360deg);
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .progress-circle::before {
+            content: '';
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+        }
+        
+        .progress-text {
+            position: relative;
+            font-size: 18px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .progress-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .progress-detail {
+            text-align: center;
+        }
+        
+        .progress-detail-number {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .progress-detail-label {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        /* 업체별 비율 */
+        .company-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .company-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fc;
+            border-radius: 8px;
+        }
+        
+        .company-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .company-percentage {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        /* 이슈 추적 */
+        .issues-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .issue-item {
+            padding: 15px;
+            border-left: 4px solid;
+            margin-bottom: 15px;
+            background: #f8f9fc;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .issue-high { border-left-color: #dc3545; }
+        .issue-medium { border-left-color: #ffc107; }
+        .issue-low { border-left-color: #28a745; }
+        
+        .issue-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .issue-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .issue-time {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .last-updated {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border: 1px solid #e1e5e9;
+        }
+        
+        .refresh-info {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .overview-stats,
+            .status-grid,
+            .company-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1>🏭 DSHI 조립품 진행 현황 대시보드</h1>
+            <div class="user-info">
+                <span>환영합니다, <%= @user['username'] %>님 (Level <%= @user['level'] %>)</span>
+                <a href="/logout" class="logout-btn">로그아웃</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-container">
+        <!-- 첫 번째 줄: 전체 현황 & 공정 완료율 -->
+        <div class="dashboard-grid">
+            <div class="dashboard-section">
+                <h2 class="section-title">📊 전체 현황</h2>
+                <div class="overview-stats">
+                    <div class="stat-card">
+                        <div class="stat-number"><%= @data['total_assemblies'] %></div>
+                        <div class="stat-label">총 조립품</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number"><%= @data['monthly_progress']['percentage'].round(1) %>%</div>
+                        <div class="stat-label">전체 진행률</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number"><%= @data['monthly_progress']['completed'] %></div>
+                        <div class="stat-label">완료된 조립품</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number"><%= @data['monthly_progress']['remaining'] %></div>
+                        <div class="stat-label">잔여 조립품</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <h2 class="section-title">🔧 7단계 공정 완료율</h2>
+                <div class="process-list">
+                    <% @data['process_completion'].each do |process, percentage| %>
+                        <div class="process-item">
+                            <div class="process-header">
+                                <span class="process-name"><%= process %></span>
+                                <span class="process-percentage"><%= percentage.round(1) %>%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: <%= percentage %>%"></div>
+                            </div>
+                        </div>
+                    <% end %>
+                </div>
+            </div>
+        </div>
+
+        <!-- 두 번째 줄: 상태별 분포 & 월별 진행률 -->
+        <div class="dashboard-grid">
+            <div class="dashboard-section">
+                <h2 class="section-title">📈 상태별 분포</h2>
+                <div class="status-grid">
+                    <% 
+                       status_classes = {
+                         '완료' => 'status-complete',
+                         '진행중' => 'status-progress', 
+                         '대기' => 'status-waiting',
+                         '지연' => 'status-delayed'
+                       }
+                    %>
+                    <% @data['status_distribution'].each do |status, count| %>
+                        <div class="status-item">
+                            <div class="status-count <%= status_classes[status] %>"><%= count %></div>
+                            <div class="stat-label"><%= status %></div>
+                        </div>
+                    <% end %>
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <h2 class="section-title">📅 월별 진행률</h2>
+                <div class="monthly-progress">
+                    <div class="progress-circle">
+                        <div class="progress-text"><%= @data['monthly_progress']['percentage'].round(1) %>%</div>
+                    </div>
+                    <div class="progress-details">
+                        <div class="progress-detail">
+                            <div class="progress-detail-number"><%= @data['monthly_progress']['planned'] %></div>
+                            <div class="progress-detail-label">계획</div>
+                        </div>
+                        <div class="progress-detail">
+                            <div class="progress-detail-number"><%= @data['monthly_progress']['completed'] %></div>
+                            <div class="progress-detail-label">완료</div>
+                        </div>
+                        <div class="progress-detail">
+                            <div class="progress-detail-number"><%= @data['monthly_progress']['remaining'] %></div>
+                            <div class="progress-detail-label">잔여</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 세 번째 줄: 업체별 비율 & 이슈 추적 -->
+        <div class="dashboard-grid">
+            <div class="dashboard-section">
+                <h2 class="section-title">🏢 업체별 비율</h2>
+                <div class="company-stats">
+                    <div class="company-item">
+                        <div class="company-name">사내업체</div>
+                        <div class="company-percentage">68%</div>
+                    </div>
+                    <div class="company-item">
+                        <div class="company-name">외부업체</div>
+                        <div class="company-percentage">32%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <h2 class="section-title">⚠️ 이슈 추적</h2>
+                <div class="issues-list">
+                    <% @data['issues'].each do |issue| %>
+                        <div class="issue-item issue-<%= issue['priority'] %>">
+                            <div class="issue-title"><%= issue['title'] %></div>
+                            <div class="issue-description"><%= issue['description'] %></div>
+                            <div class="issue-time">📅 <%= issue['time'] %></div>
+                        </div>
+                    <% end %>
+                </div>
+            </div>
+        </div>
+
+        <div class="last-updated">
+            <div class="refresh-info">
+                🕐 마지막 업데이트: <%= Time.now.strftime("%Y-%m-%d %H:%M:%S") %> | 
+                자동 새로고침: 5분마다 | 
+                데이터 소스: <%= @data['source'] || 'Mock Data' %>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 5분마다 자동 새로고침
+        setTimeout(function() {
+            window.location.reload();
+        }, 300000); // 5분 = 300,000ms
+        
+        // 실시간 시간 업데이트
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('ko-KR');
+            // 시간 표시 요소가 있다면 업데이트
+        }
+        
+        setInterval(updateTime, 1000);
+    </script>
+</body>
+</html>

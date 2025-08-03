@@ -24,6 +24,12 @@ class FlaskClient
     # 연결 초기화
     initialize_connection
   end
+
+  # 클래스 메서드로 대시보드 데이터 조회
+  def self.get_dashboard_data(token)
+    client = new
+    client.get_dashboard_data(token)
+  end
   
   private
   
@@ -228,33 +234,6 @@ class FlaskClient
     end
   end
   
-  def get_inspection_management_requests(token)
-    AppLogger.debug("검사신청 관리 조회 API 호출")
-    
-    begin
-      url = "#{@base_url}/api/inspection-management/requests"
-      
-      uri = URI(url)
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.open_timeout = 3
-      http.read_timeout = 5
-      
-      request = Net::HTTP::Get.new(uri)
-      request['Authorization'] = "Bearer #{token}"
-      
-      response = http.request(request)
-      
-      if response.code == '200'
-        data = JSON.parse(response.body)
-        { success: true, data: data }
-      else
-        { success: false, error: "검사신청 관리 조회 중 오류가 발생했습니다 (#{response.code})" }
-      end
-    rescue => e
-      AppLogger.debug("검사신청 관리 조회 API 연결 실패: #{e.message}")
-      { success: false, error: "서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요." }
-    end
-  end
   
   # 검사신청 생성 API 호출
   def create_inspection_request(data, token)
@@ -583,8 +562,8 @@ class FlaskClient
         parsed_response = JSON.parse(response.body)
         if parsed_response['success']
           result = { success: true, data: parsed_response['data'] }
-          # 매우 짧은 TTL (5초)로 캐시하여 빠른 업데이트 보장
-          set_cache(cache_key, result, 5)
+          # 캐시 저장 (기본 TTL 사용)
+          set_cache(cache_key, result)
           result
         else
           { success: false, error: parsed_response['message'] || '검사신청 조회 실패' }
@@ -712,7 +691,7 @@ class FlaskClient
       if response.code.to_i.between?(200, 299)
         parsed_response = JSON.parse(response.body)
         # 취소 성공 시 캐시 무효화
-        clear_cache("inspection_management_requests")
+        clear_cache_key("inspection_management_requests")
         { success: parsed_response['success'], message: parsed_response['message'] }
       else
         # 취소 실패 시 삭제 API 시도 (DELETE)
@@ -728,7 +707,7 @@ class FlaskClient
         if response.code.to_i.between?(200, 299)
           parsed_response = JSON.parse(response.body)
           # 삭제 성공 시 캐시 무효화
-          clear_cache("inspection_management_requests")
+          clear_cache_key("inspection_management_requests")
           { success: parsed_response['success'], message: parsed_response['message'] }
         else
           error_data = JSON.parse(response.body) rescue {}
@@ -741,11 +720,56 @@ class FlaskClient
     end
   end
   
-  # 캐시 무효화 메서드
-  def clear_cache(key)
+  # 캐시 무효화 메서드 (특정 키)
+  def clear_cache_key(key)
     @cache_mutex.synchronize do
       @cache.delete(key)
       AppLogger.debug("캐시 무효화: #{key}")
+    end
+  end
+
+  # 대시보드 데이터 조회 API 호출 (Level 3+ 전용)
+  def get_dashboard_data(token)
+    AppLogger.debug("대시보드 데이터 조회 API 호출")
+    
+    # 캐시 키 설정 (짧은 TTL로 설정하여 실시간 업데이트 보장)
+    cache_key = "dashboard_data"
+    cached_result = get_cache(cache_key)
+    if cached_result
+      AppLogger.debug("대시보드 데이터 캐시에서 반환")
+      return cached_result
+    end
+    
+    begin
+      uri = URI("#{@base_url}/api/dashboard-data")
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.open_timeout = 5
+      http.read_timeout = 15
+      
+      request = Net::HTTP::Get.new(uri)
+      request['Authorization'] = "Bearer #{token}"
+      request['Content-Type'] = 'application/json'
+      
+      response = http.request(request)
+      AppLogger.debug("Flask API 대시보드 조회 응답: #{response.code}")
+      
+      if response.code == '200'
+        parsed_response = JSON.parse(response.body)
+        if parsed_response['success']
+          result = { success: true, data: parsed_response['data'] }
+          # 캐시 저장 (기본 TTL 사용)
+          set_cache(cache_key, result)
+          result
+        else
+          { success: false, message: parsed_response['message'] || '대시보드 데이터 조회 실패' }
+        end
+      else
+        error_data = JSON.parse(response.body) rescue {}
+        { success: false, message: error_data['message'] || "대시보드 데이터 조회 중 오류가 발생했습니다 (#{response.code})" }
+      end
+    rescue => e
+      AppLogger.debug("대시보드 데이터 조회 API 연결 실패: #{e.message}")
+      { success: false, message: "서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요." }
     end
   end
 end

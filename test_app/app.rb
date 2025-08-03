@@ -48,6 +48,60 @@ class App < Sinatra::Base
     redirect '/inspection-management'
   end
   
+  # Dashboard 페이지 (Level 3+ 전용)
+  get '/dashboard' do
+    AppLogger.debug("=== Dashboard 접근 시작 ===")
+    
+    # 권한 확인 (Level 3+ 접근 제한)
+    user_info = session[:user_info]
+    AppLogger.debug("세션 사용자 정보: #{user_info}")
+    
+    if user_info.nil? || user_info['permission_level'].to_i < 3
+      AppLogger.debug("권한 부족 - 로그인 페이지로 리디렉션")
+      redirect '/login'
+    end
+    
+    @user_info = session[:user_info] || {}
+    AppLogger.debug("권한 확인 완료 - Level #{@user_info['permission_level']}")
+    
+    # Flask API에서 대시보드 데이터 가져오기
+    begin
+      token = session[:jwt_token]
+      AppLogger.debug("세션 토큰 상태: #{token ? '있음' : '없음'}")
+      AppLogger.debug("토큰 길이: #{token ? token.length : 0}")
+      
+      if token.nil?
+        AppLogger.debug("토큰 없음 - 오류 메시지 설정")
+        @error_message = "인증 토큰이 없습니다. 다시 로그인해주세요."
+        @dashboard_data = {}
+      else
+        AppLogger.debug("Flask API 호출 시작...")
+        response = FlaskClient.get_dashboard_data(token)
+        AppLogger.debug("Flask API 응답: #{response}")
+        
+        if response && response[:success]
+          @dashboard_data = response[:data]
+          @error_message = nil
+          AppLogger.debug("대시보드 데이터 로드 성공")
+          AppLogger.debug("데이터 키들: #{@dashboard_data.keys if @dashboard_data}")
+        else
+          error_msg = response ? response[:message] : "대시보드 데이터를 가져올 수 없습니다."
+          @error_message = "API 오류: #{error_msg}"
+          @dashboard_data = {}
+          AppLogger.debug("대시보드 데이터 로드 실패: #{error_msg}")
+        end
+      end
+    rescue => e
+      AppLogger.debug("Dashboard API 호출 예외: #{e.class} - #{e.message}")
+      AppLogger.debug("백트레이스: #{e.backtrace.first(3).join('\n')}")
+      @error_message = "서버 연결 오류: #{e.message}"
+      @dashboard_data = {}
+    end
+    
+    AppLogger.debug("=== Dashboard 렌더링 시작 ===")
+    erb :dashboard, layout: false
+  end
+  
   # 헬스체크 엔드포인트
   get '/health' do
     content_type :json

@@ -21,6 +21,7 @@ class InspectionController < Sinatra::Base
     controller_paths = [
       '/saved-list',
       '/api/create-inspection-request',
+      '/api/inspection-management/requests',
       '/api/debug-session'
     ]
     
@@ -82,7 +83,9 @@ class InspectionController < Sinatra::Base
     {
       saved_list: session[:saved_list] || [],
       saved_list_count: (session[:saved_list] || []).length,
-      user_info: session[:user_info] || {}
+      user_info: session[:user_info] || {},
+      jwt_token: session[:jwt_token] ? "존재함 (#{session[:jwt_token][0..20]}...)" : "없음",
+      session_keys: session.keys
     }.to_json
   end
   
@@ -91,6 +94,14 @@ class InspectionController < Sinatra::Base
     content_type :json
     
     begin
+      # 기본값으로 'active' 탭, 1페이지 설정
+      tab = params[:tab] || 'active'
+      page = (params[:page] || 1).to_i
+      per_page = (params[:per_page] || 20).to_i
+      search_term = params[:search] || ''
+      
+      AppLogger.debug("검사신청 관리 조회 요청 (GET): tab=#{tab}, page=#{page}, search=#{search_term}")
+      
       # 사용자 정보 조회
       user_info = session[:user_info] || {}
       user_level = user_info['permission_level'] || 1
@@ -100,7 +111,57 @@ class InspectionController < Sinatra::Base
       result = flask_client.get_inspection_management_requests(session[:jwt_token])
       
       if result[:success]
-        result[:data].to_json
+        all_requests = result[:data]['requests'] || []
+        
+        # 탭별 필터링
+        filtered_requests = case tab
+        when 'active'
+          # 기본 탭: 대기중, 승인됨 상태
+          all_requests.select { |req| ['대기중', '승인됨'].include?(req['status']) }
+        when 'completed'
+          # 완료 탭: 확정됨, 거부됨 상태
+          all_requests.select { |req| ['확정됨', '거부됨'].include?(req['status']) }
+        else
+          all_requests
+        end
+        
+        # 검색 필터링 (완료 탭에서만)
+        if tab == 'completed' && !search_term.empty?
+          filtered_requests = filtered_requests.select do |req|
+            req['assembly_code']&.downcase&.include?(search_term.downcase)
+          end
+        end
+        
+        # 페이지네이션 (완료 탭에서만)
+        total_count = filtered_requests.length
+        if tab == 'completed'
+          start_index = (page - 1) * per_page
+          end_index = start_index + per_page - 1
+          paginated_requests = filtered_requests[start_index..end_index] || []
+          
+          pagination_info = {
+            current_page: page,
+            per_page: per_page,
+            total_count: total_count,
+            total_pages: (total_count.to_f / per_page).ceil
+          }
+        else
+          paginated_requests = filtered_requests
+          pagination_info = nil
+        end
+        
+        # 응답 구조 생성
+        response_data = {
+          success: true,
+          data: {
+            requests: paginated_requests,
+            user_level: result[:data]['user_level'],
+            pagination: pagination_info
+          }
+        }
+        
+        AppLogger.debug("탭별 필터링 결과 (GET): tab=#{tab}, 전체=#{all_requests.length}, 필터링=#{filtered_requests.length}, 페이지=#{paginated_requests.length}")
+        response_data.to_json
       else
         { success: false, error: result[:error] }.to_json
       end
@@ -316,7 +377,108 @@ class InspectionController < Sinatra::Base
   end
   
   # 검사신청 승인/거부/확정/삭제 API - Flask에서 직접 처리하므로 제거
-  
+
+  # 검사신청 관리용 통합 API (새 경로)
+  post '/api/inspection-management/requests' do
+    content_type :json
+    
+    begin
+      request_body = JSON.parse(request.body.read)
+      
+      # 요청 데이터 구조로 조회/생성 구분
+      if request_body.key?('tab') && request_body.key?('page')
+        # 조회 요청: tab, page 파라미터가 있으면 데이터 조회
+        tab = request_body['tab']
+        page = request_body['page'] || 1
+        per_page = request_body['per_page'] || 20
+        search_term = request_body['search'] || ''
+        
+        AppLogger.debug("검사신청 관리 조회 요청: tab=#{tab}, page=#{page}, search=#{search_term}")
+        
+        # Flask API에서 전체 데이터 조회
+        user_info = session[:user_info] || {}
+        user_level = user_info['permission_level'] || 1
+        username = user_info['username']
+        
+        flask_client = FlaskClient.new
+        result = flask_client.get_inspection_management_requests(session[:jwt_token])
+        
+        if result[:success]
+          all_requests = result[:data]['requests'] || []
+          
+          # 탭별 필터링
+          filtered_requests = case tab
+          when 'active'
+            # 기본 탭: 대기중, 승인됨 상태
+            all_requests.select { |req| ['대기중', '승인됨'].include?(req['status']) }
+          when 'completed'
+            # 완료 탭: 확정됨, 거부됨 상태
+            all_requests.select { |req| ['확정됨', '거부됨'].include?(req['status']) }
+          else
+            all_requests
+          end
+          
+          # 검색 필터링 (완료 탭에서만)
+          if tab == 'completed' && !search_term.empty?
+            filtered_requests = filtered_requests.select do |req|
+              req['assembly_code']&.downcase&.include?(search_term.downcase)
+            end
+          end
+          
+          # 페이지네이션 (완료 탭에서만)
+          total_count = filtered_requests.length
+          if tab == 'completed'
+            start_index = (page - 1) * per_page
+            end_index = start_index + per_page - 1
+            paginated_requests = filtered_requests[start_index..end_index] || []
+            
+            pagination_info = {
+              current_page: page,
+              per_page: per_page,
+              total_count: total_count,
+              total_pages: (total_count.to_f / per_page).ceil
+            }
+          else
+            paginated_requests = filtered_requests
+            pagination_info = nil
+          end
+          
+          # 응답 구조 생성
+          response_data = {
+            success: true,
+            data: {
+              requests: paginated_requests,
+              user_level: result[:data]['user_level'],
+              pagination: pagination_info
+            }
+          }
+          
+          AppLogger.debug("탭별 필터링 결과: tab=#{tab}, 전체=#{all_requests.length}, 필터링=#{filtered_requests.length}, 페이지=#{paginated_requests.length}")
+          response_data.to_json
+        else
+          { success: false, error: result[:error] }.to_json
+        end
+        
+      elsif request_body.key?('assembly_codes') && request_body.key?('inspection_type')
+        # 생성 요청: assembly_codes, inspection_type이 있으면 검사신청 생성
+        AppLogger.debug("검사신청 생성 요청: #{request_body}")
+        
+        # 기존 생성 API로 리다이렉트
+        call env.merge("PATH_INFO" => "/api/create-inspection-request")
+        
+      else
+        # 알 수 없는 요청 구조
+        AppLogger.debug("알 수 없는 요청 구조: #{request_body}")
+        { success: false, error: '잘못된 요청 형식입니다.' }.to_json
+      end
+      
+    rescue JSON::ParserError
+      { success: false, error: '잘못된 JSON 형식입니다.' }.to_json
+    rescue => e
+      AppLogger.debug("검사신청 관리 API 오류: #{e.message}")
+      { success: false, error: '요청 처리 중 오류가 발생했습니다.' }.to_json
+    end
+  end
   
   private
   

@@ -1,0 +1,13 @@
+환경 설정 로드됨: development
+데이터베이스 호스트: localhost
+Flask 서버: 0.0.0.0:5001
+Traceback (most recent call last):
+  File "E:\DSHI_RPA\APP\flask_server.py", line 1337, in <module>
+    def get_inspection_requests(current_user):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\sansio\scaffold.py", line 362, in decorator
+    self.add_url_rule(rule, endpoint, f, **options)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\sansio\scaffold.py", line 47, in wrapper_func
+    return f(self, *args, **kwargs)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\sansio\app.py", line 657, in add_url_rule
+    raise AssertionError(
+AssertionError: View function mapping is overwriting an existing endpoint function: get_inspection_requests

@@ -39,7 +39,9 @@
       "Bash(gem install:*)",
       "Bash(git rm:*)",
       "Bash(tasklist)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git checkout:*)",
+      "Bash(wmic process where:*)"
     ],
     "deny": []
   }
