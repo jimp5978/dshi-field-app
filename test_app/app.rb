@@ -14,7 +14,7 @@ require_relative 'controllers/inspection_controller'
 
 class App < Sinatra::Base
   # 기본 설정
-  set :port, 5007
+  set :port, 5008
   set :bind, '0.0.0.0'
   set :environment, :development
   enable :sessions
@@ -28,6 +28,8 @@ class App < Sinatra::Base
   use AuthController
   use InspectionController
   use SearchController
+  
+  # 정적 파일은 public 폴더에서 자동으로 서빙됩니다
   
   # 검사신청 관리 페이지 (모든 Level 접근 가능)
   get '/inspection-management' do
@@ -93,7 +95,7 @@ end
 # 서버 시작 메시지
 if __FILE__ == $0
   puts "🏭 DSHI Dashboard Starting (Refactored Version)"
-  puts "📍 URL: http://localhost:5007"
+  puts "📍 URL: http://localhost:5008"
   puts "🔗 Flask API: #{FLASK_API_URL}"
   puts "🎯 Architecture: Modular MVC Structure"
   puts "📁 Files: #{Dir['**/*.rb'].length} Ruby files, #{Dir['views/*.erb'].length} templates"

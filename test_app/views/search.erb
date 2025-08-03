@@ -140,14 +140,14 @@
 <body>
     <div class="header">
         <div class="header-content">
-            <h1>🏭 DSHI</h1>
+            <div style="display: flex; align-items: center;">
+                <!-- <img src="/image/DSHI_logo.jpg" alt="DSHI Logo" style="width: 28px; height: 28px; margin-right: 8px;"> -->
+                <h1 style="margin: 0;">DSHI</h1>
+            </div>
             <div class="user-info">
                 👤 <%= @user_info['username'] || 'Unknown' %>님 (Level <%= @user_info['permission_level'] || 'N/A' %>)
                 <a href="/saved-list" class="logout-btn">📋 저장된 리스트</a>
-                <a href="/inspection-requests" class="logout-btn">📊 검사신청 조회</a>
-                <% if @user_info && @user_info['permission_level'].to_i >= 2 %>
-                <a href="/admin" class="logout-btn" style="background: #FF6B35;">🔧 관리자 패널</a>
-                <% end %>
+                <a href="/inspection-management" class="logout-btn">📋 검사신청 관리</a>
                 <a href="/logout" class="logout-btn">로그아웃</a>
             </div>
         </div>
@@ -242,9 +242,19 @@
         }
         
         function hideLoadingDialog() {
+            debugLog('hideLoadingDialog 호출됨');
             const overlay = document.getElementById('loadingOverlay');
             if (overlay) {
                 overlay.remove();
+                debugLog('로딩 오버레이 제거 완료');
+            } else {
+                debugLog('로딩 오버레이를 찾을 수 없음');
+                // 강제로 모든 로딩 오버레이 제거
+                const allOverlays = document.querySelectorAll('.loading-overlay');
+                allOverlays.forEach(o => o.remove());
+                if (allOverlays.length > 0) {
+                    debugLog(`${allOverlays.length}개의 추가 로딩 오버레이를 강제 제거함`);
+                }
             }
         }
 
@@ -374,6 +384,13 @@
         document.addEventListener('DOMContentLoaded', function() {
             debugLog('조립품 검색 페이지 로드 완료');
             
+            // 페이지 로드 시 기존 로딩 다이얼로그 정리
+            const existingOverlays = document.querySelectorAll('.loading-overlay');
+            if (existingOverlays.length > 0) {
+                existingOverlays.forEach(overlay => overlay.remove());
+                debugLog(`페이지 로드 시 ${existingOverlays.length}개의 기존 로딩 오버레이 제거`);
+            }
+            
             function updateTime() {
                 document.getElementById('currentTime').textContent = new Date().toLocaleString();
             }
@@ -423,20 +440,27 @@
                 
                 // 로딩 스피너 표시
                 showLoadingDialog();
+                debugLog('로딩 다이얼로그 표시 완료');
                 
                 try {
+                    debugLog('Fetch 요청 시작...');
                     const response = await fetch('/api/save-list', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ items: selectedData })
                     });
                     
+                    debugLog(`HTTP 응답 수신: ${response.status} ${response.statusText}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
                     const result = await response.json();
+                    debugLog(`응답 JSON 파싱 완료: ${JSON.stringify(result)}`);
                     
                     if (result.success) {
-                        // 저장 완료 후 새로고침 스피너로 변경
-                        showLoadingDialog('🔄 새로고침 중...', '저장이 완료되었습니다. 페이지를 새로고침하고 있습니다.');
-                        
+                        debugLog('저장 성공 - UI 업데이트 시작');
                         debugLog(`저장 완료: 총 ${result.total}개 항목`);
                         
                         // 저장된 항목들의 체크박스 해제 및 검색 결과에서 제거
@@ -459,13 +483,14 @@
                             showStatus('모든 검색 결과가 저장되었습니다.', 'success');
                         } else {
                             document.getElementById('resultsTitle').textContent = `검색 결과 (${remainingCount}개)`;
+                            showStatus(`${selectedData.length}개 항목이 저장되었습니다.`, 'success');
                         }
                         
-                        // 약간의 지연 후 스피너 제거 (UI 업데이트 완료 후)
-                        setTimeout(() => {
-                            hideLoadingDialog();
-                        }, 500);
+                        debugLog('UI 업데이트 완료 - 스피너 제거');
+                        // 즉시 스피너 제거
+                        hideLoadingDialog();
                     } else {
+                        debugLog(`저장 실패: ${result.error}`);
                         // 로딩 숨기기
                         hideLoadingDialog();
                         
@@ -473,6 +498,7 @@
                         debugLog(`저장 실패: ${result.error}`);
                     }
                 } catch (error) {
+                    debugLog(`예외 발생: ${error.name} - ${error.message}`);
                     // 로딩 숨기기
                     hideLoadingDialog();
                     

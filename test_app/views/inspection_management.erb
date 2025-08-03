@@ -51,8 +51,8 @@
         th { background: #f8f9fa; font-weight: 600; }
         tr:hover { background-color: #f8f9fa; }
         .filter-section {
-            background: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 20px;
-            border-left: 4px solid #2196F3;
+            background: rgba(255, 107, 53, 0.05); padding: 20px; border-radius: 8px; margin-bottom: 20px;
+            border-left: 4px solid #FF6B35;
         }
         .filter-group {
             display: flex; gap: 15px; align-items: center; flex-wrap: wrap;
@@ -74,6 +74,101 @@
         .status-cancelled { background: #f8f9fa; color: #6c757d; }
         .empty-state {
             text-align: center; padding: 60px 20px; color: #666;
+        }
+        
+        /* 탭 스타일 */
+        .tab-container {
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+        .tab-nav {
+            display: flex;
+            gap: 0;
+        }
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            color: #FF6B35;
+            border-bottom-color: #FF6B35;
+            background: rgba(255, 107, 53, 0.05);
+        }
+        .tab-btn:hover:not(.active) {
+            color: #333;
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        /* 검색 섹션 */
+        .search-section {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #28a745;
+        }
+        .search-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .search-input {
+            padding: 10px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 200px;
+            flex: 1;
+            max-width: 300px;
+        }
+        .search-input:focus {
+            border-color: #28a745;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+        }
+        
+        /* 페이징 스타일 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 20px 0;
+        }
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            background: white;
+            color: #007bff;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .pagination button:hover:not(:disabled) {
+            background: #007bff;
+            color: white;
+        }
+        .pagination button.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pagination-info {
+            margin: 0 20px;
+            color: #666;
+            font-size: 14px;
         }
         
         /* 로딩 스피너 스타일 */
@@ -150,12 +245,14 @@
 <body>
     <div class="header">
         <div class="header-content">
-            <h1>📋 DSHI 검사신청 관리</h1>
+            <div style="display: flex; align-items: center;">
+                <!-- <img src="/image/DSHI_logo.jpg" alt="DSHI Logo" style="width: 28px; height: 28px; margin-right: 8px;"> -->
+                <h1 style="margin: 0;">📋 DSHI 검사신청 관리</h1>
+            </div>
             <div class="user-info">
                 👤 <%= (@user_info && @user_info['username']) || 'Unknown' %>님 (Level <%= (@user_info && @user_info['permission_level']) || 'N/A' %>)
                 <a href="/" class="nav-btn">🔍 조립품 검색</a>
                 <a href="/saved-list" class="nav-btn">📋 저장된 리스트</a>
-                <a href="/inspection-management" class="nav-btn">📊 검사신청 관리</a>
                 <a href="/logout" class="logout-btn">로그아웃</a>
             </div>
         </div>
@@ -167,9 +264,36 @@
                 🛠️ 검사신청 관리
             </div>
             <div class="card-body">
+                <!-- 탭 네비게이션 -->
+                <div class="tab-container">
+                    <div class="tab-nav">
+                        <button class="tab-btn active" id="activeTab">
+                            📋 기본 (대기중/승인됨)
+                        </button>
+                        <button class="tab-btn" id="completedTab">
+                            ✅ 완료 (확정됨/거부됨)
+                        </button>
+                    </div>
+                </div>
+
                 <!-- 필터 섹션 -->
-                <div class="filter-section">
+                <div class="filter-section" id="filterSection">
                     <h4 style="margin-bottom: 15px;">🔍 필터 및 관리 도구</h4>
+                    <!-- Assembly Code 검색 (완료 탭에서만 표시) -->
+                    <div class="filter-group" id="searchGroup" style="display: none;">
+                        <div>
+                            <label>Assembly Code 검색:</label>
+                            <input type="text" id="searchInput" class="search-input" placeholder="Assembly Code를 입력하세요 (예: A001-001)" style="min-width: 200px; max-width: 300px;">
+                        </div>
+                        <div>
+                            <button class="btn btn-success" onclick="searchByAssemblyCode()">🔍 검색</button>
+                            <button class="btn btn-primary" onclick="clearSearch()" style="background: #6c757d;">🗑️ 초기화</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 여백 추가 (상태와 선택승인 버튼 사이 공간만큼) -->
+                    <div style="margin-bottom: 20px;"></div>
+                    
                     <div class="filter-group">
                         <div>
                             <label>상태:</label>
@@ -236,6 +360,16 @@
                 <div id="requestsContent">
                     <p>검사신청 내역을 불러오는 중...</p>
                 </div>
+
+                <!-- 페이징 (완료 탭에서만 표시) -->
+                <div id="paginationContainer" class="pagination" style="display: none;">
+                    <button onclick="changePage('prev')" id="prevBtn">이전</button>
+                    <div id="pageNumbers"></div>
+                    <button onclick="changePage('next')" id="nextBtn">다음</button>
+                    <div class="pagination-info">
+                        <span id="pageInfo">페이지 1 / 1 (총 0개 항목)</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -243,6 +377,11 @@
     <script>
         let allRequests = [];
         let filteredRequests = [];
+        let currentTab = 'active'; // 'active' or 'completed'
+        let currentPage = 1;
+        let itemsPerPage = 20;
+        let searchResults = null; // 검색 결과 저장
+        let isSearchMode = false;
         
         // 날짜 포맷팅 함수 (YYYY-MM-DD 형식으로 변환)
         function formatDate(dateString) {
@@ -267,51 +406,167 @@
         }
 
         // 페이지 로드 시 데이터 불러오기
-        document.addEventListener('DOMContentLoaded', loadInspectionRequests);
+        document.addEventListener('DOMContentLoaded', function() {
+            currentTab = 'active'; // 전역 변수 초기화
+            console.log('페이지 로드 완료, currentTab:', currentTab);
+            
+            // 탭 버튼에 직접 이벤트 리스너 추가 (이중 보장)
+            document.getElementById('activeTab').addEventListener('click', function() {
+                console.log('기본 탭 클릭됨');
+                switchTab('active');
+            });
+            
+            document.getElementById('completedTab').addEventListener('click', function() {
+                console.log('완료 탭 클릭됨');
+                switchTab('completed');
+            });
+            
+            loadInspectionRequests('active', 1, '');
+            switchTab('active'); // 기본탭으로 시작
+        });
 
         // 현재 사용자 권한 레벨 전역 변수
         let currentUserLevel = <%= (@user_info && @user_info['permission_level']) || 1 %>;
         
-        async function loadInspectionRequests() {
+        async function loadInspectionRequests(tab = 'active', page = 1, searchTerm = '') {
             try {
-                // 캐시 우회를 위해 타임스탬프 추가
-                const timestamp = new Date().getTime();
-                const response = await fetch(`/api/inspection-management/requests?_t=${timestamp}`);
+                console.log(`=== loadInspectionRequests 시작 ===`);
+                console.log(`파라미터 - tab: ${tab}, page: ${page}, searchTerm: "${searchTerm}"`);
+                console.log(`전역변수 currentTab: ${currentTab}`);
+                
+                // 로딩 인디케이터 표시
+                showLoadingIndicator();
+                
+                // POST 방식으로 JSON 데이터 전송
+                const requestData = {
+                    tab: tab,
+                    page: page,
+                    per_page: itemsPerPage
+                };
+                
+                if (searchTerm) {
+                    requestData.search = searchTerm;
+                }
+                
+                console.log(`🚀 POST 요청 데이터:`, requestData);
+                console.log(`🌐 fetch 호출 시작...`);
+                
+                // 네트워크 요청 상세 로깅
+                console.log(`📝 요청 세부사항:`);
+                console.log(`  - Method: POST`);
+                console.log(`  - URL: /api/inspection-management/requests`);
+                console.log(`  - Body:`, JSON.stringify(requestData));
+                
+                const response = await fetch('/api/inspection-management/requests', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    },
+                    body: JSON.stringify(requestData),
+                    cache: 'no-store'
+                });
+                
+                console.log(`📡 응답 상태: ${response.status}`);
+                
                 const data = await response.json();
+                console.log(`📦 API 응답 데이터:`, data);
                 
                 if (data.success) {
+                    // 서버에서 받은 데이터 저장
                     allRequests = data.data.requests || [];
                     currentUserLevel = data.data.user_level || 1;
-                    filteredRequests = [...allRequests];
                     
+                    // 페이징 정보 저장
+                    if (data.data.pagination) {
+                        currentPage = data.data.pagination.current_page;
+                        updatePaginationFromServer(data.data.pagination);
+                    }
                     
                     // Level별 버튼 표시/숨김 처리
-                    if (currentUserLevel === 1) {
-                        document.getElementById('adminButtons').style.display = 'none';
-                        document.getElementById('level1Buttons').style.display = 'block';
-                        document.querySelector('h4').innerHTML = '🔍 내 검사신청 상태 확인';
+                    setupUserInterface();
+                    
+                    // 결과 표시
+                    if (searchTerm) {
+                        isSearchMode = true;
+                        searchResults = allRequests;
+                        renderRequestsList(allRequests);
+                        document.getElementById('paginationContainer').style.display = 'none';
                     } else {
-                        document.getElementById('adminButtons').style.display = 'block';
-                        document.getElementById('level1Buttons').style.display = 'none';
+                        isSearchMode = false;
+                        searchResults = null;
+                        renderRequestsList(allRequests);
                         
-                        // Level 2+ 사용자만 '취소됨' 상태 필터 옵션 추가
-                        const statusFilter = document.getElementById('statusFilter');
-                        if (!statusFilter.querySelector('option[value="취소됨"]')) {
-                            const cancelledOption = document.createElement('option');
-                            cancelledOption.value = '취소됨';
-                            cancelledOption.textContent = '취소됨';
-                            statusFilter.appendChild(cancelledOption);
+                        // 완료 탭에서만 페이징 표시
+                        if (tab === 'completed') {
+                            document.getElementById('paginationContainer').style.display = 'flex';
+                        } else {
+                            document.getElementById('paginationContainer').style.display = 'none';
                         }
                     }
                     
-                    renderRequests();
                 } else {
-                    document.getElementById('requestsContent').innerHTML = `<p>오류: ${data.error}</p>`;
+                    document.getElementById('requestsContent').innerHTML = `<p>오류: ${data.error || data.message}</p>`;
                 }
             } catch (error) {
                 console.error('검사신청 조회 오류:', error);
                 document.getElementById('requestsContent').innerHTML = '<p>검사신청 내역을 불러오는 중 오류가 발생했습니다.</p>';
+            } finally {
+                // 로딩 인디케이터 숨김
+                hideLoadingIndicator();
             }
+        }
+
+        // 사용자 인터페이스 설정
+        function setupUserInterface() {
+            if (currentUserLevel === 1) {
+                document.getElementById('adminButtons').style.display = 'none';
+                document.getElementById('level1Buttons').style.display = 'block';
+                document.querySelector('#filterSection h4').innerHTML = '🔍 내 검사신청 상태 확인';
+            } else {
+                document.getElementById('adminButtons').style.display = 'block';
+                document.getElementById('level1Buttons').style.display = 'none';
+                
+                // Level 2+ 사용자만 '취소됨' 상태 필터 옵션 추가
+                const statusFilter = document.getElementById('statusFilter');
+                if (!statusFilter.querySelector('option[value="취소됨"]')) {
+                    const cancelledOption = document.createElement('option');
+                    cancelledOption.value = '취소됨';
+                    cancelledOption.textContent = '취소됨';
+                    statusFilter.appendChild(cancelledOption);
+                }
+            }
+        }
+
+        // 서버에서 받은 페이징 정보로 UI 업데이트
+        function updatePaginationFromServer(pagination) {
+            const pageNumbers = document.getElementById('pageNumbers');
+            const pageInfo = document.getElementById('pageInfo');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            // 페이지 번호 버튼 생성
+            let pagesHtml = '';
+            const maxVisible = 5;
+            let startPage = Math.max(1, pagination.current_page - 2);
+            let endPage = Math.min(pagination.total_pages, startPage + maxVisible - 1);
+            
+            if (endPage - startPage < maxVisible - 1) {
+                startPage = Math.max(1, endPage - maxVisible + 1);
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const activeClass = i === pagination.current_page ? 'active' : '';
+                pagesHtml += `<button class="${activeClass}" onclick="goToPage(${i})">${i}</button>`;
+            }
+            
+            pageNumbers.innerHTML = pagesHtml;
+            pageInfo.textContent = `페이지 ${pagination.current_page} / ${pagination.total_pages} (총 ${pagination.total_count}개 항목)`;
+            
+            // 이전/다음 버튼 상태
+            prevBtn.disabled = !pagination.has_prev;
+            nextBtn.disabled = !pagination.has_next;
         }
 
         function renderRequests() {
@@ -367,6 +622,10 @@
                         html += `<button class="btn btn-danger" onclick="rejectRequest(${item.id})" style="font-size: 12px; padding: 4px 8px;">거부</button>`;
                     } else if (item.status === '승인됨' && currentUserLevel >= 3) {
                         html += `<button class="btn btn-warning" onclick="confirmRequest(${item.id})" style="font-size: 12px; padding: 4px 8px;">확정</button>`;
+                        html += `<button class="btn btn-danger" onclick="rejectRequest(${item.id})" style="font-size: 12px; padding: 4px 8px; margin-left: 4px;">거부</button>`;
+                    } else if (item.status === '승인됨' && currentUserLevel >= 2) {
+                        // Level 2 사용자는 거부만 가능
+                        html += `<button class="btn btn-danger" onclick="rejectRequest(${item.id})" style="font-size: 12px; padding: 4px 8px;">거부</button>`;
                     } else {
                         html += '-';
                     }
@@ -392,35 +651,10 @@
         }
 
         function filterRequests() {
-            const statusFilter = document.getElementById('statusFilter').value;
-            const typeFilter = document.getElementById('typeFilter').value;
-            const dateFromFilter = document.getElementById('dateFromFilter').value;
-            const dateToFilter = document.getElementById('dateToFilter').value;
-            
-            filteredRequests = allRequests.filter(request => {
-                const matchStatus = !statusFilter || request.status === statusFilter;
-                const matchType = !typeFilter || request.inspection_type === typeFilter;
-                
-                // 검사일 필터링
-                let matchDate = true;
-                if (dateFromFilter || dateToFilter) {
-                    const requestDate = new Date(request.request_date);
-                    
-                    if (dateFromFilter) {
-                        const fromDate = new Date(dateFromFilter);
-                        matchDate = matchDate && (requestDate >= fromDate);
-                    }
-                    
-                    if (dateToFilter) {
-                        const toDate = new Date(dateToFilter);
-                        matchDate = matchDate && (requestDate <= toDate);
-                    }
-                }
-                
-                return matchStatus && matchType && matchDate;
-            });
-            
-            renderRequests();
+            // 서버에서 이미 탭별 필터링을 처리하므로, 
+            // 현재는 단순히 리스트만 새로고침
+            // 추후 서버 API에 필터 파라미터 추가 가능
+            loadInspectionRequests(currentTab, currentPage, '');
         }
 
         function clearFilters() {
@@ -428,11 +662,11 @@
             document.getElementById('typeFilter').value = '';
             document.getElementById('dateFromFilter').value = '';
             document.getElementById('dateToFilter').value = '';
-            filterRequests();
+            loadInspectionRequests(currentTab, currentPage, '');
         }
 
         function refreshData() {
-            loadInspectionRequests();
+            loadInspectionRequests(currentTab, currentPage, '');
         }
 
         function toggleSelectAll() {
@@ -484,7 +718,7 @@
                 const result = await response.json();
                 if (result.success) {
                     alert('✅ 승인되었습니다.');
-                    loadInspectionRequests();
+                    loadInspectionRequests(currentTab, currentPage, '');
                 } else {
                     alert(`❌ 승인 실패: ${result.message}`);
                 }
@@ -507,7 +741,7 @@
                 const result = await response.json();
                 if (result.success) {
                     alert('❌ 거부되었습니다.');
-                    loadInspectionRequests();
+                    loadInspectionRequests(currentTab, currentPage, '');
                 } else {
                     alert(`❌ 거부 실패: ${result.message}`);
                 }
@@ -530,7 +764,7 @@
                 const result = await response.json();
                 if (result.success) {
                     alert('🔒 확정되었습니다.');
-                    loadInspectionRequests();
+                    loadInspectionRequests(currentTab, currentPage, '');
                 } else {
                     alert(`❌ 확정 실패: ${result.message}`);
                 }
@@ -605,7 +839,7 @@
                     message += `\n❌ 실패: ${failedItems.length}개`;
                 }
                 alert(message);
-                loadInspectionRequests();
+                loadInspectionRequests(currentTab, currentPage, '');
                 
             } finally {
                 // 로딩 대화상자 숨김
@@ -655,7 +889,7 @@
                 message += `\n❌ 실패: ${failedItems.length}개`;
             }
             alert(message);
-            loadInspectionRequests();
+            loadInspectionRequests(currentTab, currentPage, '');
         }
 
         async function bulkReject() {
@@ -695,7 +929,7 @@
                 message += `\n❌ 실패: ${failedItems.length}개`;
             }
             alert(message);
-            loadInspectionRequests();
+            loadInspectionRequests(currentTab, currentPage, '');
         }
 
         async function bulkConfirm() {
@@ -735,7 +969,7 @@
                 message += `\n❌ 실패: ${failedItems.length}개`;
             }
             alert(message);
-            loadInspectionRequests();
+            loadInspectionRequests(currentTab, currentPage, '');
         }
 
         // Level 1 사용자용 개별 검사신청 취소 함수
@@ -751,7 +985,7 @@
                 const result = await response.json();
                 if (result.success) {
                     alert('✅ 검사신청이 취소되었습니다.');
-                    loadInspectionRequests();
+                    loadInspectionRequests(currentTab, currentPage, '');
                 } else {
                     alert(`❌ 취소 실패: ${result.message}`);
                 }
@@ -801,7 +1035,7 @@
                 }
                 
                 // 목록 새로고침 (취소된 항목들이 자동으로 숨겨짐)
-                loadInspectionRequests();
+                loadInspectionRequests(currentTab, currentPage, '');
                 
             } finally {
                 // 로딩 스피너 숨김
@@ -812,6 +1046,241 @@
                 
                 // 선택 상태 업데이트
                 updateSelectionButtons();
+            }
+        }
+
+        // ================= 새로운 탭 및 검색 기능 ================= 
+
+        // 탭 전환 함수
+        function switchTab(tabName) {
+            console.log(`탭 전환 시도: ${tabName}`);
+            console.log(`이전 currentTab: ${currentTab}`);
+            
+            currentTab = tabName;
+            currentPage = 1;
+            isSearchMode = false;
+            searchResults = null;
+            
+            console.log(`새로운 currentTab: ${currentTab}`);
+            
+            // 탭 버튼 스타일 업데이트
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            if (tabName === 'active') {
+                document.getElementById('activeTab').classList.add('active');
+                // 기본 탭에서는 검색 그룹 숨김
+                document.getElementById('searchGroup').style.display = 'none';
+                console.log('기본 탭으로 전환됨');
+            } else {
+                document.getElementById('completedTab').classList.add('active');
+                // 완료 탭에서는 검색 그룹 표시
+                document.getElementById('searchGroup').style.display = 'flex';
+                console.log('완료 탭으로 전환됨');
+            }
+            
+            // 검색 초기화
+            if (document.getElementById('searchInput')) {
+                document.getElementById('searchInput').value = '';
+            }
+            
+            // 새 API 호출
+            console.log(`API 호출 전 currentTab 확인: ${currentTab}`);
+            loadInspectionRequests(tabName, 1, '');
+        }
+
+
+        // 실제 요청 목록 렌더링 (기존 renderRequests 함수 대체)
+        function renderRequestsList(requests) {
+            const contentDiv = document.getElementById('requestsContent');
+            
+            if (requests.length === 0) {
+                if (isSearchMode) {
+                    contentDiv.innerHTML = '<div class="empty-state"><h3>🔍 검색 결과가 없습니다</h3><p>다른 Assembly Code로 검색해보세요.</p></div>';
+                } else {
+                    contentDiv.innerHTML = '<div class="empty-state"><h3>📭 검사신청 내역이 없습니다</h3></div>';
+                }
+                return;
+            }
+            
+            let html = '<div style="overflow-x: auto;"><table id="requestsTable">';
+            html += '<thead><tr>';
+            
+            // 체크박스 열 (검색 모드가 아닐 때만)
+            if (!isSearchMode) {
+                html += '<th class="checkbox-cell"><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>';
+            }
+            
+            html += '<th>조립품 코드</th>';
+            html += '<th>검사 타입</th>';
+            html += '<th>신청일</th>';
+            html += '<th>신청자</th>';
+            html += '<th>검사일</th>';
+            html += '<th>상태</th>';
+            
+            // 완료 탭에서는 다른 컬럼명 사용
+            if (currentTab === 'completed') {
+                html += '<th>확정자/거부자</th>';
+                html += '<th>확정일/거부일</th>';
+            } else {
+                html += '<th>승인자</th>';
+                html += '<th>승인일</th>';
+            }
+            
+            html += '<th>관리</th>';
+            html += '</tr></thead><tbody>';
+            
+            requests.forEach((item, index) => {
+                const statusClass = getStatusClass(item.status);
+                html += '<tr>';
+                
+                // 체크박스 (검색 모드가 아닐 때만)
+                if (!isSearchMode) {
+                    html += `<td class="checkbox-cell"><input type="checkbox" class="item-checkbox" data-id="${item.id}" onchange="updateSelectionButtons()"></td>`;
+                }
+                
+                html += `<td><strong>${item.assembly_code}</strong></td>`;
+                html += `<td>${item.inspection_type}</td>`;
+                html += `<td>${formatDate(item.created_at)}</td>`;
+                html += `<td>${item.requested_by_name}</td>`;
+                html += `<td>${formatDate(item.request_date)}</td>`;
+                html += `<td><span class="status-badge ${statusClass}">${item.status || '대기중'}</span></td>`;
+                html += `<td>${item.approved_by_name || '-'}</td>`;
+                html += `<td>${formatDate(item.approved_date)}</td>`;
+                html += `<td>`;
+                
+                // 관리 버튼들 (검색 모드에서는 간소화)
+                if (isSearchMode) {
+                    html += '검색 결과';
+                } else if (currentUserLevel === 1) {
+                    html += '-';
+                } else {
+                    // Level 2+ 사용자: 개별 관리 기능
+                    if (item.status === '대기중') {
+                        html += `<button class="btn btn-success" onclick="approveRequest(${item.id})" style="font-size: 12px; padding: 4px 8px;">승인</button>`;
+                        html += `<button class="btn btn-danger" onclick="rejectRequest(${item.id})" style="font-size: 12px; padding: 4px 8px;">거부</button>`;
+                    } else if (item.status === '승인됨' && currentUserLevel >= 3) {
+                        html += `<button class="btn btn-warning" onclick="confirmRequest(${item.id})" style="font-size: 12px; padding: 4px 8px;">확정</button>`;
+                        html += `<button class="btn btn-danger" onclick="rejectRequest(${item.id})" style="font-size: 12px; padding: 4px 8px; margin-left: 4px;">거부</button>`;
+                    } else if (item.status === '승인됨' && currentUserLevel >= 2) {
+                        html += `<button class="btn btn-danger" onclick="rejectRequest(${item.id})" style="font-size: 12px; padding: 4px 8px;">거부</button>`;
+                    } else {
+                        html += '-';
+                    }
+                }
+                
+                html += '</td>';
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+            contentDiv.innerHTML = html;
+        }
+
+        // 페이징 업데이트
+        function updatePagination(totalPages, totalItems) {
+            const pageNumbers = document.getElementById('pageNumbers');
+            const pageInfo = document.getElementById('pageInfo');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            // 페이지 번호 버튼 생성
+            let pagesHtml = '';
+            const maxVisible = 5; // 최대 5개 페이지 번호 표시
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+            
+            if (endPage - startPage < maxVisible - 1) {
+                startPage = Math.max(1, endPage - maxVisible + 1);
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const activeClass = i === currentPage ? 'active' : '';
+                pagesHtml += `<button class="${activeClass}" onclick="goToPage(${i})">${i}</button>`;
+            }
+            
+            pageNumbers.innerHTML = pagesHtml;
+            pageInfo.textContent = `페이지 ${currentPage} / ${totalPages} (총 ${totalItems}개 항목)`;
+            
+            // 이전/다음 버튼 상태
+            prevBtn.disabled = currentPage <= 1;
+            nextBtn.disabled = currentPage >= totalPages;
+        }
+
+        // 페이지 이동
+        function changePage(direction) {
+            let newPage = currentPage;
+            if (direction === 'prev' && currentPage > 1) {
+                newPage = currentPage - 1;
+            } else if (direction === 'next') {
+                newPage = currentPage + 1;
+            }
+            
+            if (newPage !== currentPage) {
+                loadInspectionRequests(currentTab, newPage, '');
+            }
+        }
+
+        function goToPage(page) {
+            if (page !== currentPage) {
+                loadInspectionRequests(currentTab, page, '');
+            }
+        }
+
+        // Assembly Code 검색
+        function searchByAssemblyCode() {
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            if (!searchTerm) {
+                alert('Assembly Code를 입력하세요.');
+                return;
+            }
+            
+            // 서버에서 검색 수행
+            loadInspectionRequests(currentTab, 1, searchTerm);
+            
+            // 검색 후 입력란 리셋
+            document.getElementById('searchInput').value = '';
+        }
+
+        // 검색 초기화
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            isSearchMode = false;
+            searchResults = null;
+            loadInspectionRequests(currentTab, 1, '');
+        }
+
+        // Enter 키로 검색 (DOM 로드 후 이벤트 리스너 추가)
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        searchByAssemblyCode();
+                    }
+                });
+            }
+        });
+
+        // 로딩 인디케이터 표시/숨김
+        function showLoadingIndicator() {
+            document.getElementById('requestsContent').innerHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <div class="loading-spinner" style="margin: 0 auto 15px auto; width: 30px; height: 30px;"></div>
+                    <p style="color: #666; margin: 0;">데이터를 불러오는 중...</p>
+                </div>
+            `;
+        }
+
+        function hideLoadingIndicator() {
+            // 로딩 중 메시지 제거 (실제 데이터로 대체됨)
+        }
+
+        // 기존 renderRequests 함수를 새 함수로 대체
+        function renderRequests() {
+            // 탭이 제대로 설정되어 있으면 해당 탭 데이터 로드
+            if (currentTab) {
+                loadInspectionRequests(currentTab, currentPage, '');
+            } else {
+                loadInspectionRequests('active', 1, '');
             }
         }
     </script>
