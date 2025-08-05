@@ -22,6 +22,7 @@ class InspectionController < Sinatra::Base
       '/saved-list',
       '/api/create-inspection-request',
       '/api/inspection-management/requests',
+      '/api/upload-excel',
       '/api/debug-session'
     ]
     
@@ -100,6 +101,12 @@ class InspectionController < Sinatra::Base
       per_page = (params[:per_page] || 20).to_i
       search_term = params[:search] || ''
       
+      # 필터 파라미터 추가
+      status_filter = params[:status_filter] || ''
+      type_filter = params[:type_filter] || ''
+      date_from = params[:date_from] || ''
+      date_to = params[:date_to] || ''
+      
       AppLogger.debug("검사신청 관리 조회 요청 (GET): tab=#{tab}, page=#{page}, search=#{search_term}")
       
       # 사용자 정보 조회
@@ -132,6 +139,40 @@ class InspectionController < Sinatra::Base
           end
         end
         
+        # 추가 필터 적용
+        unless status_filter.empty?
+          filtered_requests = filtered_requests.select { |req| req['status'] == status_filter }
+        end
+        
+        unless type_filter.empty?
+          filtered_requests = filtered_requests.select { |req| req['inspection_type'] == type_filter }
+        end
+        
+        # 날짜 범위 필터 적용
+        unless date_from.empty?
+          begin
+            from_date = Date.parse(date_from)
+            filtered_requests = filtered_requests.select do |req|
+              req_date = Date.parse(req['request_date']) rescue nil
+              req_date && req_date >= from_date
+            end
+          rescue => e
+            AppLogger.debug("날짜 from 파싱 오류: #{e.message}")
+          end
+        end
+        
+        unless date_to.empty?
+          begin
+            to_date = Date.parse(date_to)
+            filtered_requests = filtered_requests.select do |req|
+              req_date = Date.parse(req['request_date']) rescue nil
+              req_date && req_date <= to_date
+            end
+          rescue => e
+            AppLogger.debug("날짜 to 파싱 오류: #{e.message}")
+          end
+        end
+        
         # 페이지네이션 (완료 탭에서만)
         total_count = filtered_requests.length
         if tab == 'completed'
@@ -150,13 +191,30 @@ class InspectionController < Sinatra::Base
           pagination_info = nil
         end
         
+        # 동적 필터 옵션 생성 - 현재 탭에 해당하는 데이터만 사용
+        tab_requests = case tab
+        when 'active'
+          all_requests.select { |req| ['대기중', '승인됨'].include?(req['status']) }
+        when 'completed'
+          all_requests.select { |req| ['확정됨', '거부됨'].include?(req['status']) }
+        else
+          all_requests
+        end
+        
+        available_statuses = tab_requests.map { |req| req['status'] }.compact.uniq.sort
+        available_types = tab_requests.map { |req| req['inspection_type'] }.compact.uniq.sort
+        
         # 응답 구조 생성
         response_data = {
           success: true,
           data: {
             requests: paginated_requests,
             user_level: result[:data]['user_level'],
-            pagination: pagination_info
+            pagination: pagination_info,
+            filter_options: {
+              statuses: available_statuses,
+              types: available_types
+            }
           }
         }
         
@@ -344,16 +402,54 @@ class InspectionController < Sinatra::Base
             successful_codes = assembly_codes - duplicate_codes
           end
           
-          # Flask API를 통해 성공한 항목들 삭제
+          # Flask API를 통해 성공한 항목들 청크 단위 병렬 삭제 (5개씩)
           if successful_codes.length > 0
-            successful_codes.each do |code|
-              delete_result = flask_client.delete_saved_item(code, session[:jwt_token])
-              if delete_result[:success]
-                AppLogger.debug("저장된 리스트에서 #{code} 제거 완료")
-              else
-                AppLogger.debug("저장된 리스트에서 #{code} 제거 실패: #{delete_result[:error]}")
+            chunk_size = 5
+            total_chunks = (successful_codes.length.to_f / chunk_size).ceil
+            deleted_count = 0
+            failed_count = 0
+            
+            AppLogger.debug("검사신청 후 자동삭제 시작: #{successful_codes.length}개 항목을 #{total_chunks}개 그룹으로 처리")
+            
+            successful_codes.each_slice(chunk_size).with_index do |chunk, chunk_index|
+              AppLogger.debug("자동삭제 청크 #{chunk_index + 1}/#{total_chunks} 처리 중 (#{chunk.length}개 항목)")
+              
+              # 각 청크를 Thread로 병렬 처리
+              threads = chunk.map do |code|
+                Thread.new do
+                  begin
+                    delete_result = flask_client.delete_saved_item(code, session[:jwt_token])
+                    if delete_result[:success]
+                      AppLogger.debug("저장된 리스트에서 #{code} 제거 완료")
+                      { success: true, code: code }
+                    else
+                      AppLogger.debug("저장된 리스트에서 #{code} 제거 실패: #{delete_result[:error]}")
+                      { success: false, code: code, error: delete_result[:error] }
+                    end
+                  rescue => e
+                    AppLogger.debug("저장된 리스트에서 #{code} 제거 오류: #{e.message}")
+                    { success: false, code: code, error: e.message }
+                  end
+                end
               end
+              
+              # 모든 Thread 완료 대기 및 결과 수집
+              chunk_results = threads.map(&:value)
+              
+              # 결과 집계
+              chunk_results.each do |result|
+                if result[:success]
+                  deleted_count += 1
+                else
+                  failed_count += 1
+                end
+              end
+              
+              # 청크 간 짧은 대기 (서버 부하 방지)
+              sleep(0.1) if chunk_index < total_chunks - 1
             end
+            
+            AppLogger.debug("자동삭제 완료: 성공 #{deleted_count}개, 실패 #{failed_count}개")
           end
           
           if response_data['inserted_count'] > 0
@@ -393,6 +489,12 @@ class InspectionController < Sinatra::Base
         per_page = request_body['per_page'] || 20
         search_term = request_body['search'] || ''
         
+        # 필터 파라미터 추가 (POST 방식)
+        status_filter = request_body['status_filter'] || ''
+        type_filter = request_body['type_filter'] || ''
+        date_from = request_body['date_from'] || ''
+        date_to = request_body['date_to'] || ''
+        
         AppLogger.debug("검사신청 관리 조회 요청: tab=#{tab}, page=#{page}, search=#{search_term}")
         
         # Flask API에서 전체 데이터 조회
@@ -425,6 +527,40 @@ class InspectionController < Sinatra::Base
             end
           end
           
+          # 추가 필터 적용 (POST 방식에서도 동일한 로직)
+          unless status_filter.empty?
+            filtered_requests = filtered_requests.select { |req| req['status'] == status_filter }
+          end
+          
+          unless type_filter.empty?
+            filtered_requests = filtered_requests.select { |req| req['inspection_type'] == type_filter }
+          end
+          
+          # 날짜 범위 필터 적용
+          unless date_from.empty?
+            begin
+              from_date = Date.parse(date_from)
+              filtered_requests = filtered_requests.select do |req|
+                req_date = Date.parse(req['request_date']) rescue nil
+                req_date && req_date >= from_date
+              end
+            rescue => e
+              AppLogger.debug("날짜 from 파싱 오류 (POST): #{e.message}")
+            end
+          end
+          
+          unless date_to.empty?
+            begin
+              to_date = Date.parse(date_to)
+              filtered_requests = filtered_requests.select do |req|
+                req_date = Date.parse(req['request_date']) rescue nil
+                req_date && req_date <= to_date
+              end
+            rescue => e
+              AppLogger.debug("날짜 to 파싱 오류 (POST): #{e.message}")
+            end
+          end
+          
           # 페이지네이션 (완료 탭에서만)
           total_count = filtered_requests.length
           if tab == 'completed'
@@ -443,13 +579,30 @@ class InspectionController < Sinatra::Base
             pagination_info = nil
           end
           
+          # 동적 필터 옵션 생성 (POST 방식에서도) - 현재 탭에 해당하는 데이터만 사용
+          tab_requests = case tab
+          when 'active'
+            all_requests.select { |req| ['대기중', '승인됨'].include?(req['status']) }
+          when 'completed'
+            all_requests.select { |req| ['확정됨', '거부됨'].include?(req['status']) }
+          else
+            all_requests
+          end
+          
+          available_statuses = tab_requests.map { |req| req['status'] }.compact.uniq.sort
+          available_types = tab_requests.map { |req| req['inspection_type'] }.compact.uniq.sort
+          
           # 응답 구조 생성
           response_data = {
             success: true,
             data: {
               requests: paginated_requests,
               user_level: result[:data]['user_level'],
-              pagination: pagination_info
+              pagination: pagination_info,
+              filter_options: {
+                statuses: available_statuses,
+                types: available_types
+              }
             }
           }
           
@@ -477,6 +630,128 @@ class InspectionController < Sinatra::Base
     rescue => e
       AppLogger.debug("검사신청 관리 API 오류: #{e.message}")
       { success: false, error: '요청 처리 중 오류가 발생했습니다.' }.to_json
+    end
+  end
+  
+  # Excel 파일 업로드 API (완전히 새로운 방식)
+  post '/api/upload-excel' do
+    content_type :json
+    
+    begin
+      AppLogger.debug("=== 2025-08-04 11:26 NEW VERSION Excel 업로드 요청 수신 ===")
+      
+      # 파일 업로드 확인
+      unless params[:excel_file] && params[:excel_file][:tempfile]
+        AppLogger.debug("Excel 파일이 업로드되지 않음")
+        return { success: false, error: 'Excel 파일이 업로드되지 않았습니다.' }.to_json
+      end
+      
+      uploaded_file = params[:excel_file]
+      filename = uploaded_file[:filename]
+      
+      # 파일명 인코딩 안전 처리
+      safe_filename = filename.dup
+      safe_filename.force_encoding('UTF-8') if safe_filename.respond_to?(:force_encoding)
+      safe_filename = safe_filename.encode('UTF-8', :invalid => :replace, :undef => :replace)
+      
+      AppLogger.debug("Excel 파일 업로드 요청: #{safe_filename}")
+      
+      # 파일 확장자 확인 (안전한 파일명 사용)
+      allowed_extensions = ['xlsx', 'xls']
+      file_extension = safe_filename.split('.').last&.downcase
+      
+      unless allowed_extensions.include?(file_extension)
+        AppLogger.debug("지원하지 않는 파일 형식: #{file_extension}")
+        return { success: false, error: 'Excel 파일(.xlsx, .xls)만 업로드 가능합니다.' }.to_json
+      end
+      
+      # 업로드된 파일을 직접 사용 (임시 저장 방식 변경)
+      begin
+        # 업로드된 tempfile을 직접 사용
+        temp_file_path = uploaded_file[:tempfile].path
+        
+        # 파일이 존재하지 않으면 다른 방법 시도
+        unless File.exist?(temp_file_path)
+          temp_file_path = File.join(Dir.tmpdir, "excel_upload_#{Process.pid}_#{Time.now.to_i}.#{file_extension}")
+          
+          # IO 복사를 사용해서 인코딩 문제 방지
+          uploaded_file[:tempfile].rewind
+          File.open(temp_file_path, 'wb') do |output_file|
+            IO.copy_stream(uploaded_file[:tempfile], output_file)
+          end
+          uploaded_file[:tempfile].rewind
+        end
+      rescue => e
+        AppLogger.debug("파일 처리 오류: #{e.message}")
+        return { success: false, error: '파일 처리 중 오류가 발생했습니다.' }.to_json
+      end
+      
+      AppLogger.debug("임시 파일 저장: #{temp_file_path}")
+      
+      # Python 스크립트로 Excel 파싱
+      python_script = File.expand_path('../../../parse_excel.py', __FILE__)
+      command = "python \"#{python_script}\" \"#{temp_file_path}\""
+      
+      AppLogger.debug("Python 파싱 명령: #{command}")
+      AppLogger.debug("Python 스크립트 경로: #{python_script}")
+      AppLogger.debug("Python 스크립트 존재 여부: #{File.exist?(python_script)}")
+      AppLogger.debug("임시 파일 경로: #{temp_file_path}")
+      AppLogger.debug("임시 파일 존재 여부: #{File.exist?(temp_file_path)}")
+      
+      result_json = `#{command} 2>&1`  # stderr도 캡처
+      exit_status = $?.exitstatus
+      
+      AppLogger.debug("Python 스크립트 종료 코드: #{exit_status}")
+      AppLogger.debug("Python 스크립트 출력: #{result_json}")
+      
+      # 임시 파일 삭제 (안전하게 처리)
+      begin
+        File.delete(temp_file_path) if File.exist?(temp_file_path)
+        AppLogger.debug("임시 파일 삭제 완료: #{temp_file_path}")
+      rescue => e
+        AppLogger.debug("임시 파일 삭제 실패 (무시함): #{e.message}")
+        # 임시 파일 삭제 실패는 치명적이지 않으므로 무시
+      end
+      
+      if exit_status == 0
+        begin
+          parsed_data = JSON.parse(result_json)
+          AppLogger.debug("Excel 파싱 성공: #{parsed_data}")
+          
+          if parsed_data['success']
+            assembly_codes = parsed_data['assembly_codes']
+            
+            # Flask API로 Assembly Code 목록 전송
+            flask_client = FlaskClient.new
+            result = flask_client.upload_assembly_codes(assembly_codes, session[:jwt_token])
+            
+            if result[:success]
+              AppLogger.debug("Flask 업로드 성공: #{result[:message]}")
+              { 
+                success: true, 
+                message: result[:message],
+                data: result[:data]
+              }.to_json
+            else
+              AppLogger.debug("Flask 업로드 실패: #{result[:error]}")
+              { success: false, error: result[:error] }.to_json
+            end
+          else
+            { success: false, error: parsed_data['error'] }.to_json
+          end
+        rescue JSON::ParserError => e
+          AppLogger.debug("JSON 파싱 오류: #{e.message}")
+          { success: false, error: 'Excel 파싱 결과 처리 중 오류가 발생했습니다.' }.to_json
+        end
+      else
+        AppLogger.debug("Python 스크립트 실행 실패: #{result_json}")
+        { success: false, error: 'Excel 파일 파싱 중 오류가 발생했습니다.' }.to_json
+      end
+      
+    rescue => e
+      AppLogger.debug("Excel 업로드 API 오류: #{e.message}")
+      AppLogger.debug("백트레이스: #{e.backtrace.first(3).join('\n')}")
+      { success: false, error: 'Excel 업로드 중 오류가 발생했습니다.' }.to_json
     end
   end
   

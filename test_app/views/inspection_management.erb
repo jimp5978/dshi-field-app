@@ -54,6 +54,21 @@
             background: rgba(255, 107, 53, 0.05); padding: 20px; border-radius: 8px; margin-bottom: 20px;
             border-left: 4px solid #FF6B35;
         }
+        .filter-active {
+            background: rgba(255, 107, 53, 0.1) !important;
+            border-left-color: #FF6B35 !important;
+            border-left-width: 6px !important;
+        }
+        .filter-indicator {
+            display: inline-block;
+            background: #FF6B35;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-left: 8px;
+            font-weight: bold;
+        }
         .filter-group {
             display: flex; gap: 15px; align-items: center; flex-wrap: wrap;
         }
@@ -281,7 +296,13 @@
 
                 <!-- 필터 섹션 -->
                 <div class="filter-section" id="filterSection">
-                    <h4 style="margin-bottom: 15px;">🔍 필터 및 관리 도구</h4>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h4 style="margin: 0;">🔍 필터 및 관리 도구<span id="filterIndicator" class="filter-indicator" style="display: none;">필터 활성</span></h4>
+                        <div>
+                            <button class="btn btn-primary" onclick="refreshData()">🔄 새로고침</button>
+                            <button class="btn btn-primary" onclick="clearFilters()" style="background: #6c757d;">🗑️ 필터 초기화</button>
+                        </div>
+                    </div>
                     <!-- Assembly Code 검색 (완료 탭에서만 표시) -->
                     <div class="filter-group" id="searchGroup" style="display: none;">
                         <div>
@@ -324,15 +345,14 @@
                         </div>
                         <div>
                             <label>검사일:</label>
-                            <input type="date" id="dateFromFilter" onchange="filterRequests()" style="padding: 8px 12px; border: 2px solid #e1e5e9; border-radius: 6px; font-size: 14px; min-width: 140px;">
+                            <input type="date" id="dateFromFilter" style="padding: 8px 12px; border: 2px solid #e1e5e9; border-radius: 6px; font-size: 14px; min-width: 140px;">
                         </div>
                         <div>
                             <label>~</label>
-                            <input type="date" id="dateToFilter" onchange="filterRequests()" style="padding: 8px 12px; border: 2px solid #e1e5e9; border-radius: 6px; font-size: 14px; min-width: 140px;">
+                            <input type="date" id="dateToFilter" style="padding: 8px 12px; border: 2px solid #e1e5e9; border-radius: 6px; font-size: 14px; min-width: 140px;">
                         </div>
                         <div>
-                            <button class="btn btn-primary" onclick="refreshData()">🔄 새로고침</button>
-                            <button class="btn btn-primary" onclick="clearFilters()" style="background: #6c757d;">🗑️ 필터 초기화</button>
+                            <button class="btn btn-primary" onclick="filterRequests()">🔍 필터 적용</button>
                         </div>
                     </div>
                     <!-- Level 1 사용자용 일괄 처리 버튼 -->
@@ -413,6 +433,10 @@
             currentTab = 'active'; // 전역 변수 초기화
             console.log('페이지 로드 완료, currentTab:', currentTab);
             
+            // 종료 날짜를 오늘로 기본 설정
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateToFilter').value = today;
+            
             // 탭 버튼에 직접 이벤트 리스너 추가 (이중 보장)
             document.getElementById('activeTab').addEventListener('click', function() {
                 console.log('기본 탭 클릭됨');
@@ -431,7 +455,13 @@
         // 현재 사용자 권한 레벨 전역 변수
         let currentUserLevel = <%= (@user_info && @user_info['permission_level']) || 1 %>;
         
+        // 기존 함수는 호환성을 위해 유지하되 새 함수를 호출
         async function loadInspectionRequests(tab = 'active', page = 1, searchTerm = '') {
+            return loadInspectionRequestsWithFilters(tab, page, searchTerm, {});
+        }
+
+        // 필터를 지원하는 새로운 함수
+        async function loadInspectionRequestsWithFilters(tab = 'active', page = 1, searchTerm = '', filters = {}) {
             try {
                 console.log(`=== loadInspectionRequests 시작 ===`);
                 console.log(`파라미터 - tab: ${tab}, page: ${page}, searchTerm: "${searchTerm}"`);
@@ -449,6 +479,20 @@
                 
                 if (searchTerm) {
                     requestData.search = searchTerm;
+                }
+                
+                // 필터 파라미터 추가
+                if (filters.status) {
+                    requestData.status_filter = filters.status;
+                }
+                if (filters.type) {
+                    requestData.type_filter = filters.type;
+                }
+                if (filters.dateFrom) {
+                    requestData.date_from = filters.dateFrom;
+                }
+                if (filters.dateTo) {
+                    requestData.date_to = filters.dateTo;
                 }
                 
                 console.log(`🚀 POST 요청 데이터:`, requestData);
@@ -485,6 +529,11 @@
                     if (data.data.pagination) {
                         currentPage = data.data.pagination.current_page;
                         updatePaginationFromServer(data.data.pagination);
+                    }
+                    
+                    // 동적 필터 옵션 업데이트
+                    if (data.data.filter_options) {
+                        updateFilterOptions(data.data.filter_options);
                     }
                     
                     // Level별 버튼 표시/숨김 처리
@@ -530,15 +579,6 @@
             } else {
                 document.getElementById('adminButtons').style.display = 'block';
                 document.getElementById('level1Buttons').style.display = 'none';
-                
-                // Level 2+ 사용자만 '취소됨' 상태 필터 옵션 추가
-                const statusFilter = document.getElementById('statusFilter');
-                if (!statusFilter.querySelector('option[value="취소됨"]')) {
-                    const cancelledOption = document.createElement('option');
-                    cancelledOption.value = '취소됨';
-                    cancelledOption.textContent = '취소됨';
-                    statusFilter.appendChild(cancelledOption);
-                }
             }
         }
 
@@ -654,17 +694,42 @@
         }
 
         function filterRequests() {
-            // 서버에서 이미 탭별 필터링을 처리하므로, 
-            // 현재는 단순히 리스트만 새로고침
-            // 추후 서버 API에 필터 파라미터 추가 가능
-            loadInspectionRequests(currentTab, currentPage, '');
+            // 필터 값들 수집
+            const statusFilter = document.getElementById('statusFilter').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            const dateFromFilter = document.getElementById('dateFromFilter').value;
+            const dateToFilter = document.getElementById('dateToFilter').value;
+            
+            console.log('필터 적용:', {
+                status: statusFilter,
+                type: typeFilter,
+                dateFrom: dateFromFilter,
+                dateTo: dateToFilter
+            });
+            
+            // 로딩 인디케이터 표시
+            showLoadingIndicator();
+            
+            // 필터 활성 상태 업데이트
+            updateFilterStatus();
+            
+            // 필터 파라미터와 함께 API 호출
+            loadInspectionRequestsWithFilters(currentTab, 1, '', {
+                status: statusFilter,
+                type: typeFilter,
+                dateFrom: dateFromFilter,
+                dateTo: dateToFilter
+            });
         }
 
         function clearFilters() {
             document.getElementById('statusFilter').value = '';
             document.getElementById('typeFilter').value = '';
             document.getElementById('dateFromFilter').value = '';
-            document.getElementById('dateToFilter').value = '';
+            // 종료 날짜는 오늘로 다시 설정
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateToFilter').value = today;
+            updateFilterStatus();
             loadInspectionRequests(currentTab, currentPage, '');
         }
 
@@ -797,6 +862,16 @@
                 overlay.remove();
             }
         }
+        
+        function updateLoadingDialog(title, message = '잠시만 기다려주세요.') {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                const titleElement = overlay.querySelector('h3');
+                const messageElement = overlay.querySelector('p');
+                if (titleElement) titleElement.textContent = title;
+                if (messageElement) messageElement.textContent = message;
+            }
+        }
 
         async function bulkDelete() {
             const selected = Array.from(document.querySelectorAll('.item-checkbox:checked'));
@@ -818,29 +893,81 @@
                 let successCount = 0;
                 let failedItems = [];
                 
-                for (const checkbox of selected) {
-                    const requestId = checkbox.dataset.id;
-                    try {
-                        const response = await fetch(`/api/inspection-management/requests/${requestId}`, {
-                            method: 'DELETE',
-                            headers: { 'Content-Type': 'application/json' }
-                        });
-                        
-                        const result = await response.json();
+                // 청크 단위 병렬 처리 (5개씩)
+                const chunkSize = 5;
+                const totalChunks = Math.ceil(selected.length / chunkSize);
+                
+                for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+                    const start = chunkIndex * chunkSize;
+                    const end = Math.min(start + chunkSize, selected.length);
+                    const chunk = selected.slice(start, end);
+                    
+                    // 진행 상황 업데이트
+                    const progressMessage = totalChunks > 1 ? 
+                        `🗑️ 삭제 중... (${chunkIndex + 1}/${totalChunks} 그룹 처리 중)` : 
+                        '🗑️ 삭제 중...';
+                    updateLoadingDialog(progressMessage);
+                    
+                    // 청크 내에서 병렬 처리
+                    const promises = chunk.map(async (checkbox) => {
+                        const requestId = checkbox.dataset.id;
+                        try {
+                            const response = await fetch(`/api/inspection-management/requests/${requestId}`, {
+                                method: 'DELETE',
+                                headers: { 'Content-Type': 'application/json' }
+                            });
+                            
+                            const result = await response.json();
+                            return { success: result.success, requestId };
+                        } catch (error) {
+                            return { success: false, requestId, error: error.message };
+                        }
+                    });
+                    
+                    // 청크 결과 처리
+                    const chunkResults = await Promise.all(promises);
+                    chunkResults.forEach(result => {
                         if (result.success) {
                             successCount++;
                         } else {
-                            failedItems.push(requestId);
+                            failedItems.push({
+                                id: result.requestId,
+                                error: result.error || '알 수 없는 오류'
+                            });
                         }
-                    } catch (error) {
-                        failedItems.push(requestId);
+                    });
+                    
+                    // 청크 간 짧은 대기 (서버 부하 방지)
+                    if (chunkIndex < totalChunks - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
                     }
                 }
                 
-                let message = `🗑️ ${successCount}개 항목이 삭제되었습니다.`;
-                if (failedItems.length > 0) {
-                    message += `\n❌ 실패: ${failedItems.length}개`;
+                // 상세한 결과 메시지 생성
+                let message;
+                if (failedItems.length === 0) {
+                    message = `✅ 모든 항목이 성공적으로 삭제되었습니다!\n🗑️ 삭제된 항목: ${successCount}개`;
+                } else if (successCount === 0) {
+                    message = `❌ 모든 항목 삭제에 실패했습니다.\n실패한 항목: ${failedItems.length}개\n\n다시 시도하거나 관리자에게 문의하세요.`;
+                } else {
+                    message = `⚠️ 일부 항목 삭제가 완료되었습니다.\n✅ 성공: ${successCount}개\n❌ 실패: ${failedItems.length}개\n\n실패한 항목은 다시 선택하여 재시도할 수 있습니다.`;
                 }
+                
+                // 실패 원인이 있을 경우 상세 정보 추가 (최대 3개까지만 표시)
+                if (failedItems.length > 0 && failedItems.length <= 3) {
+                    message += '\n\n📋 실패 상세:';
+                    failedItems.forEach(item => {
+                        message += `\n• ID ${item.id}: ${item.error}`;
+                    });
+                } else if (failedItems.length > 3) {
+                    message += `\n\n📋 실패 상세 (일부):`;
+                    failedItems.slice(0, 3).forEach(item => {
+                        message += `\n• ID ${item.id}: ${item.error}`;
+                    });
+                    message += `\n... 및 ${failedItems.length - 3}개 더`;
+                }
+                
+                
                 alert(message);
                 loadInspectionRequests(currentTab, currentPage, '');
                 
@@ -1085,6 +1212,10 @@
                 document.getElementById('searchInput').value = '';
             }
             
+            // 탭 전환 시 종료 날짜를 오늘로 다시 설정
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateToFilter').value = today;
+            
             // 새 API 호출
             console.log(`API 호출 전 currentTab 확인: ${currentTab}`);
             loadInspectionRequests(tabName, 1, '');
@@ -1275,6 +1406,54 @@
 
         function hideLoadingIndicator() {
             // 로딩 중 메시지 제거 (실제 데이터로 대체됨)
+        }
+        
+        // 필터 옵션을 동적으로 업데이트하는 함수
+        function updateFilterOptions(filterOptions) {
+            const statusFilter = document.getElementById('statusFilter');
+            const typeFilter = document.getElementById('typeFilter');
+            
+            // 현재 선택된 값 저장
+            const currentStatus = statusFilter.value;
+            const currentType = typeFilter.value;
+            
+            // 상태 필터 옵션 업데이트
+            const statusOptions = ['<option value="">전체</option>'];
+            filterOptions.statuses.forEach(status => {
+                const selected = status === currentStatus ? ' selected' : '';
+                statusOptions.push(`<option value="${status}"${selected}>${status}</option>`);
+            });
+            statusFilter.innerHTML = statusOptions.join('');
+            
+            // 검사타입 필터 옵션 업데이트
+            const typeOptions = ['<option value="">전체</option>'];
+            filterOptions.types.forEach(type => {
+                const selected = type === currentType ? ' selected' : '';
+                typeOptions.push(`<option value="${type}"${selected}>${type}</option>`);
+            });
+            typeFilter.innerHTML = typeOptions.join('');
+            
+            console.log('필터 옵션 업데이트됨:', filterOptions);
+        }
+        
+        // 필터 활성 상태를 업데이트하는 함수
+        function updateFilterStatus() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            const dateFromFilter = document.getElementById('dateFromFilter').value;
+            const dateToFilter = document.getElementById('dateToFilter').value;
+            
+            const hasActiveFilter = statusFilter || typeFilter || dateFromFilter || dateToFilter;
+            const filterSection = document.getElementById('filterSection');
+            const filterIndicator = document.getElementById('filterIndicator');
+            
+            if (hasActiveFilter) {
+                filterSection.classList.add('filter-active');
+                filterIndicator.style.display = 'inline-block';
+            } else {
+                filterSection.classList.remove('filter-active');
+                filterIndicator.style.display = 'none';
+            }
         }
 
         // 기존 renderRequests 함수를 새 함수로 대체

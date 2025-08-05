@@ -142,21 +142,62 @@ class SearchController < Sinatra::Base
       
       AppLogger.debug("삭제할 항목들: #{items_to_remove}")
       
-      # Flask API를 통해 각 항목 삭제
+      # Flask API를 통해 청크 단위 병렬 삭제 (5개씩)
       flask_client = FlaskClient.new
+      chunk_size = 5
+      total_chunks = (items_to_remove.length.to_f / chunk_size).ceil
       deleted_count = 0
+      failed_items = []
       
-      items_to_remove.each do |assembly_code|
-        result = flask_client.delete_saved_item(assembly_code, session[:jwt_token])
-        if result[:success]
-          deleted_count += 1
-          AppLogger.debug("항목 삭제 성공: #{assembly_code}")
-        else
-          AppLogger.debug("항목 삭제 실패: #{assembly_code} - #{result[:error]}")
+      AppLogger.debug("청크 단위 병렬 삭제 시작: #{items_to_remove.length}개 항목을 #{total_chunks}개 그룹으로 처리")
+      
+      items_to_remove.each_slice(chunk_size).with_index do |chunk, chunk_index|
+        AppLogger.debug("청크 #{chunk_index + 1}/#{total_chunks} 처리 중 (#{chunk.length}개 항목)")
+        
+        # 각 청크를 Thread로 병렬 처리
+        threads = chunk.map do |assembly_code|
+          Thread.new do
+            begin
+              result = flask_client.delete_saved_item(assembly_code, session[:jwt_token])
+              if result[:success]
+                AppLogger.debug("항목 삭제 성공: #{assembly_code}")
+                { success: true, code: assembly_code }
+              else
+                AppLogger.debug("항목 삭제 실패: #{assembly_code} - #{result[:error]}")
+                { success: false, code: assembly_code, error: result[:error] }
+              end
+            rescue => e
+              AppLogger.debug("항목 삭제 오류: #{assembly_code} - #{e.message}")
+              { success: false, code: assembly_code, error: e.message }
+            end
+          end
         end
+        
+        # 모든 Thread 완료 대기 및 결과 수집
+        chunk_results = threads.map(&:value)
+        
+        # 결과 집계
+        chunk_results.each do |result|
+          if result[:success]
+            deleted_count += 1
+          else
+            failed_items << result
+          end
+        end
+        
+        # 청크 간 짧은 대기 (서버 부하 방지)
+        sleep(0.1) if chunk_index < total_chunks - 1
       end
       
-      { success: true, message: "#{deleted_count}개 항목이 삭제되었습니다." }.to_json
+      # 결과 메시지 생성
+      if failed_items.empty?
+        message = "#{deleted_count}개 항목이 모두 삭제되었습니다."
+      else
+        message = "#{deleted_count}개 항목이 삭제되었습니다. (실패: #{failed_items.length}개)"
+        AppLogger.debug("삭제 실패 항목들: #{failed_items.map { |item| "#{item[:code]}(#{item[:error]})" }.join(', ')}")
+      end
+      
+      { success: true, message: message }.to_json
       
     rescue JSON::ParserError
       { success: false, error: '잘못된 요청 형식입니다.' }.to_json
