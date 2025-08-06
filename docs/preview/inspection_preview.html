@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSHI 검사신청 관리 - 새로운 디자인 미리보기</title>
+    <style>
+/* 새로운 블루톤 디자인 시스템 - 검사신청 관리 페이지 */
+:root {
+  /* 주요 블루 톤 팔레트 (Preview.html 기준) */
+  --prussian-blue: #08263f;
+  --air-force-blue: #6a93ae;
+  --blue-green: #479bbc;
+  --aquamarine: #72dfaf;
+  --alice-blue: #f3fafc;
+  
+  /* 추가 보조 색상 (대시보드 및 특수 버튼용) */
+  --olivine: #acc196;
+  --mountbatten-pink: #987284;
+  --wheat: #ead2ac;
+  --nyanza: #e5ffde;
+  --mindaro: #edf67d;
+  
+  /* 투명도 버전 */
+  --prussian-blue-alpha: rgba(8, 38, 63, 0.1);
+  --air-force-blue-alpha: rgba(106, 147, 174, 0.1);
+  --blue-green-alpha: rgba(71, 155, 188, 0.1);
+  --aquamarine-alpha: rgba(114, 223, 175, 0.1);
+  --olivine-alpha: rgba(172, 193, 150, 0.1);
+  
+  /* 그라데이션 (Preview.html 스타일) */
+  --gradient-primary: linear-gradient(135deg, var(--prussian-blue) 0%, var(--blue-green) 100%);
+  --gradient-secondary: linear-gradient(135deg, var(--air-force-blue) 0%, var(--aquamarine) 100%);
+  --gradient-subtle: linear-gradient(180deg, var(--alice-blue) 0%, rgba(255, 255, 255, 0.9) 100%);
+}
+
+/* 기본 리셋 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--alice-blue);
+  min-height: 100vh;
+  color: var(--prussian-blue);
+  line-height: 1.6;
+}
+
+/* 헤더 스타일 */
+.header {
+  background: var(--gradient-primary);
+  color: white;
+  padding: 15px 20px;
+  box-shadow: 0 4px 6px rgba(8, 38, 63, 0.1);
+}
+
+.header-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 {
+  font-size: 24px;
+  font-weight: 500;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.user-info {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 네비게이션 버튼들 */
+.nav-btn, .logout-btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  font-size: 13px;
+  font-weight: 500;
+  backdrop-filter: blur(4px);
+}
+
+.nav-btn:hover, .logout-btn:hover {
+  background: rgba(255,255,255,0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* 컨테이너 */
+.container {
+  max-width: 1400px;
+  margin: 20px auto;
+  padding: 0 20px;
+}
+
+/* 카드 컴포넌트 */
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px var(--prussian-blue-alpha);
+  margin-bottom: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(106, 147, 174, 0.1);
+}
+
+.card-header {
+  background: var(--gradient-subtle);
+  padding: 20px;
+  border-bottom: 1px solid var(--air-force-blue-alpha);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--prussian-blue);
+}
+
+.card-body {
+  padding: 20px;
+}
+
+/* 탭 스타일 */
+.tab-container {
+  border-bottom: 2px solid var(--air-force-blue-alpha);
+  margin-bottom: 20px;
+}
+
+.tab-nav {
+  display: flex;
+  gap: 0;
+}
+
+.tab-btn {
+  padding: 12px 24px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--air-force-blue);
+  transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+  color: var(--prussian-blue);
+  border-bottom-color: var(--blue-green);
+  background: var(--blue-green-alpha);
+}
+
+.tab-btn:hover:not(.active) {
+  color: var(--prussian-blue);
+  background: var(--alice-blue);
+}
+
+/* 필터 섹션 */
+.filter-section {
+  background: var(--air-force-blue-alpha);
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 4px solid var(--air-force-blue);
+}
+
+.filter-section.filter-active {
+  background: var(--blue-green-alpha) !important;
+  border-left-color: var(--blue-green) !important;
+  border-left-width: 6px !important;
+}
+
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.filter-header h4 {
+  margin: 0;
+  color: var(--prussian-blue);
+}
+
+.filter-indicator {
+  display: inline-block;
+  background: var(--blue-green);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  margin-left: 8px;
+  font-weight: bold;
+}
+
+.filter-group {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+}
+
+.filter-group:last-child {
+  margin-bottom: 0;
+}
+
+.filter-group label {
+  font-weight: 500;
+  margin-right: 8px;
+  color: var(--prussian-blue);
+}
+
+.filter-group select, 
+.filter-group input {
+  padding: 8px 12px;
+  border: 2px solid var(--air-force-blue-alpha);
+  border-radius: 6px;
+  font-size: 14px;
+  min-width: 120px;
+  background: white;
+  color: var(--prussian-blue);
+}
+
+.filter-group select:focus, 
+.filter-group input:focus {
+  outline: none;
+  border-color: var(--blue-green);
+  box-shadow: 0 0 0 3px var(--blue-green-alpha);
+}
+
+.search-input-wide {
+  min-width: 200px;
+  max-width: 300px;
+}
+
+.date-input {
+  min-width: 140px;
+}
+
+/* 버튼 스타일 */
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: var(--blue-green);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #3a8aa3;
+  box-shadow: 0 4px 12px rgba(71, 155, 188, 0.3);
+}
+
+.btn-success {
+  background: var(--aquamarine);
+  color: var(--prussian-blue);
+}
+
+.btn-success:hover:not(:disabled) {
+  background: rgba(114, 223, 175, 0.8);
+  box-shadow: 0 4px 12px rgba(114, 223, 175, 0.3);
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #c82333;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.btn-warning {
+  background: var(--wheat);
+  color: var(--prussian-blue);
+}
+
+.btn-warning:hover:not(:disabled) {
+  background: rgba(234, 210, 172, 0.8);
+  box-shadow: 0 4px 12px rgba(234, 210, 172, 0.3);
+}
+
+.btn-secondary-custom {
+  background: var(--air-force-blue) !important;
+  color: white;
+}
+
+.selected-info {
+  margin-left: 20px;
+  color: var(--air-force-blue);
+  font-size: 14px;
+}
+
+/* 테이블 스타일 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--air-force-blue-alpha);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+th, td {
+  padding: 12px 16px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--air-force-blue-alpha);
+  border-right: 1px solid var(--air-force-blue-alpha);
+}
+
+th:last-child, td:last-child {
+  border-right: none;
+}
+
+th {
+  background: var(--gradient-subtle);
+  font-weight: 600;
+  color: var(--prussian-blue);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+tr:hover {
+  background-color: var(--blue-green-alpha);
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+.checkbox-cell {
+  text-align: center;
+  width: 50px;
+}
+
+.item-checkbox {
+  transform: scale(1.3);
+  cursor: pointer;
+  accent-color: var(--blue-green);
+}
+
+/* 상태 배지 */
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.status-pending {
+  background: var(--wheat);
+  color: var(--prussian-blue);
+}
+
+.status-badge.status-approved {
+  background: var(--blue-green-alpha);
+  color: var(--prussian-blue);
+  border: 1px solid var(--blue-green);
+}
+
+.status-badge.status-rejected {
+  background: rgba(152, 114, 132, 0.15);
+  color: var(--mountbatten-pink);
+}
+
+.status-badge.status-confirmed {
+  background: var(--aquamarine-alpha);
+  color: var(--prussian-blue);
+  border: 1px solid var(--aquamarine);
+}
+
+.status-badge.status-cancelled {
+  background: var(--air-force-blue-alpha);
+  color: var(--air-force-blue);
+}
+
+/* 페이지네이션 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.pagination button {
+  padding: 8px 12px;
+  border: 1px solid var(--air-force-blue-alpha);
+  background: white;
+  color: var(--prussian-blue);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: var(--blue-green);
+  color: white;
+  border-color: var(--blue-green);
+}
+
+.pagination button.active {
+  background: var(--blue-green);
+  color: white;
+  border-color: var(--blue-green);
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  margin: 0 15px;
+  color: var(--air-force-blue);
+  font-size: 14px;
+}
+
+/* 빈 상태 */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--air-force-blue);
+}
+
+.empty-state h3 {
+  margin-bottom: 10px;
+  color: var(--prussian-blue);
+}
+
+/* 숨김 처리 */
+.hidden-default {
+  display: none;
+}
+
+/* 테스트 섹션 */
+.test-section {
+  margin-top: 30px;
+  padding: 20px;
+  background: var(--alice-blue);
+  border-radius: 8px;
+  border-left: 4px solid var(--blue-green);
+}
+
+.test-section h4 {
+  color: var(--prussian-blue);
+  margin-bottom: 15px;
+}
+
+.test-section p {
+  color: var(--air-force-blue);
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+  
+  .user-info {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .container {
+    padding: 0 15px;
+  }
+  
+  .filter-group {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .filter-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+}
+    </style>
+</head>
+<body class="inspection-page">
+    <div class="header">
+        <div class="header-content">
+            <div>
+                <h1>📋 DSHI 검사신청 관리</h1>
+            </div>
+            <div class="user-info">
+                👤 테스트 사용자님 (Level 3)
+                <a href="#" class="nav-btn">🔍 조립품 검색</a>
+                <a href="#" class="nav-btn">📋 저장된 리스트</a>
+                <a href="#" class="nav-btn">📊 대시보드</a>
+                <a href="#" class="logout-btn">로그아웃</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                🛠️ 검사신청 관리
+            </div>
+            <div class="card-body">
+                <!-- 탭 네비게이션 -->
+                <div class="tab-container">
+                    <div class="tab-nav">
+                        <button class="tab-btn active" id="activeTab">
+                            📋 기본 (대기중/승인됨)
+                        </button>
+                        <button class="tab-btn" id="completedTab">
+                            ✅ 완료 (확정됨/거부됨)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 필터 섹션 -->
+                <div class="filter-section" id="filterSection">
+                    <div class="filter-header">
+                        <h4>🔍 필터 및 관리 도구<span id="filterIndicator" class="filter-indicator hidden-default">필터 활성</span></h4>
+                        <div>
+                            <button class="btn btn-primary">🔄 새로고침</button>
+                            <button class="btn btn-primary btn-secondary-custom">🗑️ 필터 초기화</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Assembly Code 검색 (완료 탭에서만 표시) -->
+                    <div class="filter-group hidden-default" id="searchGroup">
+                        <div>
+                            <label>Assembly Code 검색:</label>
+                            <input type="text" id="searchInput" class="search-input-wide" placeholder="Assembly Code를 입력하세요 (예: A001-001)">
+                        </div>
+                        <div>
+                            <button class="btn btn-success">🔍 검색</button>
+                            <button class="btn btn-primary btn-secondary-custom">🗑️ 초기화</button>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <div>
+                            <label>상태:</label>
+                            <select id="statusFilter">
+                                <option value="">전체</option>
+                                <option value="대기중">대기중</option>
+                                <option value="승인됨">승인됨</option>
+                                <option value="거부됨">거부됨</option>
+                                <option value="확정됨">확정됨</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>검사 타입:</label>
+                            <select id="typeFilter">
+                                <option value="">전체</option>
+                                <option value="FIT_UP">FIT-UP</option>
+                                <option value="FINAL">FINAL</option>
+                                <option value="ARUP_FINAL">ARUP FINAL</option>
+                                <option value="GALV">GALV</option>
+                                <option value="ARUP_GALV">ARUP GALV</option>
+                                <option value="SHOT">SHOT</option>
+                                <option value="PAINT">PAINT</option>
+                                <option value="ARUP_PAINT">ARUP PAINT</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>검사일:</label>
+                            <input type="date" id="dateFromFilter" class="date-input">
+                        </div>
+                        <div>
+                            <label>~</label>
+                            <input type="date" id="dateToFilter" class="date-input" value="2024-08-07">
+                        </div>
+                        <div>
+                            <button class="btn btn-primary">🔍 필터 적용</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Level 2+ 사용자용 일괄 처리 버튼 -->
+                    <div class="filter-group" id="adminButtons">
+                        <div>
+                            <button class="btn btn-success" disabled>✅ 선택 승인</button>
+                            <button class="btn btn-danger" disabled>❌ 선택 거부</button>
+                            <button class="btn btn-warning" disabled>🔒 선택 확정</button>
+                            <button class="btn btn-danger" disabled>🗑️ 선택 삭제</button>
+                        </div>
+                        <div class="selected-info">
+                            선택된 항목: 0개
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 검사신청 목록 -->
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="checkbox-cell">
+                                    <input type="checkbox" id="selectAllCheckbox">
+                                </th>
+                                <th>조립품 코드</th>
+                                <th>검사 타입</th>
+                                <th>신청일</th>
+                                <th>신청자</th>
+                                <th>검사일</th>
+                                <th>상태</th>
+                                <th>승인자</th>
+                                <th>승인일</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="checkbox-cell">
+                                    <input type="checkbox" class="item-checkbox">
+                                </td>
+                                <td><strong>A001-001</strong></td>
+                                <td>FIT-UP</td>
+                                <td>2024-08-05</td>
+                                <td>김철수</td>
+                                <td>2024-08-07</td>
+                                <td><span class="status-badge status-pending">대기중</span></td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>
+                                    <button class="btn btn-success" style="font-size: 12px; padding: 4px 8px;">승인</button>
+                                    <button class="btn btn-danger" style="font-size: 12px; padding: 4px 8px;">거부</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="checkbox-cell">
+                                    <input type="checkbox" class="item-checkbox">
+                                </td>
+                                <td><strong>A001-002</strong></td>
+                                <td>FINAL</td>
+                                <td>2024-08-04</td>
+                                <td>이영희</td>
+                                <td>2024-08-06</td>
+                                <td><span class="status-badge status-approved">승인됨</span></td>
+                                <td>박관리</td>
+                                <td>2024-08-05</td>
+                                <td>
+                                    <button class="btn btn-warning" style="font-size: 12px; padding: 4px 8px;">확정</button>
+                                    <button class="btn btn-danger" style="font-size: 12px; padding: 4px 8px; margin-left: 4px;">거부</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="checkbox-cell">
+                                    <input type="checkbox" class="item-checkbox">
+                                </td>
+                                <td><strong>A001-003</strong></td>
+                                <td>GALV</td>
+                                <td>2024-08-03</td>
+                                <td>최담당</td>
+                                <td>2024-08-05</td>
+                                <td><span class="status-badge status-confirmed">확정됨</span></td>
+                                <td>박관리</td>
+                                <td>2024-08-04</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td class="checkbox-cell">
+                                    <input type="checkbox" class="item-checkbox">
+                                </td>
+                                <td><strong>A001-004</strong></td>
+                                <td>SHOT</td>
+                                <td>2024-08-02</td>
+                                <td>정작업</td>
+                                <td>2024-08-04</td>
+                                <td><span class="status-badge status-rejected">거부됨</span></td>
+                                <td>박관리</td>
+                                <td>2024-08-03</td>
+                                <td>-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 페이징 -->
+                <div class="pagination">
+                    <button disabled>이전</button>
+                    <div>
+                        <button class="active">1</button>
+                        <button>2</button>
+                        <button>3</button>
+                    </div>
+                    <button>다음</button>
+                    <div class="pagination-info">
+                        <span>페이지 1 / 3 (총 45개 항목)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 테스트 섹션 -->
+        <div class="test-section">
+            <h4>🎨 검사신청 관리 페이지 - 새로운 디자인 적용 완료</h4>
+            <p><strong>헤더:</strong> 일관된 블루 그라데이션 배경으로 통일</p>
+            <p><strong>탭 스타일:</strong> Air Force Blue와 Blue Green 색상으로 세련된 탭 디자인</p>
+            <p><strong>필터 섹션:</strong> Air Force Blue 알파 배경과 Blue Green 강조색 적용</p>
+            <p><strong>상태 배지:</strong> 새로운 팔레트로 상태별 명확한 색상 구분</p>
+            <p><strong>테이블:</strong> 세로 구분선과 중간 정렬로 가독성 향상</p>
+            <p><strong>페이지네이션:</strong> Blue Green 색상으로 통일된 네비게이션</p>
+            <p><strong>버튼 시스템:</strong> 통일된 색상과 호버 효과로 일관성 확보</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 탭 전환 기능
+            document.getElementById('activeTab').addEventListener('click', function() {
+                switchTab('active');
+            });
+            
+            document.getElementById('completedTab').addEventListener('click', function() {
+                switchTab('completed');
+            });
+            
+            function switchTab(tabName) {
+                // 탭 버튼 스타일 업데이트
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                if (tabName === 'active') {
+                    document.getElementById('activeTab').classList.add('active');
+                    document.getElementById('searchGroup').style.display = 'none';
+                } else {
+                    document.getElementById('completedTab').classList.add('active');
+                    document.getElementById('searchGroup').style.display = 'flex';
+                }
+            }
+            
+            // 체크박스 전체 선택 기능
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const itemCheckboxes = document.querySelectorAll('.item-checkbox');
+            
+            selectAllCheckbox.addEventListener('change', function() {
+                itemCheckboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+                updateSelectionButtons();
+            });
+            
+            itemCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateSelectionButtons);
+            });
+            
+            function updateSelectionButtons() {
+                const selected = document.querySelectorAll('.item-checkbox:checked');
+                const buttons = document.querySelectorAll('#adminButtons .btn');
+                const selectedInfo = document.querySelector('.selected-info');
+                
+                buttons.forEach(btn => {
+                    btn.disabled = selected.length === 0;
+                });
+                
+                selectedInfo.textContent = `선택된 항목: ${selected.length}개`;
+            }
+            
+            // 폼 제출 방지 (미리보기용)
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    if (!this.disabled) {
+                        e.preventDefault();
+                        alert('🎉 검사신청 관리 페이지 새로운 디자인이 적용되었습니다!\n\n• 블루톤 색상 팔레트로 일관성 확보\n• 상태별 배지 색상 개선\n• 필터 및 탭 디자인 향상\n• 테이블 가독성 개선');
+                    }
+                });
+            });
+            
+            console.log('🎉 DSHI 검사신청 관리 페이지 - 새로운 디자인 미리보기 로드 완료!');
+        });
+    </script>
+</body>
+</html>

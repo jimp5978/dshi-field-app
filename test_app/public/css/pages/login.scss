@@ -69,10 +69,10 @@ body.login-page {
 }
 
 .error-message {
-  background: #FFEBEE;
-  border: 1px solid #FFCDD2;
-  border-left: 4px solid #F44336;
-  color: #C62828;
+  background: rgba(152, 114, 132, 0.15);
+  border: 1px solid rgba(152, 114, 132, 0.3);
+  border-left: 4px solid var(--mountbatten-pink);
+  color: var(--prussian-blue);
   padding: 12px 16px;
   border-radius: 4px;
   margin-bottom: $spacing-lg;
@@ -80,10 +80,10 @@ body.login-page {
 }
 
 .debug-info {
-  background: #E8F5E8;
-  border: 1px solid $success-color;
-  border-left: 4px solid $success-color;
-  color: #2E7D32;
+  background: rgba(114, 223, 175, 0.15);
+  border: 1px solid rgba(114, 223, 175, 0.3);
+  border-left: 4px solid var(--aquamarine);
+  color: var(--prussian-blue);
   padding: $spacing-sm;
   border-radius: 4px;
   margin-bottom: $spacing-lg;

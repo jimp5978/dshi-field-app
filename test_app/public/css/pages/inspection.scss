@@ -1,9 +1,9 @@
-// Inspection Management page styles
+// Inspection Management page styles - 새로운 블루톤 디자인 시스템
 @import '../variables';
 
 .inspection-page {
   .header {
-    background: $inspection-theme;
+    background: var(--gradient-primary);
   }
   
   .container {
@@ -11,24 +11,24 @@
   }
 }
 
-// 필터 섹션
+// 필터 섹션 - 새로운 디자인 시스템
 .filter-section {
-  background: rgba(255, 107, 53, 0.05);
+  background: var(--air-force-blue-alpha);
   padding: $spacing-lg;
   border-radius: $border-radius;
   margin-bottom: $spacing-lg;
-  border-left: 4px solid #FF6B35;
+  border-left: 4px solid var(--air-force-blue);
   
   &.filter-active {
-    background: rgba(255, 107, 53, 0.1) !important;
-    border-left-color: #FF6B35 !important;
+    background: var(--blue-green-alpha) !important;
+    border-left-color: var(--blue-green) !important;
     border-left-width: 6px !important;
   }
 }
 
 .filter-indicator {
   display: inline-block;
-  background: #FF6B35;
+  background: var(--blue-green);
   color: $white;
   padding: 2px 6px;
   border-radius: 4px;
@@ -57,9 +57,9 @@
   }
 }
 
-// 탭 스타일
+// 탭 스타일 - 새로운 디자인 시스템
 .tab-container {
-  border-bottom: 2px solid $border-gray;
+  border-bottom: 2px solid var(--air-force-blue-alpha);
   margin-bottom: $spacing-lg;
 }
 
@@ -76,22 +76,22 @@
   cursor: pointer;
   font-size: 16px;
   font-weight: 500;
-  color: $text-light;
+  color: var(--air-force-blue);
   transition: $transition-fast;
   
   &.active {
-    color: #FF6B35;
-    border-bottom-color: #FF6B35;
-    background: rgba(255, 107, 53, 0.05);
+    color: var(--prussian-blue);
+    border-bottom-color: var(--blue-green);
+    background: var(--blue-green-alpha);
   }
   
   &:hover:not(.active) {
-    color: $text-dark;
-    background: rgba(0, 0, 0, 0.02);
+    color: var(--prussian-blue);
+    background: var(--alice-blue);
   }
 }
 
-// 상태 배지
+// 상태 배지 - 새로운 디자인 시스템
 .status-badge {
   padding: 4px 8px;
   border-radius: 4px;
@@ -99,32 +99,34 @@
   font-weight: 500;
   
   &.status-pending {
-    background: #fff3cd;
-    color: #856404;
+    background: var(--wheat);
+    color: var(--prussian-blue);
   }
   
   &.status-approved {
-    background: #d1ecf1;
-    color: #0c5460;
+    background: var(--blue-green-alpha);
+    color: var(--prussian-blue);
+    border: 1px solid var(--blue-green);
   }
   
   &.status-rejected {
-    background: #f8d7da;
-    color: #721c24;
+    background: rgba(152, 114, 132, 0.15);
+    color: var(--mountbatten-pink);
   }
   
   &.status-confirmed {
-    background: #d4edda;
-    color: #155724;
+    background: var(--aquamarine-alpha);
+    color: var(--prussian-blue);
+    border: 1px solid var(--aquamarine);
   }
   
   &.status-cancelled {
-    background: #f8f9fa;
-    color: #6c757d;
+    background: var(--air-force-blue-alpha);
+    color: var(--air-force-blue);
   }
 }
 
-// 페이지네이션
+// 페이지네이션 - 새로운 디자인 시스템
 .pagination {
   display: flex;
   justify-content: center;
@@ -132,53 +134,54 @@
   gap: $spacing-sm;
   margin-top: $spacing-lg;
   
-  .page-btn {
+  button {
     padding: 8px 12px;
-    border: 1px solid $border-gray;
+    border: 1px solid var(--air-force-blue-alpha);
     background: $white;
-    color: $text-dark;
+    color: var(--prussian-blue);
     text-decoration: none;
     border-radius: $border-radius-small;
     transition: $transition-fast;
+    cursor: pointer;
     
-    &:hover {
-      background: #FF6B35;
+    &:hover:not(:disabled) {
+      background: var(--blue-green);
       color: $white;
-      border-color: #FF6B35;
+      border-color: var(--blue-green);
     }
     
     &.active {
-      background: #FF6B35;
+      background: var(--blue-green);
       color: $white;
-      border-color: #FF6B35;
+      border-color: var(--blue-green);
     }
     
-    &.disabled {
+    &:disabled {
       opacity: 0.5;
       cursor: not-allowed;
       
       &:hover {
         background: $white;
-        color: $text-dark;
-        border-color: $border-gray;
+        color: var(--prussian-blue);
+        border-color: var(--air-force-blue-alpha);
       }
     }
   }
   
-  .page-info {
+  .pagination-info {
     margin: 0 $spacing-md;
-    color: $text-light;
+    color: var(--air-force-blue);
     font-size: 14px;
   }
 }
 
-// 검색 박스 (완료 탭 전용)
+// 검색 박스 (완료 탭 전용) - 새로운 디자인 시스템
 .search-box {
   margin-bottom: $spacing-lg;
   
   .search-input {
     padding: 10px 16px;
-    border: 2px solid #e1e5e9;
+    border: 2px solid var(--air-force-blue-alpha);
     border-radius: $border-radius;
     font-size: 14px;
     min-width: 250px;
@@ -186,8 +189,8 @@
     
     &:focus {
       outline: none;
-      border-color: #FF6B35;
-      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+      border-color: var(--blue-green);
+      box-shadow: 0 0 0 3px var(--blue-green-alpha);
     }
   }
 }
@@ -210,9 +213,9 @@
   max-width: 300px;
 }
 
-// 버튼 색상 오버라이드
+// 버튼 색상 오버라이드 - 새로운 디자인 시스템
 .btn-secondary-custom {
-  background: #6c757d !important;
+  background: var(--air-force-blue) !important;
 }
 
 // 여백 유틸리티
@@ -225,13 +228,19 @@
   display: none;
 }
 
-// 날짜 입력 필드
+// 날짜 입력 필드 - 새로운 디자인 시스템
 .date-input {
   padding: 8px 12px;
-  border: 2px solid #e1e5e9;
+  border: 2px solid var(--air-force-blue-alpha);
   border-radius: $border-radius-small;
   font-size: 14px;
   min-width: 140px;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--blue-green);
+    box-shadow: 0 0 0 3px var(--blue-green-alpha);
+  }
 }
 
 // 필터 그룹 여백
@@ -239,10 +248,10 @@
   margin-top: $spacing-md;
 }
 
-// 선택된 정보 텍스트
+// 선택된 정보 텍스트 - 새로운 디자인 시스템
 .selected-info {
   margin-left: $spacing-lg;
-  color: $text-light;
+  color: var(--air-force-blue);
 }
 
 // 페이지네이션 기본 숨김
@@ -273,7 +282,7 @@
   margin-left: 4px !important;
 }
 
-// 로딩 인디케이터
+// 로딩 인디케이터 - 새로운 디자인 시스템
 .loading-container {
   text-align: center;
   padding: 40px;
@@ -283,9 +292,13 @@
   margin: 0 auto 15px auto;
   width: 30px;
   height: 30px;
+  border: 3px solid var(--air-force-blue-alpha);
+  border-top: 3px solid var(--blue-green);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 .loading-text {
-  color: #666;
+  color: var(--air-force-blue);
   margin: 0;
 }
