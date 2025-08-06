@@ -1,32 +1,38 @@
-// Variables - palette_1.scss 기반 테마 변수 매핑
+// Variables - Preview.html 기준 통일된 블루 톤 테마
 @import 'palette_1';
 
-// 페이지별 테마 색상 매핑
-$theme-blue: linear-gradient(135deg, $blue-green 0%, $air-force-blue 100%);
-$theme-green: linear-gradient(135deg, $aquamarine 0%, $olivine 100%); 
-$theme-orange: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
-$theme-purple: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+// 통일된 블루 톤 테마 (Preview.html 기준)
+$theme-primary: linear-gradient(135deg, $prussian-blue 0%, $blue-green 100%);
+$theme-secondary: linear-gradient(135deg, $air-force-blue 0%, $aquamarine 100%);
 
-// 페이지별 테마 할당
-$login-theme: $theme-blue;
-$search-theme: $theme-blue;
-$saved-list-theme: $theme-green;
-$inspection-theme: $theme-orange;
-$dashboard-theme: $theme-purple;
+// 모든 페이지에 동일한 블루 톤 테마 적용
+$login-theme: $theme-primary;
+$search-theme: $theme-primary;
+$saved-list-theme: $theme-primary;
+$inspection-theme: $theme-primary;
+$dashboard-theme: $theme-primary;
+$admin-theme: $theme-primary;
 
-// 공통 색상
+// 보조 테마 (특수 상황에만 사용)
+$theme-success: linear-gradient(135deg, $aquamarine 0%, $nyanza 100%);
+$theme-warning: linear-gradient(135deg, $wheat 0%, $mindaro 100%);
+$theme-neutral: linear-gradient(135deg, $air-force-blue 0%, $mountbatten-pink 100%);
+
+// 공통 색상 (Preview.html 기준)
 $white: #ffffff;
-$light-gray: #f5f5f5;
-$border-gray: #e9ecef;
-$text-dark: #333333;
-$text-light: #666666;
-$card-bg: $alice-blue;
+$light-gray: var(--alice-blue);
+$border-gray: var(--air-force-blue-alpha);
+$text-dark: var(--prussian-blue);
+$text-light: var(--air-force-blue);
+$card-bg: $white;
 
-// 상태별 색상
-$success-color: #28a745;
+// 상태별 색상 (확장 색상 활용)
+$success-color: var(--aquamarine);
 $danger-color: #dc3545;
-$warning-color: #ffc107;
-$info-color: #17a2b8;
+$warning-color: var(--wheat);
+$info-color: var(--olivine);
+$neutral-color: var(--mountbatten-pink);
+$urgent-color: var(--mindaro);
 
 // 그림자
 $shadow-light: 0 2px 4px rgba(0,0,0,0.1);

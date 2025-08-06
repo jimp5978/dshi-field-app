@@ -7,43 +7,45 @@
   }
 }
 
-// 검색 관련 스타일
+// 검색 관련 스타일 - 새로운 디자인 시스템
 .search-section {
   .search-input {
     padding: 12px 16px;
     font-size: 16px;
-    border: 2px solid #e1e5e9;
+    border: 2px solid var(--air-force-blue-alpha);
     border-radius: $border-radius;
     margin-right: $spacing-sm;
     min-width: 200px;
+    background: white;
+    color: var(--prussian-blue);
     
     &:focus {
       outline: none;
-      border-color: #2196F3;
-      box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+      border-color: var(--blue-green);
+      box-shadow: 0 0 0 3px var(--blue-green-alpha);
     }
   }
 }
 
-// 검색 결과 테이블
+// 검색 결과 테이블 - 새로운 디자인 시스템
 .search-results {
   .assembly-row:hover {
-    background-color: rgba(33, 150, 243, 0.05);
+    background-color: var(--blue-green-alpha);
   }
 }
 
-// 선택된 항목 요약
+// 선택된 항목 요약 - 새로운 디자인 시스템
 .selection-summary {
-  background: rgba(33, 150, 243, 0.1);
+  background: var(--blue-green-alpha);
   padding: $spacing-lg;
   border-radius: $border-radius;
   margin-bottom: $spacing-lg;
-  border-left: 4px solid #2196F3;
+  border-left: 4px solid var(--blue-green);
   
   .summary-title {
     font-weight: 600;
     margin-bottom: $spacing-sm;
-    color: $text-dark;
+    color: var(--prussian-blue);
   }
   
   .summary-stats {
@@ -55,12 +57,12 @@
       .stat-value {
         font-size: 20px;
         font-weight: bold;
-        color: #2196F3;
+        color: var(--blue-green);
       }
       
       .stat-label {
         font-size: 14px;
-        color: $text-light;
+        color: var(--air-force-blue);
       }
     }
   }

@@ -1,6 +1,35 @@
 /* Coolors Exported Palette - https://coolors.co/08263f-6a93ae-479bbc-72dfaf-acc196-f3fafc-987284-ead2ac-e5ffde-edf67d */
 
-/* CSS 변수는 사용하지 않고 SCSS 변수만 사용 */
+/* CSS 변수와 SCSS 변수를 함께 사용 - 런타임 변경 지원 */
+
+// CSS 변수 정의 (런타임에서 변경 가능)
+:root {
+  /* 주요 블루 톤 팔레트 (Preview.html 기준) */
+  --prussian-blue: #08263f;
+  --air-force-blue: #6a93ae;
+  --blue-green: #479bbc;
+  --aquamarine: #72dfaf;
+  --alice-blue: #f3fafc;
+  
+  /* 추가 보조 색상 (대시보드 및 특수 버튼용) */
+  --olivine: #acc196;
+  --mountbatten-pink: #987284;
+  --wheat: #ead2ac;
+  --nyanza: #e5ffde;
+  --mindaro: #edf67d;
+  
+  /* 투명도 버전 */
+  --prussian-blue-alpha: rgba(8, 38, 63, 0.1);
+  --air-force-blue-alpha: rgba(106, 147, 174, 0.1);
+  --blue-green-alpha: rgba(71, 155, 188, 0.1);
+  --aquamarine-alpha: rgba(114, 223, 175, 0.1);
+  --olivine-alpha: rgba(172, 193, 150, 0.1);
+  
+  /* 그라데이션 (Preview.html 스타일) */
+  --gradient-primary: linear-gradient(135deg, var(--prussian-blue) 0%, var(--blue-green) 100%);
+  --gradient-secondary: linear-gradient(135deg, var(--air-force-blue) 0%, var(--aquamarine) 100%);
+  --gradient-subtle: linear-gradient(180deg, var(--alice-blue) 0%, rgba(255, 255, 255, 0.9) 100%);
+}
 
 /* SCSS HEX */
 $prussian-blue: #08263fff;

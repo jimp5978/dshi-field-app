@@ -1,173 +1,247 @@
-// Components - 공통 컴포넌트 스타일
+// Components - Preview.html 기준 공통 컴포넌트 스타일
 @import 'variables';
 
-// 헤더 컴포넌트
-.header {
-  color: $white;
-  padding: 15px 20px;
-  box-shadow: $shadow-light;
-  
-  &-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  h1 {
-    font-size: 24px;
-    font-weight: 500;
-  }
-  
-  .user-info {
-    font-size: 14px;
-  }
-}
-
-// 네비게이션 버튼
-.nav-btn, .logout-btn {
-  background: rgba(255,255,255,0.2);
-  border: 1px solid rgba(255,255,255,0.3);
-  color: $white;
-  padding: 8px 16px;
-  border-radius: $border-radius-small;
-  text-decoration: none;
-  transition: $transition-fast;
-  margin-left: $spacing-sm;
-  
-  &:hover {
-    background: rgba(255,255,255,0.3);
-  }
-}
-
-// 카드 컴포넌트
+// 카드 컴포넌트 (Preview.html 스타일)
 .card {
-  background: $white;
-  border-radius: $border-radius;
-  box-shadow: $shadow-light;
-  margin-bottom: $spacing-lg;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px var(--prussian-blue-alpha);
+  margin-bottom: 20px;
   overflow: hidden;
+  border: 1px solid rgba(106, 147, 174, 0.1);
+  animation: fadeIn 0.3s ease-out;
   
   &-header {
-    background: #f8f9fa;
-    padding: $spacing-lg;
-    border-bottom: 1px solid $border-gray;
+    background: var(--gradient-subtle);
+    padding: 20px;
+    border-bottom: 1px solid var(--air-force-blue-alpha);
     font-size: 18px;
     font-weight: 600;
-    color: $text-dark;
+    color: var(--prussian-blue);
   }
   
   &-body {
-    padding: $spacing-lg;
+    padding: 20px;
   }
 }
 
-// 버튼 컴포넌트
+// 버튼 컴포넌트 (Preview.html 기준 + 확장 시스템)
 .btn {
-  padding: 10px 20px;
+  padding: 12px 24px;
   border: none;
-  border-radius: $border-radius-small;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  transition: $transition-fast;
+  transition: all 0.3s ease;
   text-decoration: none;
   display: inline-block;
   text-align: center;
-  margin-right: $spacing-sm;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-right: 10px;
+  margin-bottom: 10px;
   
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: $shadow-medium;
+    transform: translateY(-2px);
   }
   
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
   
-  // 버튼 색상 변형
-  &-primary { background: #2196F3; color: $white; }
-  &-success { background: $success-color; color: $white; }
-  &-danger { background: $danger-color; color: $white; }
-  &-warning { background: $warning-color; color: #212529; }
-  &-info { background: $info-color; color: $white; }
-  &-secondary { background: #6c757d; color: $white; }
+  // 기본 버튼 (Preview.html 기준)
+  &-primary { 
+    background: var(--blue-green);
+    color: white;
+    
+    &:hover {
+      background: #3a8aa3;
+      box-shadow: 0 4px 12px rgba(71, 155, 188, 0.3);
+    }
+  }
+  
+  &-secondary { 
+    background: var(--air-force-blue);
+    color: white;
+    
+    &:hover {
+      background: #5a829c;
+      box-shadow: 0 4px 12px rgba(106, 147, 174, 0.3);
+    }
+  }
+  
+  &-success { 
+    background: var(--aquamarine);
+    color: var(--prussian-blue);
+    
+    &:hover {
+      background: rgba(114, 223, 175, 0.8);
+      box-shadow: 0 4px 12px rgba(114, 223, 175, 0.3);
+    }
+  }
+  
+  &-danger { 
+    background: #dc3545;
+    color: white;
+    
+    &:hover {
+      background: #c82333;
+      box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+    }
+  }
+  
+  // 추가 확장 버튼 (새로운 색상 활용)
+  &-info { 
+    background: var(--olivine);
+    color: var(--prussian-blue);
+    
+    &:hover {
+      background: rgba(172, 193, 150, 0.8);
+      box-shadow: 0 4px 12px rgba(172, 193, 150, 0.3);
+    }
+  }
+  
+  &-warning { 
+    background: var(--wheat);
+    color: var(--prussian-blue);
+    
+    &:hover {
+      background: rgba(234, 210, 172, 0.8);
+      box-shadow: 0 4px 12px rgba(234, 210, 172, 0.3);
+    }
+  }
+  
+  &-neutral { 
+    background: var(--mountbatten-pink);
+    color: white;
+    
+    &:hover {
+      background: rgba(152, 114, 132, 0.8);
+      box-shadow: 0 4px 12px rgba(152, 114, 132, 0.3);
+    }
+  }
+  
+  &-light-success { 
+    background: var(--nyanza);
+    color: var(--prussian-blue);
+    
+    &:hover {
+      background: rgba(229, 255, 222, 0.8);
+      box-shadow: 0 4px 12px rgba(229, 255, 222, 0.3);
+    }
+  }
+  
+  &-urgent { 
+    background: var(--mindaro);
+    color: var(--prussian-blue);
+    
+    &:hover {
+      background: rgba(237, 246, 125, 0.8);
+      box-shadow: 0 4px 12px rgba(237, 246, 125, 0.3);
+    }
+  }
 }
 
-// 테이블 컴포넌트
+// 테이블 컴포넌트 (Preview.html 스타일)
 table {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid #ddd;
+  border: 1px solid var(--air-force-blue-alpha);
+  border-radius: 8px;
+  overflow: hidden;
   
   th, td {
-    padding: 12px;
-    border: 1px solid #ddd;
+    padding: 12px 16px;
     text-align: left;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--air-force-blue-alpha);
+    border-right: 1px solid var(--air-force-blue-alpha);
+    
+    &:last-child {
+      border-right: none;
+    }
   }
   
   th {
-    background: #f8f9fa;
+    background: var(--gradient-subtle);
     font-weight: 600;
+    color: var(--prussian-blue);
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.5px;
   }
   
   tr:hover {
-    background-color: #f8f9fa;
+    background-color: var(--blue-green-alpha);
+  }
+  
+  tr:last-child td {
+    border-bottom: none;
   }
 }
 
-// 체크박스
-.checkbox-cell {
-  text-align: center;
-  width: 50px;
+// 상태 박스 - 우리 색상 팔레트로 차분하게
+.status-box {
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-weight: 500;
+  border-left: 4px solid;
+  display: none;
+  
+  &.status-success {
+    background: rgba(114, 223, 175, 0.15);
+    color: var(--prussian-blue);
+    border-left-color: var(--aquamarine);
+  }
+  
+  &.status-error {
+    background: rgba(152, 114, 132, 0.15);
+    color: var(--prussian-blue);
+    border-left-color: var(--mountbatten-pink);
+  }
+  
+  &.status-loading {
+    background: rgba(234, 210, 172, 0.15);
+    color: var(--prussian-blue);
+    border-left-color: var(--wheat);
+  }
 }
 
-.item-checkbox {
-  transform: scale(1.2);
-  cursor: pointer;
+// 선택 정보
+.selection-info {
+  margin-top: 15px;
+  padding: 16px 20px;
+  background: var(--blue-green-alpha);
+  border-radius: 8px;
+  border-left: 4px solid var(--blue-green);
+  display: none;
+  font-weight: 500;
 }
 
 // 빈 상태
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: $text-light;
+  color: var(--air-force-blue);
   
   h3 {
-    margin-bottom: $spacing-sm;
-    color: $text-dark;
+    margin-bottom: 10px;
+    color: var(--prussian-blue);
   }
 }
 
 // 폼 컴포넌트
 .form-group {
-  margin-bottom: $spacing-lg;
+  margin-bottom: 20px;
   
   label {
     display: block;
-    margin-bottom: 8px;
-    color: $text-dark;
+    margin-bottom: 6px;
     font-weight: 500;
-    font-size: 14px;
-  }
-  
-  input, select {
-    width: 100%;
-    padding: 12px 16px;
-    border: 2px solid #e1e5e9;
-    border-radius: $border-radius;
-    font-size: 16px;
-    transition: $transition-fast;
-    background: #fafafa;
-    
-    &:focus {
-      outline: none;
-      border-color: #2196F3;
-      background: $white;
-      box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
-    }
+    color: var(--prussian-blue);
   }
 }

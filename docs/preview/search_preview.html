@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSHI 검색 - 새로운 디자인 미리보기</title>
+    <style>
+/* 새로운 블루톤 디자인 시스템 - 검색 페이지 */
+:root {
+  /* 주요 블루 톤 팔레트 (Preview.html 기준) */
+  --prussian-blue: #08263f;
+  --air-force-blue: #6a93ae;
+  --blue-green: #479bbc;
+  --aquamarine: #72dfaf;
+  --alice-blue: #f3fafc;
+  
+  /* 추가 보조 색상 (대시보드 및 특수 버튼용) */
+  --olivine: #acc196;
+  --mountbatten-pink: #987284;
+  --wheat: #ead2ac;
+  --nyanza: #e5ffde;
+  --mindaro: #edf67d;
+  
+  /* 투명도 버전 */
+  --prussian-blue-alpha: rgba(8, 38, 63, 0.1);
+  --air-force-blue-alpha: rgba(106, 147, 174, 0.1);
+  --blue-green-alpha: rgba(71, 155, 188, 0.1);
+  --aquamarine-alpha: rgba(114, 223, 175, 0.1);
+  --olivine-alpha: rgba(172, 193, 150, 0.1);
+  
+  /* 그라데이션 (Preview.html 스타일) */
+  --gradient-primary: linear-gradient(135deg, var(--prussian-blue) 0%, var(--blue-green) 100%);
+  --gradient-secondary: linear-gradient(135deg, var(--air-force-blue) 0%, var(--aquamarine) 100%);
+  --gradient-subtle: linear-gradient(180deg, var(--alice-blue) 0%, rgba(255, 255, 255, 0.9) 100%);
+}
+
+/* 기본 리셋 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--alice-blue);
+  min-height: 100vh;
+  color: var(--prussian-blue);
+  line-height: 1.6;
+}
+
+/* 헤더 스타일 */
+.header {
+  background: var(--gradient-primary);
+  color: white;
+  padding: 15px 20px;
+  box-shadow: 0 4px 6px rgba(8, 38, 63, 0.1);
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 {
+  font-size: 24px;
+  font-weight: 500;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.user-info {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 네비게이션 버튼들 */
+.nav-btn, .logout-btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  font-size: 13px;
+  font-weight: 500;
+  backdrop-filter: blur(4px);
+}
+
+.nav-btn:hover, .logout-btn:hover {
+  background: rgba(255,255,255,0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* 컨테이너 */
+.container {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 0 20px;
+}
+
+/* 카드 컴포넌트 */
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px var(--prussian-blue-alpha);
+  margin-bottom: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(106, 147, 174, 0.1);
+}
+
+.card-header {
+  background: var(--gradient-subtle);
+  padding: 20px;
+  border-bottom: 1px solid var(--air-force-blue-alpha);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--prussian-blue);
+}
+
+.card-body {
+  padding: 20px;
+}
+
+/* 검색 폼 */
+.search-form {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: var(--prussian-blue);
+}
+
+.search-input-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.search-input {
+  width: 50%;
+  padding: 12px 16px;
+  border: 2px solid var(--air-force-blue-alpha);
+  border-radius: 8px;
+  font-size: 16px;
+  background: white;
+  color: var(--prussian-blue);
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--blue-green);
+  box-shadow: 0 0 0 3px var(--blue-green-alpha);
+}
+
+/* 버튼 스타일 */
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn.search-btn {
+  padding: 12px 36px; /* 1.5배 가로 크기: 24px → 36px */
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: var(--blue-green);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #3a8aa3;
+  box-shadow: 0 4px 12px rgba(71, 155, 188, 0.3);
+}
+
+/* 상태 메시지 */
+.status-box {
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-weight: 500;
+  border-left: 4px solid;
+  display: none;
+}
+
+.status-success {
+  background: rgba(114, 223, 175, 0.15);
+  color: var(--prussian-blue);
+  border-left-color: var(--aquamarine);
+  display: block;
+}
+
+.status-error {
+  background: rgba(152, 114, 132, 0.15);
+  color: var(--prussian-blue);
+  border-left-color: var(--mountbatten-pink);
+  display: block;
+}
+
+.status-loading {
+  background: rgba(234, 210, 172, 0.15);
+  color: var(--prussian-blue);
+  border-left-color: var(--wheat);
+  display: block;
+}
+
+/* 테이블 스타일 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--air-force-blue-alpha);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+th, td {
+  padding: 12px 16px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--air-force-blue-alpha);
+  border-right: 1px solid var(--air-force-blue-alpha);
+}
+
+th:last-child, td:last-child {
+  border-right: none;
+}
+
+th {
+  background: var(--gradient-subtle);
+  font-weight: 600;
+  color: var(--prussian-blue);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+tr:hover {
+  background-color: var(--blue-green-alpha);
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+.checkbox-cell {
+  text-align: center;
+  width: 50px;
+}
+
+.item-checkbox {
+  transform: scale(1.3);
+  cursor: pointer;
+  accent-color: var(--blue-green);
+}
+
+/* 선택 정보 */
+.selection-info {
+  background: var(--blue-green-alpha);
+  padding: 16px 20px;
+  border-radius: 8px;
+  border-left: 4px solid var(--blue-green);
+  font-weight: 500;
+  margin-top: 15px;
+}
+
+/* 테스트 섹션 */
+.test-section {
+  margin-top: 30px;
+  padding: 20px;
+  background: var(--alice-blue);
+  border-radius: 8px;
+  border-left: 4px solid var(--blue-green);
+}
+
+.test-section h4 {
+  color: var(--prussian-blue);
+  margin-bottom: 15px;
+}
+
+.test-section p {
+  color: var(--air-force-blue);
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+  
+  .user-info {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .container {
+    padding: 0 15px;
+  }
+  
+  .search-input-container {
+    flex-direction: column;
+  }
+  
+  .search-input {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+}
+    </style>
+</head>
+<body class="search-page">
+    <div class="header">
+        <div class="header-content">
+            <div style="display: flex; align-items: center;">
+                <h1 style="margin: 0;">DSHI</h1>
+            </div>
+            <div class="user-info">
+                👤 테스트 사용자님 (Level 3)
+                <a href="#" class="nav-btn">📋 저장된 리스트</a>
+                <a href="#" class="nav-btn">📝 검사신청 관리</a>
+                <a href="#" class="nav-btn">📊 대시보드</a>
+                <a href="#" class="logout-btn">로그아웃</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                🔍 Assembly No 검색
+            </div>
+            <div class="card-body">
+                <div class="search-form">
+                    <form id="searchForm">
+                        <div class="form-group">
+                            <label>Assembly No (끝 3자리)</label>
+                            <div class="search-input-container">
+                                <input type="text" class="search-input" id="searchInput" 
+                                       placeholder="예: 001, 123, 420" maxlength="3" value="123">
+                                <button type="submit" class="btn btn-primary search-btn" id="searchBtn">검색</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 상태 메시지 예시들 -->
+                <div class="status-box status-loading" id="loadingStatus" style="display: none;">
+                    ⏳ 검색 중... 잠시만 기다려주세요.
+                </div>
+
+                <div class="status-box status-success" id="successStatus">
+                    ✅ 3개의 조립품을 찾았습니다.
+                </div>
+
+                <div class="status-box status-error" id="errorStatus" style="display: none;">
+                    ❌ 검색 오류: 서버 연결에 실패했습니다.
+                </div>
+
+                <div id="searchResults">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 id="resultsTitle">검색 결과 (3개)</h3>
+                        <div>
+                            <button id="addToListBtn" class="btn btn-primary">선택항목 저장</button>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table id="resultsTable">
+                            <thead>
+                                <tr>
+                                    <th class="checkbox-cell">
+                                        <input type="checkbox" id="selectAllCheckbox">
+                                    </th>
+                                    <th>Assembly No</th>
+                                    <th>Zone</th>
+                                    <th>Item</th>
+                                    <th>Weight(NET)</th>
+                                    <th>Status</th>
+                                    <th>Last Process</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="checkbox-cell">
+                                        <input type="checkbox" class="item-checkbox">
+                                    </td>
+                                    <td>TEST123</td>
+                                    <td>A-1</td>
+                                    <td>Steel Frame</td>
+                                    <td style="text-align: right;">1,250.5</td>
+                                    <td>완료</td>
+                                    <td>FIT-UP</td>
+                                </tr>
+                                <tr>
+                                    <td class="checkbox-cell">
+                                        <input type="checkbox" class="item-checkbox" checked>
+                                    </td>
+                                    <td>SAMPLE123</td>
+                                    <td>B-2</td>
+                                    <td>Support Beam</td>
+                                    <td style="text-align: right;">850.3</td>
+                                    <td>진행중</td>
+                                    <td>FINAL</td>
+                                </tr>
+                                <tr>
+                                    <td class="checkbox-cell">
+                                        <input type="checkbox" class="item-checkbox" checked>
+                                    </td>
+                                    <td>DEMO123</td>
+                                    <td>C-1</td>
+                                    <td>Connection Plate</td>
+                                    <td style="text-align: right;">125.8</td>
+                                    <td>대기중</td>
+                                    <td>GALV</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="selection-info">
+                        <strong>선택된 항목:</strong> <span id="selectedCount">2</span>개 
+                        | <strong>총 중량:</strong> <span id="totalWeight">976.1</span> kg
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 테스트 섹션 -->
+        <div class="test-section">
+            <h4>🎨 검색 페이지 - 새로운 디자인 적용 완료</h4>
+            <p><strong>헤더:</strong> 로그인과 동일한 블루 그라데이션 배경</p>
+            <p><strong>검색 입력 필드:</strong> Blue Green 색상으로 포커스 하이라이트</p>
+            <p><strong>상태 메시지:</strong> 차분한 팔레트 색상 (성공/에러/로딩)</p>
+            <p><strong>테이블 호버:</strong> Blue Green 알파 색상으로 하이라이트</p>
+            <p><strong>선택 정보:</strong> Blue Green 색상으로 통일</p>
+            
+            <div style="margin-top: 15px;">
+                <button onclick="toggleStatus('loading')" style="background: var(--wheat); color: var(--prussian-blue); border: none; padding: 8px 12px; border-radius: 4px; margin-right: 10px; cursor: pointer;">로딩 상태</button>
+                <button onclick="toggleStatus('success')" style="background: var(--aquamarine); color: var(--prussian-blue); border: none; padding: 8px 12px; border-radius: 4px; margin-right: 10px; cursor: pointer;">성공 상태</button>
+                <button onclick="toggleStatus('error')" style="background: var(--mountbatten-pink); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">에러 상태</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 체크박스 전체 선택 기능
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const itemCheckboxes = document.querySelectorAll('.item-checkbox');
+            
+            selectAllCheckbox.addEventListener('change', function() {
+                itemCheckboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+                updateSelectionInfo();
+            });
+            
+            // 개별 체크박스 변경 시
+            itemCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateSelectionInfo);
+            });
+            
+            // 선택 정보 업데이트
+            function updateSelectionInfo() {
+                const checkedBoxes = document.querySelectorAll('.item-checkbox:checked');
+                const count = checkedBoxes.length;
+                
+                // 더미 중량 계산
+                let totalWeight = 0;
+                checkedBoxes.forEach((checkbox, index) => {
+                    const weights = [850.3, 125.8]; // 체크된 항목들의 중량
+                    if (index < weights.length) {
+                        totalWeight += weights[index];
+                    }
+                });
+                
+                document.getElementById('selectedCount').textContent = count;
+                document.getElementById('totalWeight').textContent = totalWeight.toFixed(1);
+                document.getElementById('addToListBtn').disabled = count === 0;
+            }
+            
+            // 초기 선택 정보 업데이트
+            updateSelectionInfo();
+            
+            // 폼 제출 방지 (미리보기용)
+            document.getElementById('searchForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                alert('미리보기 모드입니다. 실제 검색은 회사 서버에서 테스트하세요.');
+            });
+            
+            // 저장 버튼 클릭
+            document.getElementById('addToListBtn').addEventListener('click', function() {
+                alert('미리보기 모드입니다. 실제 저장은 회사 서버에서 테스트하세요.');
+            });
+            
+            console.log('🎉 DSHI 검색 페이지 - 새로운 디자인 미리보기 로드 완료!');
+        });
+        
+        // 상태 메시지 토글 함수 (테스트용)
+        function toggleStatus(type) {
+            // 모든 상태 숨기기
+            document.getElementById('loadingStatus').style.display = 'none';
+            document.getElementById('successStatus').style.display = 'none';
+            document.getElementById('errorStatus').style.display = 'none';
+            
+            // 선택된 상태만 표시
+            document.getElementById(type + 'Status').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
