@@ -34,9 +34,16 @@ source = "Database"
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DSHI 대시보드</title>
-    <link rel="stylesheet" href="/css/main.css?v=<%= Time.now.to_i %>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+    </style>
 </head>
-<body class="dashboard-page">
+<body>
 
 <div class="dashboard-container">
   <!-- 헤더 -->
@@ -245,6 +252,402 @@ source = "Database"
   </div>
 </div>
 
+<style>
+
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin: 0;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 {
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.user-info {
+  font-size: 14px;
+}
+
+.nav-btn, .logout-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.3s;
+  margin-left: 10px;
+}
+
+.nav-btn:hover, .logout-btn:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.error-message {
+  background: #fee;
+  color: #c33;
+  padding: 20px;
+  margin: 20px;
+  border-radius: 8px;
+  border: 1px solid #fcc;
+  text-align: left;
+}
+
+.error-message h3 {
+  margin: 0 0 15px 0;
+  color: #d32f2f;
+}
+
+.error-message p {
+  margin: 8px 0;
+}
+
+.error-actions {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.error-actions .btn {
+  margin: 0 10px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn:hover {
+  opacity: 0.8;
+}
+
+
+.dashboard-grid {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.dashboard-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border: 1px solid #e1e8ed;
+}
+
+.dashboard-card h2 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: #333;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 8px;
+}
+
+/* 전체 현황 */
+.overview-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.stat-number {
+  font-size: 24px;
+  font-weight: bold;
+  color: #667eea;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #666;
+}
+
+/* 공정별 완료율 */
+.process-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.process-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.process-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.process-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.process-percentage {
+  font-weight: bold;
+  color: #667eea;
+}
+
+.process-bar {
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.process-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* ITEM별 공정율 탭 스타일 */
+.tab-header {
+  display: flex;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #e1e8ed;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s;
+}
+
+.tab-btn:hover {
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.tab-btn.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.tab-content {
+  position: relative;
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+/* 월별 진행률 */
+.progress-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.progress-bar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progress-bar {
+  height: 20px;
+  background: #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #28a745, #20c997);
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  text-align: center;
+  font-weight: bold;
+  color: #333;
+}
+
+.progress-details {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.detail-item {
+  text-align: center;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.detail-label {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 3px;
+}
+
+.detail-value {
+  font-weight: bold;
+  color: #333;
+}
+
+/* 업체별 분포 */
+.company-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.company-item {
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.company-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.company-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 15px;
+}
+
+.company-percentage {
+  font-weight: bold;
+  color: #667eea;
+  font-size: 14px;
+}
+
+.company-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+}
+
+.company-count {
+  background: #e9ecef;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.company-weight {
+  background: #e7f3ff;
+  color: #0066cc;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* 데이터 소스 */
+.source-info {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.source-info p {
+  margin: 0 0 8px 0;
+}
+
+.refresh-actions {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.refresh-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.refresh-btn:hover {
+  background: #5a6fd8;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    padding: 15px;
+  }
+  
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+  
+  .overview-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .progress-details {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
 
 <script>
 // 자동 새로고침 제거됨 - 수동 새로고침 버튼 사용

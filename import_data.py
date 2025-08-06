@@ -124,7 +124,7 @@ def import_assembly_data():
                         company = str(row.iloc[1]).strip() if not pd.isna(row.iloc[1]) else ''
                         zone = str(row.iloc[2]).strip() if not pd.isna(row.iloc[2]) else ''
                         item = str(row.iloc[3]).strip() if not pd.isna(row.iloc[3]) else ''
-                        weight_net = float(row.iloc[4]) if not pd.isna(row.iloc[4]) else None
+                        weight_gross = float(row.iloc[4]) if not pd.isna(row.iloc[4]) else None
                         remark = str(row.iloc[13]).strip() if not pd.isna(row.iloc[13]) else ''
 
                         if assembly_code == '' or assembly_code == 'nan':
@@ -155,7 +155,7 @@ def import_assembly_data():
                             # UPDATE (존재하면 갱신, 없으면 INSERT)
                             sql_update = """
                             INSERT INTO arup_ecs (
-                                assembly_code, company, zone, item, weight_net,
+                                assembly_code, company, zone, item, weight_gross,
                                 fit_up_date, final_date, arup_final_date,
                                 galv_date, arup_galv_date, shot_date,
                                 paint_date, arup_paint_date, remark, updated_at
@@ -164,7 +164,7 @@ def import_assembly_data():
                                 company=VALUES(company),
                                 zone=VALUES(zone),
                                 item=VALUES(item),
-                                weight_net=VALUES(weight_net),
+                                weight_gross=VALUES(weight_gross),
                                 fit_up_date=VALUES(fit_up_date),
                                 final_date=VALUES(final_date),
                                 arup_final_date=VALUES(arup_final_date),
@@ -178,7 +178,7 @@ def import_assembly_data():
                             """
                             current_time = datetime.now()
                             cursor.execute(sql_update, (
-                                assembly_code, company, zone, item, weight_net,
+                                assembly_code, company, zone, item, weight_gross,
                                 fit_up_date, final_date, arup_final_date,
                                 galv_date, arup_galv_date, shot_date,
                                 paint_date, arup_paint_date, remark, current_time
@@ -188,7 +188,7 @@ def import_assembly_data():
                             # 기존 방식 (INSERT)
                             sql = """
                             INSERT INTO arup_ecs (
-                                assembly_code, company, zone, item, weight_net,
+                                assembly_code, company, zone, item, weight_gross,
                                 fit_up_date, final_date, arup_final_date,
                                 galv_date, arup_galv_date, shot_date,
                                 paint_date, arup_paint_date, remark, updated_at
@@ -196,7 +196,7 @@ def import_assembly_data():
                             """
                             current_time = datetime.now()
                             cursor.execute(sql, (
-                                assembly_code, company, zone, item, weight_net,
+                                assembly_code, company, zone, item, weight_gross,
                                 fit_up_date, final_date, arup_final_date,
                                 galv_date, arup_galv_date, shot_date,
                                 paint_date, arup_paint_date, remark, current_time

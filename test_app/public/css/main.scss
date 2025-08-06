@@ -1,0 +1,53 @@
+// Main SCSS file - 모든 스타일을 통합하는 메인 파일
+// 이 파일을 컴파일하면 main.css가 생성됩니다.
+
+// 1. Variables and Mixins (먼저 로드)
+@import 'palette_1';
+@import 'variables';
+
+// 2. Base styles (기본 스타일)
+@import 'base';
+
+// 3. Components (공통 컴포넌트)
+@import 'components';
+
+// 4. Page-specific styles (페이지별 스타일)
+@import 'pages/login';
+@import 'pages/search';
+@import 'pages/saved_list';
+@import 'pages/inspection';
+@import 'pages/dashboard';
+
+// 5. Utilities (유틸리티 클래스)
+@import 'utils';
+
+// 글로벌 스타일 오버라이드
+html {
+  scroll-behavior: smooth;
+}
+
+// 접근성 개선
+*:focus {
+  outline: 2px solid #2196F3;
+  outline-offset: 2px;
+}
+
+// 프린트 스타일
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .header, .nav-btn, .logout-btn {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+  }
+  
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+}

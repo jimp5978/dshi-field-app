@@ -1,0 +1,91 @@
+// Login page styles
+@import '../variables';
+
+// 로그인 페이지 전용 body 스타일
+body.login-page {
+  background: $login-theme;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-container {
+  background: $white;
+  border-radius: $border-radius-large;
+  box-shadow: $shadow-heavy;
+  padding: 40px;
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+}
+
+.debug-indicator {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: $success-color;
+  color: $white;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.logo {
+  text-align: center;
+  margin-bottom: $spacing-xl;
+  
+  h1 {
+    color: $text-dark;
+    font-size: 28px;
+    margin-bottom: $spacing-sm;
+    font-weight: 500;
+  }
+  
+  p {
+    color: $text-light;
+    font-size: 14px;
+  }
+}
+
+.btn-login {
+  width: 100%;
+  padding: 14px;
+  background: $login-theme;
+  color: $white;
+  border: none;
+  border-radius: $border-radius;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: $transition-fast;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(33, 150, 243, 0.3);
+  }
+}
+
+.error-message {
+  background: #FFEBEE;
+  border: 1px solid #FFCDD2;
+  border-left: 4px solid #F44336;
+  color: #C62828;
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: $spacing-lg;
+  font-size: 14px;
+}
+
+.debug-info {
+  background: #E8F5E8;
+  border: 1px solid $success-color;
+  border-left: 4px solid $success-color;
+  color: #2E7D32;
+  padding: $spacing-sm;
+  border-radius: 4px;
+  margin-bottom: $spacing-lg;
+  font-size: 12px;
+}

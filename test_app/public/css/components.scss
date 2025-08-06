@@ -1,0 +1,173 @@
+// Components - 공통 컴포넌트 스타일
+@import 'variables';
+
+// 헤더 컴포넌트
+.header {
+  color: $white;
+  padding: 15px 20px;
+  box-shadow: $shadow-light;
+  
+  &-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  h1 {
+    font-size: 24px;
+    font-weight: 500;
+  }
+  
+  .user-info {
+    font-size: 14px;
+  }
+}
+
+// 네비게이션 버튼
+.nav-btn, .logout-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: $white;
+  padding: 8px 16px;
+  border-radius: $border-radius-small;
+  text-decoration: none;
+  transition: $transition-fast;
+  margin-left: $spacing-sm;
+  
+  &:hover {
+    background: rgba(255,255,255,0.3);
+  }
+}
+
+// 카드 컴포넌트
+.card {
+  background: $white;
+  border-radius: $border-radius;
+  box-shadow: $shadow-light;
+  margin-bottom: $spacing-lg;
+  overflow: hidden;
+  
+  &-header {
+    background: #f8f9fa;
+    padding: $spacing-lg;
+    border-bottom: 1px solid $border-gray;
+    font-size: 18px;
+    font-weight: 600;
+    color: $text-dark;
+  }
+  
+  &-body {
+    padding: $spacing-lg;
+  }
+}
+
+// 버튼 컴포넌트
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: $border-radius-small;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: $transition-fast;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  margin-right: $spacing-sm;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: $shadow-medium;
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  // 버튼 색상 변형
+  &-primary { background: #2196F3; color: $white; }
+  &-success { background: $success-color; color: $white; }
+  &-danger { background: $danger-color; color: $white; }
+  &-warning { background: $warning-color; color: #212529; }
+  &-info { background: $info-color; color: $white; }
+  &-secondary { background: #6c757d; color: $white; }
+}
+
+// 테이블 컴포넌트
+table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #ddd;
+  
+  th, td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  
+  th {
+    background: #f8f9fa;
+    font-weight: 600;
+  }
+  
+  tr:hover {
+    background-color: #f8f9fa;
+  }
+}
+
+// 체크박스
+.checkbox-cell {
+  text-align: center;
+  width: 50px;
+}
+
+.item-checkbox {
+  transform: scale(1.2);
+  cursor: pointer;
+}
+
+// 빈 상태
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: $text-light;
+  
+  h3 {
+    margin-bottom: $spacing-sm;
+    color: $text-dark;
+  }
+}
+
+// 폼 컴포넌트
+.form-group {
+  margin-bottom: $spacing-lg;
+  
+  label {
+    display: block;
+    margin-bottom: 8px;
+    color: $text-dark;
+    font-weight: 500;
+    font-size: 14px;
+  }
+  
+  input, select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e1e5e9;
+    border-radius: $border-radius;
+    font-size: 16px;
+    transition: $transition-fast;
+    background: #fafafa;
+    
+    &:focus {
+      outline: none;
+      border-color: #2196F3;
+      background: $white;
+      box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+    }
+  }
+}

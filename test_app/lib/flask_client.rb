@@ -3,6 +3,7 @@
 require 'net/http'
 require 'json'
 require 'uri'
+require 'stringio'
 require_relative '../config/settings'
 require_relative 'logger'
 require_relative 'process_manager'
@@ -770,6 +771,112 @@ class FlaskClient
     rescue => e
       AppLogger.debug("대시보드 데이터 조회 API 연결 실패: #{e.message}")
       { success: false, message: "서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요." }
+    end
+  end
+  
+  # Assembly Code 목록 업로드 API 호출 (파일이 아닌 데이터만 전송)
+  def upload_assembly_codes(assembly_codes, token)
+    AppLogger.debug("Assembly Code 목록 업로드 API 호출: #{assembly_codes.length}개")
+    
+    begin
+      uri = URI("#{@base_url}/api/upload-assembly-codes")
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.open_timeout = 10
+      http.read_timeout = 30
+      
+      request = Net::HTTP::Post.new(uri)
+      request['Authorization'] = "Bearer #{token}"
+      request['Content-Type'] = 'application/json'
+      request.body = { assembly_codes: assembly_codes }.to_json
+      
+      response = http.request(request)
+      AppLogger.debug("Flask API Assembly Code 업로드 응답: #{response.code}")
+      
+      if response.code.to_i.between?(200, 299)
+        parsed_response = JSON.parse(response.body)
+        if parsed_response['success']
+          { success: true, message: parsed_response['message'], data: parsed_response['data'] }
+        else
+          { success: false, error: parsed_response['message'] }
+        end
+      else
+        { success: false, error: "서버 오류 (#{response.code})" }
+      end
+      
+    rescue => e
+      AppLogger.debug("Assembly Code 업로드 API 연결 실패: #{e.message}")
+      { success: false, error: "서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요." }
+    end
+  end
+  
+  # Excel 파일 업로드 API 호출 (더 이상 사용하지 않음 - 호환성을 위해 유지)
+  def upload_excel_file(uploaded_file, token)
+    AppLogger.debug("Excel 파일 업로드 API 호출: #{uploaded_file[:filename]}")
+    
+    # 기본 HTTP 방식으로 바로 시도 (multipart 라이브러리 의존성 제거)
+    upload_excel_file_basic(uploaded_file, token)
+  end
+  
+  # 기본 HTTP 방식으로 파일 업로드 (multipart 라이브러리가 없는 경우)
+  def upload_excel_file_basic(uploaded_file, token)
+    AppLogger.debug("기본 HTTP 방식으로 Excel 파일 업로드")
+    
+    begin
+      uri = URI("#{@base_url}/api/upload-excel")
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.open_timeout = 10
+      http.read_timeout = 30
+      
+      # 파일 내용 읽기
+      file_content = uploaded_file[:tempfile].read
+      uploaded_file[:tempfile].rewind
+      
+      # 단순한 boundary 사용 (인코딩 문제 방지)
+      boundary = "RubyFormBoundary#{Time.now.to_i}#{rand(1000)}"
+      
+      # 파일명 안전 처리 (ASCII만 사용)
+      safe_filename = uploaded_file[:filename].gsub(/[^A-Za-z0-9._-]/, '_')
+      
+      # StringIO 사용해서 바이너리 안전하게 조합
+      require 'stringio'
+      body = StringIO.new
+      body.set_encoding('ASCII-8BIT')
+      
+      # 헤더 작성
+      body << "--#{boundary}\r\n"
+      body << "Content-Disposition: form-data; name=\"excel_file\"; filename=\"#{safe_filename}\"\r\n"
+      body << "Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\r\n"
+      body << "\r\n"
+      
+      # 파일 내용 추가
+      file_content.force_encoding('ASCII-8BIT') if file_content.respond_to?(:force_encoding)
+      body << file_content
+      
+      # 푸터 작성
+      body << "\r\n--#{boundary}--\r\n"
+      
+      request = Net::HTTP::Post.new(uri)
+      request['Authorization'] = "Bearer #{token}"
+      request['Content-Type'] = "multipart/form-data; boundary=#{boundary}"
+      request.body = body.string
+      
+      response = http.request(request)
+      AppLogger.debug("Flask API Excel 업로드 (기본) 응답: #{response.code}")
+      
+      if response.code.to_i.between?(200, 299)
+        parsed_response = JSON.parse(response.body)
+        if parsed_response['success']
+          { success: true, message: parsed_response['message'], data: parsed_response['data'] }
+        else
+          { success: false, error: parsed_response['message'] || 'Excel 업로드 실패' }
+        end
+      else
+        error_data = JSON.parse(response.body) rescue {}
+        { success: false, error: error_data['message'] || "Excel 업로드 중 오류가 발생했습니다 (#{response.code})" }
+      end
+    rescue => e
+      AppLogger.debug("기본 Excel 업로드 API 연결 실패: #{e.message}")
+      { success: false, error: "서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요." }
     end
   end
 end

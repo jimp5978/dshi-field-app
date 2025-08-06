@@ -1,0 +1,128 @@
+// Saved List page styles
+@import '../variables';
+
+.saved-list-page {
+  .header {
+    background: $saved-list-theme;
+  }
+}
+
+// 저장된 리스트 요약 정보
+.summary-info {
+  background: rgba(76, 175, 80, 0.1);
+  padding: $spacing-lg;
+  border-radius: $border-radius;
+  margin-bottom: $spacing-lg;
+  border-left: 4px solid #4CAF50;
+}
+
+// 로딩 스피너 스타일
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid $white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.btn-loading {
+  opacity: 0.7;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+// 중앙 로딩 대화상자
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.loading-dialog {
+  background: $white;
+  padding: $spacing-xl;
+  border-radius: $border-radius;
+  text-align: center;
+  box-shadow: $shadow-heavy;
+  
+  .loading-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: $spacing-md;
+    color: $text-dark;
+  }
+  
+  .loading-message {
+    color: $text-light;
+    margin-bottom: $spacing-lg;
+  }
+  
+  .loading-spinner-large {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #4CAF50;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+}
+
+// Excel 업로드 섹션
+.excel-upload-section {
+  background: rgba(76, 175, 80, 0.05);
+  padding: $spacing-lg;
+  border-radius: $border-radius;
+  margin-bottom: $spacing-lg;
+  border-left: 4px solid #4CAF50;
+  
+  .upload-area {
+    border: 2px dashed #4CAF50;
+    border-radius: $border-radius;
+    padding: $spacing-xl;
+    text-align: center;
+    transition: $transition-fast;
+    
+    &:hover {
+      border-color: #66BB6A;
+      background: rgba(76, 175, 80, 0.02);
+    }
+    
+    &.dragover {
+      border-color: #4CAF50;
+      background: rgba(76, 175, 80, 0.1);
+    }
+  }
+  
+  .upload-icon {
+    font-size: 48px;
+    color: #4CAF50;
+    margin-bottom: $spacing-md;
+  }
+  
+  .upload-text {
+    color: $text-dark;
+    margin-bottom: $spacing-sm;
+    font-weight: 500;
+  }
+  
+  .upload-hint {
+    color: $text-light;
+    font-size: 14px;
+  }
+}

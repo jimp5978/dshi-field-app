@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "ppt-automation": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y", 
+        "@smithery/cli",
+        "run",
+        "@GongRzhe/Office-PowerPoint-MCP-Server"
+      ],
+      "env": {
+        "SMITHERY_API_KEY": "3cf67099-88b1-4f2b-bb95-20b34bbeabf8"
+      }
+    }
+  }
+}

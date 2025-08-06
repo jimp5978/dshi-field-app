@@ -1,0 +1,454 @@
+// Dashboard page styles
+@import '../variables';
+
+.dashboard-page {
+  .header {
+    background: $dashboard-theme;
+  }
+}
+
+.dashboard-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $spacing-lg;
+}
+
+// 대시보드 그리드
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: $spacing-lg;
+  margin-bottom: $spacing-xl;
+}
+
+.dashboard-card {
+  background: $white;
+  border-radius: $border-radius;
+  box-shadow: $shadow-light;
+  overflow: hidden;
+  
+  .card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: $white;
+    padding: $spacing-lg;
+    font-size: 18px;
+    font-weight: 600;
+    
+    .card-icon {
+      font-size: 24px;
+      margin-right: $spacing-sm;
+    }
+  }
+  
+  .card-content {
+    padding: $spacing-lg;
+  }
+}
+
+// 통계 카드
+.stat-card {
+  text-align: center;
+  
+  .stat-number {
+    font-size: 36px;
+    font-weight: bold;
+    color: #667eea;
+    margin-bottom: $spacing-sm;
+  }
+  
+  .stat-label {
+    color: $text-light;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .stat-unit {
+    font-size: 18px;
+    color: $text-light;
+  }
+}
+
+// 전체 현황 (overview-stats)
+.overview-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: $spacing-lg;
+  
+  .stat-item {
+    text-align: center;
+    
+    .stat-number {
+      font-size: 32px;
+      font-weight: bold;
+      color: #667eea;
+      margin-bottom: 8px;
+    }
+    
+    .stat-label {
+      color: $text-light;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+}
+
+// 공정별 완료율
+.process-list {
+  padding: $spacing-lg;
+}
+
+.process-item {
+  margin-bottom: $spacing-md;
+  
+  .process-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    
+    .process-name {
+      font-weight: 500;
+      color: $text-dark;
+    }
+    
+    .process-percentage {
+      font-weight: bold;
+      color: #667eea;
+    }
+  }
+  
+  .process-bar {
+    width: 100%;
+    height: 10px;
+    background: #e9ecef;
+    border-radius: 5px;
+    overflow: hidden;
+    
+    .process-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      border-radius: 5px;
+      transition: width 0.8s ease-in-out;
+    }
+  }
+}
+
+// 프로그레스 바
+.progress-container {
+  margin-bottom: $spacing-md;
+  
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-sm;
+    
+    .progress-label {
+      font-weight: 500;
+      color: $text-dark;
+    }
+    
+    .progress-value {
+      font-weight: bold;
+      color: #667eea;
+    }
+  }
+  
+  .progress-bar {
+    width: 100%;
+    height: 12px;
+    background: #e9ecef;
+    border-radius: 6px;
+    overflow: hidden;
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      border-radius: 6px;
+      transition: width 0.8s ease-in-out;
+    }
+  }
+}
+
+// 탭 시스템 (ITEM별 공정률)
+.item-tabs {
+  margin-bottom: $spacing-lg;
+  
+  .tab-nav {
+    display: flex;
+    border-bottom: 2px solid $border-gray;
+    margin-bottom: $spacing-lg;
+  }
+  
+  .tab-button {
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    color: $text-light;
+    transition: $transition-fast;
+    
+    &.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background: rgba(102, 126, 234, 0.05);
+    }
+    
+    &:hover:not(.active) {
+      color: $text-dark;
+      background: rgba(0, 0, 0, 0.02);
+    }
+  }
+  
+  .tab-content {
+    display: none;
+    
+    &.active {
+      display: block;
+    }
+  }
+}
+
+// 탭 헤더 (dashboard.erb에서 사용하는 클래스명)
+.tab-header {
+  display: flex;
+  border-bottom: 2px solid $border-gray;
+  margin-bottom: $spacing-lg;
+  padding: 0 $spacing-lg;
+  
+  .tab-btn {
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    color: $text-light;
+    transition: $transition-fast;
+    
+    &.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background: rgba(102, 126, 234, 0.05);
+    }
+    
+    &:hover:not(.active) {
+      color: $text-dark;
+      background: rgba(0, 0, 0, 0.02);
+    }
+  }
+}
+
+// 탭 콘텐츠 (dashboard.erb에서 사용하는 클래스명)
+.tab-content {
+  .tab-pane {
+    display: none;
+    
+    &.active {
+      display: block;
+    }
+  }
+}
+
+// 차트 컨테이너
+.chart-container {
+  position: relative;
+  height: 300px;
+  margin: $spacing-lg 0;
+}
+
+// 전체 진행률 (progress-summary)
+.progress-summary {
+  padding: $spacing-lg;
+}
+
+.progress-bar-container {
+  margin-bottom: $spacing-lg;
+  
+  .progress-bar {
+    width: 100%;
+    height: 20px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: $spacing-sm;
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      border-radius: 10px;
+      transition: width 0.8s ease-in-out;
+    }
+  }
+  
+  .progress-text {
+    text-align: center;
+    font-weight: 600;
+    color: $text-dark;
+  }
+}
+
+.progress-details {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+  
+  .detail-item {
+    text-align: center;
+    
+    .detail-label {
+      display: block;
+      font-size: 14px;
+      color: $text-light;
+      margin-bottom: 5px;
+    }
+    
+    .detail-value {
+      font-size: 18px;
+      font-weight: bold;
+      color: $text-dark;
+    }
+  }
+}
+
+// 업체별 분포
+.company-distribution {
+  .company-list {
+    padding: $spacing-lg;
+  }
+
+  .company-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $spacing-sm 0;
+    border-bottom: 1px solid #f0f0f0;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    .company-info {
+      .company-name {
+        font-weight: 500;
+        color: $text-dark;
+      }
+      
+      .company-percentage {
+        font-weight: bold;
+        color: #667eea;
+        font-size: 14px;
+      }
+    }
+    
+    .company-details {
+      text-align: right;
+      
+      .company-count, .company-weight {
+        font-size: 14px;
+        color: $text-light;
+        margin-left: $spacing-sm;
+      }
+    }
+  }
+}
+
+// 데이터 소스 정보
+.data-source {
+  background: #f8f9fa;
+  padding: $spacing-md;
+  border-radius: $border-radius;
+  margin-top: $spacing-lg;
+  
+  .source-info {
+    padding: $spacing-lg;
+    
+    p {
+      margin-bottom: $spacing-sm;
+      color: $text-light;
+      font-size: 14px;
+      
+      strong {
+        color: $text-dark;
+      }
+    }
+    
+    .refresh-actions {
+      margin-top: $spacing-md;
+      text-align: center;
+      
+      .refresh-btn {
+        padding: $spacing-sm $spacing-lg;
+        background: #667eea;
+        color: $white;
+        border: none;
+        border-radius: $border-radius-small;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: $transition-fast;
+        
+        &:hover {
+          background: #5a6fd8;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+      }
+    }
+    
+    .update-time {
+      font-weight: 500;
+    }
+  }
+}
+
+// 반응형 디자인
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .overview-stats {
+    flex-direction: column;
+    gap: $spacing-md;
+    
+    .stat-item .stat-number {
+      font-size: 24px;
+    }
+  }
+  
+  .stat-number {
+    font-size: 24px !important;
+  }
+  
+  .progress-details {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .company-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-sm;
+    
+    .company-details {
+      text-align: left;
+    }
+  }
+  
+  .tab-button, .tab-btn {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+  
+  .tab-header {
+    padding: 0 $spacing-sm;
+  }
+}

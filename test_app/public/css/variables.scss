@@ -1,0 +1,50 @@
+// Variables - palette_1.scss 기반 테마 변수 매핑
+@import 'palette_1';
+
+// 페이지별 테마 색상 매핑
+$theme-blue: linear-gradient(135deg, $blue-green 0%, $air-force-blue 100%);
+$theme-green: linear-gradient(135deg, $aquamarine 0%, $olivine 100%); 
+$theme-orange: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+$theme-purple: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+// 페이지별 테마 할당
+$login-theme: $theme-blue;
+$search-theme: $theme-blue;
+$saved-list-theme: $theme-green;
+$inspection-theme: $theme-orange;
+$dashboard-theme: $theme-purple;
+
+// 공통 색상
+$white: #ffffff;
+$light-gray: #f5f5f5;
+$border-gray: #e9ecef;
+$text-dark: #333333;
+$text-light: #666666;
+$card-bg: $alice-blue;
+
+// 상태별 색상
+$success-color: #28a745;
+$danger-color: #dc3545;
+$warning-color: #ffc107;
+$info-color: #17a2b8;
+
+// 그림자
+$shadow-light: 0 2px 4px rgba(0,0,0,0.1);
+$shadow-medium: 0 4px 8px rgba(0,0,0,0.15);
+$shadow-heavy: 0 8px 32px rgba(0,0,0,0.1);
+
+// 크기
+$border-radius: 8px;
+$border-radius-small: 6px;
+$border-radius-large: 12px;
+
+// 여백
+$spacing-xs: 5px;
+$spacing-sm: 10px;
+$spacing-md: 15px;
+$spacing-lg: 20px;
+$spacing-xl: 30px;
+
+// 트랜지션
+$transition-fast: all 0.3s;
+$transition-slow: all 0.5s;

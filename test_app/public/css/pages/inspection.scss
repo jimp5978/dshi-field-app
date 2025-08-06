@@ -1,0 +1,291 @@
+// Inspection Management page styles
+@import '../variables';
+
+.inspection-page {
+  .header {
+    background: $inspection-theme;
+  }
+  
+  .container {
+    max-width: 1400px; // 검사관리는 더 넓은 화면 사용
+  }
+}
+
+// 필터 섹션
+.filter-section {
+  background: rgba(255, 107, 53, 0.05);
+  padding: $spacing-lg;
+  border-radius: $border-radius;
+  margin-bottom: $spacing-lg;
+  border-left: 4px solid #FF6B35;
+  
+  &.filter-active {
+    background: rgba(255, 107, 53, 0.1) !important;
+    border-left-color: #FF6B35 !important;
+    border-left-width: 6px !important;
+  }
+}
+
+.filter-indicator {
+  display: inline-block;
+  background: #FF6B35;
+  color: $white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  margin-left: 8px;
+  font-weight: bold;
+}
+
+.filter-group {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+  
+  label {
+    font-weight: 500;
+    margin-right: 8px;
+  }
+  
+  select, input {
+    padding: 8px 12px;
+    border: 2px solid #e1e5e9;
+    border-radius: $border-radius-small;
+    font-size: 14px;
+    min-width: 120px;
+  }
+}
+
+// 탭 스타일
+.tab-container {
+  border-bottom: 2px solid $border-gray;
+  margin-bottom: $spacing-lg;
+}
+
+.tab-nav {
+  display: flex;
+  gap: 0;
+}
+
+.tab-btn {
+  padding: 12px 24px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: $text-light;
+  transition: $transition-fast;
+  
+  &.active {
+    color: #FF6B35;
+    border-bottom-color: #FF6B35;
+    background: rgba(255, 107, 53, 0.05);
+  }
+  
+  &:hover:not(.active) {
+    color: $text-dark;
+    background: rgba(0, 0, 0, 0.02);
+  }
+}
+
+// 상태 배지
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  
+  &.status-pending {
+    background: #fff3cd;
+    color: #856404;
+  }
+  
+  &.status-approved {
+    background: #d1ecf1;
+    color: #0c5460;
+  }
+  
+  &.status-rejected {
+    background: #f8d7da;
+    color: #721c24;
+  }
+  
+  &.status-confirmed {
+    background: #d4edda;
+    color: #155724;
+  }
+  
+  &.status-cancelled {
+    background: #f8f9fa;
+    color: #6c757d;
+  }
+}
+
+// 페이지네이션
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-top: $spacing-lg;
+  
+  .page-btn {
+    padding: 8px 12px;
+    border: 1px solid $border-gray;
+    background: $white;
+    color: $text-dark;
+    text-decoration: none;
+    border-radius: $border-radius-small;
+    transition: $transition-fast;
+    
+    &:hover {
+      background: #FF6B35;
+      color: $white;
+      border-color: #FF6B35;
+    }
+    
+    &.active {
+      background: #FF6B35;
+      color: $white;
+      border-color: #FF6B35;
+    }
+    
+    &.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      
+      &:hover {
+        background: $white;
+        color: $text-dark;
+        border-color: $border-gray;
+      }
+    }
+  }
+  
+  .page-info {
+    margin: 0 $spacing-md;
+    color: $text-light;
+    font-size: 14px;
+  }
+}
+
+// 검색 박스 (완료 탭 전용)
+.search-box {
+  margin-bottom: $spacing-lg;
+  
+  .search-input {
+    padding: 10px 16px;
+    border: 2px solid #e1e5e9;
+    border-radius: $border-radius;
+    font-size: 14px;
+    min-width: 250px;
+    margin-right: $spacing-sm;
+    
+    &:focus {
+      outline: none;
+      border-color: #FF6B35;
+      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+    }
+  }
+}
+
+// 필터 헤더
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+  
+  h4 {
+    margin: 0;
+  }
+}
+
+// 검색 입력 필드 크기 조정
+.search-input-wide {
+  min-width: 200px;
+  max-width: 300px;
+}
+
+// 버튼 색상 오버라이드
+.btn-secondary-custom {
+  background: #6c757d !important;
+}
+
+// 여백 유틸리티
+.spacer {
+  margin-bottom: $spacing-lg;
+}
+
+// 숨김 기본값
+.hidden-default {
+  display: none;
+}
+
+// 날짜 입력 필드
+.date-input {
+  padding: 8px 12px;
+  border: 2px solid #e1e5e9;
+  border-radius: $border-radius-small;
+  font-size: 14px;
+  min-width: 140px;
+}
+
+// 필터 그룹 여백
+.filter-group-spaced {
+  margin-top: $spacing-md;
+}
+
+// 선택된 정보 텍스트
+.selected-info {
+  margin-left: $spacing-lg;
+  color: $text-light;
+}
+
+// 페이지네이션 기본 숨김
+.pagination-hidden {
+  display: none;
+}
+
+// 헤더 로고 영역
+.header-logo-area {
+  display: flex;
+  align-items: center;
+}
+
+// 테이블 래퍼 (가로 스크롤)
+.table-wrapper {
+  overflow-x: auto;
+}
+
+// 작은 관리 버튼들
+.btn-small {
+  font-size: 12px !important;
+  padding: 4px 8px !important;
+}
+
+.btn-small-spaced {
+  font-size: 12px !important;
+  padding: 4px 8px !important;
+  margin-left: 4px !important;
+}
+
+// 로딩 인디케이터
+.loading-container {
+  text-align: center;
+  padding: 40px;
+}
+
+.loading-spinner-large {
+  margin: 0 auto 15px auto;
+  width: 30px;
+  height: 30px;
+}
+
+.loading-text {
+  color: #666;
+  margin: 0;
+}
