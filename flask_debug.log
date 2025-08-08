@@ -3370,3 +3370,349 @@
 🐛 DEBUG [2025-08-06 15:08:34]: 127.0.0.1 - - [06/Aug/2025 15:08:34] "GET /api/inspection-management/requests HTTP/1.1" 200 -
 🐛 DEBUG [2025-08-06 15:08:34]: 127.0.0.1 - - [06/Aug/2025 15:08:34] "GET /api/inspection-management/requests HTTP/1.1" 200 -
 🐛 DEBUG [2025-08-06 15:08:46]: 127.0.0.1 - - [06/Aug/2025 15:08:46] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-06 15:57:37]: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://192.168.0.5:5001
+🐛 DEBUG [2025-08-06 15:57:37]: [33mPress CTRL+C to quit[0m
+🐛 DEBUG [2025-08-06 15:57:37]:  * Restarting with watchdog (windowsapi)
+🐛 DEBUG [2025-08-06 15:57:37]:  * Debugger is active!
+🐛 DEBUG [2025-08-06 15:57:37]:  * Debugger PIN: 116-159-866
+🐛 DEBUG [2025-08-06 15:58:03]: 127.0.0.1 - - [06/Aug/2025 15:58:03] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-06 15:58:22]: 127.0.0.1 - - [06/Aug/2025 15:58:22] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-06 15:58:39]: 127.0.0.1 - - [06/Aug/2025 15:58:39] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-06 15:58:39]: 127.0.0.1 - - [06/Aug/2025 15:58:39] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-06 15:58:45]: 127.0.0.1 - - [06/Aug/2025 15:58:45] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-06 16:00:23]: 127.0.0.1 - - [06/Aug/2025 16:00:23] "DELETE /api/saved-list/RF-EX5-M2-SE-SI777 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-06 16:00:27]: 127.0.0.1 - - [06/Aug/2025 16:00:27] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-06 17:14:29]: 64.62.197.77 - - [06/Aug/2025 17:14:29] code 400, message Bad request version ('À\x14À')
+🐛 DEBUG [2025-08-06 17:14:29]: 64.62.197.77 - - [06/Aug/2025 17:14:29] "[35m[1m\x16\x03\x01\x00{\x01\x00\x00w\x03\x03x«Ç\x8dð\x07\x8d\x85cä\x92\x07À\x18\x03Ê3FP¨çÎ$Çbúå\x92ãYÍþ\x00\x00\x1aÀ/À+À\x11À\x07À\x13À\x09À\x14À[0m" HTTPStatus.BAD_REQUEST -
+🐛 DEBUG [2025-08-06 18:15:27]: 127.0.0.1 - - [06/Aug/2025 18:15:27] "POST /api/login HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-06 18:35:25]: 127.0.0.1 - - [06/Aug/2025 18:35:25] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-06 20:20:45]: 162.142.125.112 - - [06/Aug/2025 20:20:45] "GET / HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-06 20:20:52]: 162.142.125.112 - - [06/Aug/2025 20:20:52] "GET / HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-06 20:20:53]: 162.142.125.112 - - [06/Aug/2025 20:20:53] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+🐛 DEBUG [2025-08-06 20:20:55]: 162.142.125.112 - - [06/Aug/2025 20:20:55] code 505, message Invalid HTTP version (2.0)
+🐛 DEBUG [2025-08-06 20:20:55]: 162.142.125.112 - - [06/Aug/2025 20:20:55] "[35m[1mPRI * HTTP/2.0[0m" HTTPStatus.HTTP_VERSION_NOT_SUPPORTED -
+🐛 DEBUG [2025-08-06 20:21:04]: 162.142.125.112 - - [06/Aug/2025 20:21:04] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+🐛 DEBUG [2025-08-06 20:21:04]: 162.142.125.112 - - [06/Aug/2025 20:21:04] code 505, message Invalid HTTP version (2.0)
+🐛 DEBUG [2025-08-06 20:21:04]: 162.142.125.112 - - [06/Aug/2025 20:21:04] "[35m[1mPRI * HTTP/2.0[0m" HTTPStatus.HTTP_VERSION_NOT_SUPPORTED -
+🐛 DEBUG [2025-08-06 20:21:10]: 162.142.125.112 - - [06/Aug/2025 20:21:10] code 400, message Bad request version ('À\x14À')
+🐛 DEBUG [2025-08-06 20:21:10]: 162.142.125.112 - - [06/Aug/2025 20:21:10] "[35m[1m\x16\x03\x01\x00î\x01\x00\x00ê\x03\x038\x96ß\x18½,\x8cøcøF\x9an+d\x9c©ÈÞ\x8c~\x99\x15\x98\x80Tß\x08\x8cØÅ\x1b .íz\x94 ?\x06xµ!¥E²\x0b°q°îwS\x8bÚT\x08å´1^I8_\x99\x00&Ì¨Ì©À/À0À+À,À\x13À\x09À\x14À[0m" HTTPStatus.BAD_REQUEST -
+🐛 DEBUG [2025-08-06 20:21:15]: 162.142.125.112 - - [06/Aug/2025 20:21:15] "[33mGET /login HTTP/1.1[0m" 404 -
+🐛 DEBUG [2025-08-06 21:23:18]: 185.224.128.17 - - [06/Aug/2025 21:23:18] "[33mCONNECT example.com:80 HTTP/1.1[0m" 404 -
+🐛 DEBUG [2025-08-06 21:23:33]: 185.224.128.17 - - [06/Aug/2025 21:23:33] code 400, message Bad request syntax ('\x05\x01\x00')
+🐛 DEBUG [2025-08-06 21:23:33]: 185.224.128.17 - - [06/Aug/2025 21:23:33] "[35m[1m\x05\x01\x00[0m" HTTPStatus.BAD_REQUEST -
+🐛 DEBUG [2025-08-06 21:23:33]: 185.224.128.17 - - [06/Aug/2025 21:23:33] code 400, message Bad request syntax ('\x04\x01\x00P\x00\x00\x00\x01\x00example.com\x00')
+🐛 DEBUG [2025-08-06 21:23:33]: 185.224.128.17 - - [06/Aug/2025 21:23:33] "[35m[1m\x04\x01\x00P\x00\x00\x00\x01\x00example.com\x00[0m" HTTPStatus.BAD_REQUEST -
+🐛 DEBUG [2025-08-07 07:10:45]: 20.14.81.42 - - [07/Aug/2025 07:10:45] "[33mGET /v2/ HTTP/1.1[0m" 404 -
+🐛 DEBUG [2025-08-07 08:23:06]: 127.0.0.1 - - [07/Aug/2025 08:23:06] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:23:19]: 127.0.0.1 - - [07/Aug/2025 08:23:19] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:23:19]: 127.0.0.1 - - [07/Aug/2025 08:23:19] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:23:27]: 127.0.0.1 - - [07/Aug/2025 08:23:27] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:23:38]: 127.0.0.1 - - [07/Aug/2025 08:23:38] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:24:00]: 127.0.0.1 - - [07/Aug/2025 08:24:00] "POST /api/login HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:24:09]: 127.0.0.1 - - [07/Aug/2025 08:24:09] "GET /api/assemblies/search?q=123 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:24:34]: 127.0.0.1 - - [07/Aug/2025 08:24:34] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:24:56]: 127.0.0.1 - - [07/Aug/2025 08:24:56] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:24:56]: 127.0.0.1 - - [07/Aug/2025 08:24:56] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:25:12]: 127.0.0.1 - - [07/Aug/2025 08:25:12] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:25:25]: 127.0.0.1 - - [07/Aug/2025 08:25:25] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:25:50]: 127.0.0.1 - - [07/Aug/2025 08:25:50] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:25:51]: 127.0.0.1 - - [07/Aug/2025 08:25:51] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:25:51]: 127.0.0.1 - - [07/Aug/2025 08:25:51] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:29:59]: 127.0.0.1 - - [07/Aug/2025 08:29:59] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:30:09]: 127.0.0.1 - - [07/Aug/2025 08:30:09] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:30:09]: 127.0.0.1 - - [07/Aug/2025 08:30:09] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:33:30]: 127.0.0.1 - - [07/Aug/2025 08:33:30] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:34:27]: 127.0.0.1 - - [07/Aug/2025 08:34:27] "POST /api/login HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:39:21]: 127.0.0.1 - - [07/Aug/2025 08:39:21] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:44:16]: 127.0.0.1 - - [07/Aug/2025 08:44:16] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:46:10]: 127.0.0.1 - - [07/Aug/2025 08:46:10] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:46:21]: 127.0.0.1 - - [07/Aug/2025 08:46:21] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:46:21]: 127.0.0.1 - - [07/Aug/2025 08:46:21] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:46:29]: 127.0.0.1 - - [07/Aug/2025 08:46:29] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:47:23]: 127.0.0.1 - - [07/Aug/2025 08:47:23] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:47:32]: 127.0.0.1 - - [07/Aug/2025 08:47:32] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:47:32]: 127.0.0.1 - - [07/Aug/2025 08:47:32] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:49:04]: 127.0.0.1 - - [07/Aug/2025 08:49:04] "GET /api/assemblies/search?q=822 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:49:48]: 127.0.0.1 - - [07/Aug/2025 08:49:48] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:49:48]: 127.0.0.1 - - [07/Aug/2025 08:49:48] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:51:36]: 127.0.0.1 - - [07/Aug/2025 08:51:36] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:51:36]: 127.0.0.1 - - [07/Aug/2025 08:51:36] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:51:38]: 127.0.0.1 - - [07/Aug/2025 08:51:38] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:51:38]: 127.0.0.1 - - [07/Aug/2025 08:51:38] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:51:39]: 127.0.0.1 - - [07/Aug/2025 08:51:39] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:51:39]: 127.0.0.1 - - [07/Aug/2025 08:51:39] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:51:41]: 127.0.0.1 - - [07/Aug/2025 08:51:41] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:51:41]: 127.0.0.1 - - [07/Aug/2025 08:51:41] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:51:44]: 127.0.0.1 - - [07/Aug/2025 08:51:44] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:51:48]: 127.0.0.1 - - [07/Aug/2025 08:51:48] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:51:53]: 127.0.0.1 - - [07/Aug/2025 08:51:53] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:51:53]: 127.0.0.1 - - [07/Aug/2025 08:51:53] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:52:36]: 127.0.0.1 - - [07/Aug/2025 08:52:36] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:52:36]: 127.0.0.1 - - [07/Aug/2025 08:52:36] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:53:00]: 127.0.0.1 - - [07/Aug/2025 08:53:00] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:53:00]: 127.0.0.1 - - [07/Aug/2025 08:53:00] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:53:02]: 127.0.0.1 - - [07/Aug/2025 08:53:02] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:53:02]: 127.0.0.1 - - [07/Aug/2025 08:53:02] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:53:13]: 127.0.0.1 - - [07/Aug/2025 08:53:13] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:55:22]: 127.0.0.1 - - [07/Aug/2025 08:55:22] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:55:22]: 127.0.0.1 - - [07/Aug/2025 08:55:22] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:55:24]: 127.0.0.1 - - [07/Aug/2025 08:55:24] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:55:24]: 127.0.0.1 - - [07/Aug/2025 08:55:24] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:55:28]: 127.0.0.1 - - [07/Aug/2025 08:55:28] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:55:28]: 127.0.0.1 - - [07/Aug/2025 08:55:28] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:55:29]: 127.0.0.1 - - [07/Aug/2025 08:55:29] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:55:29]: 127.0.0.1 - - [07/Aug/2025 08:55:29] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:55:30]: 127.0.0.1 - - [07/Aug/2025 08:55:30] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:55:36]: 127.0.0.1 - - [07/Aug/2025 08:55:36] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:55:47]: 127.0.0.1 - - [07/Aug/2025 08:55:47] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:55:47]: 127.0.0.1 - - [07/Aug/2025 08:55:47] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:56:23]: 127.0.0.1 - - [07/Aug/2025 08:56:23] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:56:34]: 127.0.0.1 - - [07/Aug/2025 08:56:34] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:57:01]: 127.0.0.1 - - [07/Aug/2025 08:57:01] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:57:09]: 127.0.0.1 - - [07/Aug/2025 08:57:09] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:57:09]: 127.0.0.1 - - [07/Aug/2025 08:57:09] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:57:11]: 127.0.0.1 - - [07/Aug/2025 08:57:11] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:57:11]: 127.0.0.1 - - [07/Aug/2025 08:57:11] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:57:12]: 127.0.0.1 - - [07/Aug/2025 08:57:12] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:57:12]: 127.0.0.1 - - [07/Aug/2025 08:57:12] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:57:12]: 127.0.0.1 - - [07/Aug/2025 08:57:12] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:57:12]: 127.0.0.1 - - [07/Aug/2025 08:57:12] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:57:16]: 127.0.0.1 - - [07/Aug/2025 08:57:16] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:57:18]: 127.0.0.1 - - [07/Aug/2025 08:57:18] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:57:18]: 127.0.0.1 - - [07/Aug/2025 08:57:18] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:57:19]: 127.0.0.1 - - [07/Aug/2025 08:57:19] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 08:57:19]: 127.0.0.1 - - [07/Aug/2025 08:57:19] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:03:01]: 127.0.0.1 - - [07/Aug/2025 09:03:01] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:03:01]: 127.0.0.1 - - [07/Aug/2025 09:03:01] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:03:07]: 127.0.0.1 - - [07/Aug/2025 09:03:07] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:03:07]: 127.0.0.1 - - [07/Aug/2025 09:03:07] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:05:07]: 127.0.0.1 - - [07/Aug/2025 09:05:07] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:05:07]: 127.0.0.1 - - [07/Aug/2025 09:05:07] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:05:07]: 127.0.0.1 - - [07/Aug/2025 09:05:07] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:05:07]: 127.0.0.1 - - [07/Aug/2025 09:05:07] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:06:08]: 127.0.0.1 - - [07/Aug/2025 09:06:08] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:06:08]: 127.0.0.1 - - [07/Aug/2025 09:06:08] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:09:34]: 127.0.0.1 - - [07/Aug/2025 09:09:34] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:09:34]: 127.0.0.1 - - [07/Aug/2025 09:09:34] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:11:54]: 127.0.0.1 - - [07/Aug/2025 09:11:54] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:11:54]: 127.0.0.1 - - [07/Aug/2025 09:11:54] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:12:01]: 127.0.0.1 - - [07/Aug/2025 09:12:01] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:12:01]: 127.0.0.1 - - [07/Aug/2025 09:12:01] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:12:03]: 127.0.0.1 - - [07/Aug/2025 09:12:03] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:12:03]: 127.0.0.1 - - [07/Aug/2025 09:12:03] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:12:04]: 127.0.0.1 - - [07/Aug/2025 09:12:04] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:12:04]: 127.0.0.1 - - [07/Aug/2025 09:12:04] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:12:14]: 127.0.0.1 - - [07/Aug/2025 09:12:14] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:12:23]: 127.0.0.1 - - [07/Aug/2025 09:12:23] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:12:30]: 127.0.0.1 - - [07/Aug/2025 09:12:30] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:12:37]: 127.0.0.1 - - [07/Aug/2025 09:12:37] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:17:14]: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+🐛 DEBUG [2025-08-07 09:17:14]: [33mPress CTRL+C to quit[0m
+🐛 DEBUG [2025-08-07 09:17:14]:  * Restarting with watchdog (windowsapi)
+🐛 DEBUG [2025-08-07 09:17:15]:  * Debugger is active!
+🐛 DEBUG [2025-08-07 09:17:15]:  * Debugger PIN: 116-159-866
+🐛 DEBUG [2025-08-07 09:19:02]: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://192.168.0.5:5001
+🐛 DEBUG [2025-08-07 09:19:02]: [33mPress CTRL+C to quit[0m
+🐛 DEBUG [2025-08-07 09:19:02]:  * Restarting with watchdog (windowsapi)
+🐛 DEBUG [2025-08-07 09:19:02]:  * Debugger is active!
+🐛 DEBUG [2025-08-07 09:19:02]:  * Debugger PIN: 116-159-866
+🐛 DEBUG [2025-08-07 09:19:24]: 127.0.0.1 - - [07/Aug/2025 09:19:24] "POST /api/login HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:19:34]: 127.0.0.1 - - [07/Aug/2025 09:19:34] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:19:43]: 127.0.0.1 - - [07/Aug/2025 09:19:43] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:25:53]: 127.0.0.1 - - [07/Aug/2025 09:25:53] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:25:53]: 127.0.0.1 - - [07/Aug/2025 09:25:53] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:26:06]: 127.0.0.1 - - [07/Aug/2025 09:26:06] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:26:32]: 127.0.0.1 - - [07/Aug/2025 09:26:32] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:26:40]: 127.0.0.1 - - [07/Aug/2025 09:26:40] "POST /api/inspection-requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:26:44]: 127.0.0.1 - - [07/Aug/2025 09:26:44] "DELETE /api/saved-list/RF-EX1-M2-SE-SA281 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:26:44]: 127.0.0.1 - - [07/Aug/2025 09:26:44] "DELETE /api/saved-list/RF-EX1-M2-SE-SA299 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:26:44]: 127.0.0.1 - - [07/Aug/2025 09:26:44] "DELETE /api/saved-list/RF-EX1-M2-SE-SA300 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:26:44]: 127.0.0.1 - - [07/Aug/2025 09:26:44] "DELETE /api/saved-list/RF-EX1-M2-SE-SA296 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:26:44]: 127.0.0.1 - - [07/Aug/2025 09:26:44] "DELETE /api/saved-list/RF-EX1-M2-SE-SA298 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:26:49]: 127.0.0.1 - - [07/Aug/2025 09:26:49] "DELETE /api/saved-list/RF-EX1-M2-SE-SB204 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:26:49]: 127.0.0.1 - - [07/Aug/2025 09:26:49] "DELETE /api/saved-list/RF-EX1-M2-SE-SB202 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:26:49]: 127.0.0.1 - - [07/Aug/2025 09:26:49] "DELETE /api/saved-list/RF-EX1-M2-SE-SB201 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:26:49]: 127.0.0.1 - - [07/Aug/2025 09:26:49] "DELETE /api/saved-list/RF-EX1-M2-SE-SB205 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:26:49]: 127.0.0.1 - - [07/Aug/2025 09:26:49] "DELETE /api/saved-list/RF-EX1-M2-SE-SB203 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:26:53]: 127.0.0.1 - - [07/Aug/2025 09:26:53] "DELETE /api/saved-list/RF-EX1-M2-SE-SB206 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:26:53]: 127.0.0.1 - - [07/Aug/2025 09:26:53] "DELETE /api/saved-list/RF-EX1-M2-SE-SB207 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:27:00]: 127.0.0.1 - - [07/Aug/2025 09:27:00] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:27:14]: 127.0.0.1 - - [07/Aug/2025 09:27:14] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:27:14]: 127.0.0.1 - - [07/Aug/2025 09:27:14] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:27:36]: 127.0.0.1 - - [07/Aug/2025 09:27:36] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:27:48]: 127.0.0.1 - - [07/Aug/2025 09:27:48] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:27:57]: 127.0.0.1 - - [07/Aug/2025 09:27:57] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:27:58]: 127.0.0.1 - - [07/Aug/2025 09:27:58] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:28:08]: 127.0.0.1 - - [07/Aug/2025 09:28:08] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:28:17]: 127.0.0.1 - - [07/Aug/2025 09:28:17] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:28:33]: 127.0.0.1 - - [07/Aug/2025 09:28:33] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:28:51]: 127.0.0.1 - - [07/Aug/2025 09:28:51] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:29:05]: 127.0.0.1 - - [07/Aug/2025 09:29:05] "PUT /api/inspection-management/requests/66/reject HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:29:12]: 127.0.0.1 - - [07/Aug/2025 09:29:12] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:29:32]: 127.0.0.1 - - [07/Aug/2025 09:29:32] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:29:51]: 127.0.0.1 - - [07/Aug/2025 09:29:51] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:30:10]: 127.0.0.1 - - [07/Aug/2025 09:30:10] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:30:26]: 127.0.0.1 - - [07/Aug/2025 09:30:26] "PUT /api/inspection-management/requests/78/confirm HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:30:33]: 127.0.0.1 - - [07/Aug/2025 09:30:33] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:30:43]: 127.0.0.1 - - [07/Aug/2025 09:30:43] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:30:59]: 127.0.0.1 - - [07/Aug/2025 09:30:59] "[31m[1mPUT /api/inspection-management/requests/78/cancel HTTP/1.1[0m" 400 -
+🐛 DEBUG [2025-08-07 09:31:03]: 127.0.0.1 - - [07/Aug/2025 09:31:03] "DELETE /api/inspection-management/requests/78 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:31:11]: 127.0.0.1 - - [07/Aug/2025 09:31:11] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:31:23]: 127.0.0.1 - - [07/Aug/2025 09:31:23] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:31:55]: 127.0.0.1 - - [07/Aug/2025 09:31:55] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:31:55]: 127.0.0.1 - - [07/Aug/2025 09:31:55] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:31:55]: 127.0.0.1 - - [07/Aug/2025 09:31:55] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:32:11]: 127.0.0.1 - - [07/Aug/2025 09:32:11] "GET /api/assemblies/search?q=201 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:32:42]: 127.0.0.1 - - [07/Aug/2025 09:32:42] "POST /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:32:50]: 127.0.0.1 - - [07/Aug/2025 09:32:50] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:33:19]: 127.0.0.1 - - [07/Aug/2025 09:33:19] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:33:19]: 127.0.0.1 - - [07/Aug/2025 09:33:19] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 09:33:51]: 127.0.0.1 - - [07/Aug/2025 09:33:51] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:15:42]: 127.0.0.1 - - [07/Aug/2025 10:15:42] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:22:52]: 127.0.0.1 - - [07/Aug/2025 10:22:52] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:28:29]: 127.0.0.1 - - [07/Aug/2025 10:28:29] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:28:47]: 127.0.0.1 - - [07/Aug/2025 10:28:47] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:29:05]: 127.0.0.1 - - [07/Aug/2025 10:29:05] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:29:11]: 127.0.0.1 - - [07/Aug/2025 10:29:11] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:29:49]: 127.0.0.1 - - [07/Aug/2025 10:29:49] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:31:42]: 127.0.0.1 - - [07/Aug/2025 10:31:42] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:31:42]: 127.0.0.1 - - [07/Aug/2025 10:31:42] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:31:43]: 127.0.0.1 - - [07/Aug/2025 10:31:43] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:31:46]: 127.0.0.1 - - [07/Aug/2025 10:31:46] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:31:53]: 127.0.0.1 - - [07/Aug/2025 10:31:53] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:40:49]: 127.0.0.1 - - [07/Aug/2025 10:40:49] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:45:17]: 127.0.0.1 - - [07/Aug/2025 10:45:17] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:45:34]: 127.0.0.1 - - [07/Aug/2025 10:45:34] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:45:45]: 127.0.0.1 - - [07/Aug/2025 10:45:45] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:46:04]: 127.0.0.1 - - [07/Aug/2025 10:46:04] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:46:31]: 127.0.0.1 - - [07/Aug/2025 10:46:31] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:47:02]: 127.0.0.1 - - [07/Aug/2025 10:47:02] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:47:26]: 127.0.0.1 - - [07/Aug/2025 10:47:26] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:47:46]: 127.0.0.1 - - [07/Aug/2025 10:47:46] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:48:30]: 127.0.0.1 - - [07/Aug/2025 10:48:30] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:49:59]: 127.0.0.1 - - [07/Aug/2025 10:49:59] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:51:20]: 127.0.0.1 - - [07/Aug/2025 10:51:20] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 10:52:09]: 127.0.0.1 - - [07/Aug/2025 10:52:09] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:00:20]: 127.0.0.1 - - [07/Aug/2025 11:00:20] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:03:43]: 127.0.0.1 - - [07/Aug/2025 11:03:43] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:05:23]: 127.0.0.1 - - [07/Aug/2025 11:05:23] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:07:05]: 127.0.0.1 - - [07/Aug/2025 11:07:05] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:07:39]: 127.0.0.1 - - [07/Aug/2025 11:07:39] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:08:50]: 127.0.0.1 - - [07/Aug/2025 11:08:50] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:09:18]: 127.0.0.1 - - [07/Aug/2025 11:09:18] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:16:08]: 127.0.0.1 - - [07/Aug/2025 11:16:08] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:16:26]: 127.0.0.1 - - [07/Aug/2025 11:16:26] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:24:15]: 127.0.0.1 - - [07/Aug/2025 11:24:15] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:25:31]: 127.0.0.1 - - [07/Aug/2025 11:25:31] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:28:48]: 127.0.0.1 - - [07/Aug/2025 11:28:48] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:32:46]: 45.156.128.72 - - [07/Aug/2025 11:32:46] "GET / HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:36:16]: 127.0.0.1 - - [07/Aug/2025 11:36:16] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:36:38]: 127.0.0.1 - - [07/Aug/2025 11:36:38] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:36:57]: 127.0.0.1 - - [07/Aug/2025 11:36:57] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 11:37:53]: 127.0.0.1 - - [07/Aug/2025 11:37:53] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 12:56:39]: 127.0.0.1 - - [07/Aug/2025 12:56:39] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 12:58:36]: 127.0.0.1 - - [07/Aug/2025 12:58:36] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:00:05]: 127.0.0.1 - - [07/Aug/2025 13:00:05] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:02:37]: 127.0.0.1 - - [07/Aug/2025 13:02:37] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:04:23]: 127.0.0.1 - - [07/Aug/2025 13:04:23] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:05:18]: 127.0.0.1 - - [07/Aug/2025 13:05:18] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:10:43]: 127.0.0.1 - - [07/Aug/2025 13:10:43] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:11:18]: 127.0.0.1 - - [07/Aug/2025 13:11:18] "GET /api/assemblies/search?q=123 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:24:00]: 127.0.0.1 - - [07/Aug/2025 13:24:00] "GET /api/assemblies/search?q=822 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:24:32]: 127.0.0.1 - - [07/Aug/2025 13:24:32] "GET /api/assemblies/search?q=822 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:25:36]: 127.0.0.1 - - [07/Aug/2025 13:25:36] "GET /api/assemblies/search?q=822 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:26:03]: 127.0.0.1 - - [07/Aug/2025 13:26:03] "GET /api/assemblies/search?q=777 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:26:32]: 127.0.0.1 - - [07/Aug/2025 13:26:32] "GET /api/assemblies/search?q=777 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:27:14]: 127.0.0.1 - - [07/Aug/2025 13:27:14] "GET /api/assemblies/search?q=201 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:27:37]: 127.0.0.1 - - [07/Aug/2025 13:27:37] "GET /api/assemblies/search?q=822 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:27:55]: 127.0.0.1 - - [07/Aug/2025 13:27:55] "GET /api/assemblies/search?q=123 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:30:09]: 127.0.0.1 - - [07/Aug/2025 13:30:09] "GET /api/assemblies/search?q=420 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:31:01]: 127.0.0.1 - - [07/Aug/2025 13:31:01] "GET /api/assemblies/search?q=822 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:37:28]: 127.0.0.1 - - [07/Aug/2025 13:37:28] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:37:41]: 127.0.0.1 - - [07/Aug/2025 13:37:41] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:37:41]: 127.0.0.1 - - [07/Aug/2025 13:37:41] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:39:11]: 127.0.0.1 - - [07/Aug/2025 13:39:11] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:42:18]: 127.0.0.1 - - [07/Aug/2025 13:42:18] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:56:14]: 127.0.0.1 - - [07/Aug/2025 13:56:14] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:57:21]: 127.0.0.1 - - [07/Aug/2025 13:57:21] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 13:57:49]: 127.0.0.1 - - [07/Aug/2025 13:57:49] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 14:01:49]: 127.0.0.1 - - [07/Aug/2025 14:01:49] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 14:02:07]: 127.0.0.1 - - [07/Aug/2025 14:02:07] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 14:02:26]: 127.0.0.1 - - [07/Aug/2025 14:02:26] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 14:22:12]: 147.185.132.213 - - [07/Aug/2025 14:22:12] "GET / HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 15:06:10]: 3.132.23.201 - - [07/Aug/2025 15:06:10] code 400, message Bad request syntax ('SSH-2.0-Go')
+🐛 DEBUG [2025-08-07 15:06:10]: 3.132.23.201 - - [07/Aug/2025 15:06:10] "[35m[1mSSH-2.0-Go[0m" HTTPStatus.BAD_REQUEST -
+🐛 DEBUG [2025-08-07 15:08:57]: 3.132.23.201 - - [07/Aug/2025 15:08:57] code 400, message Bad request version ('À\x14À')
+🐛 DEBUG [2025-08-07 15:08:57]: 3.132.23.201 - - [07/Aug/2025 15:08:57] "[35m[1m\x16\x03\x01\x00{\x01\x00\x00w\x03\x03\x04\x8e³e_\x92ÛR}~\x0d¾\x83×Ð®{``\x1eë\x8f¬ÿ\x03\x9eü´,B\x1d¿\x00\x00\x1aÀ/À+À\x11À\x07À\x13À\x09À\x14À[0m" HTTPStatus.BAD_REQUEST -
+🐛 DEBUG [2025-08-07 15:28:27]: 3.143.33.63 - - [07/Aug/2025 15:28:27] "GET / HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 15:30:13]: 3.143.33.63 - - [07/Aug/2025 15:30:13] "GET / HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 15:31:50]: 3.143.33.63 - - [07/Aug/2025 15:31:50] code 400, message Bad request version ('À\x14À')
+🐛 DEBUG [2025-08-07 15:31:50]: 3.143.33.63 - - [07/Aug/2025 15:31:50] "[35m[1m\x16\x03\x01\x00{\x01\x00\x00w\x03\x03c\x04\x19¥O^\x9eRøò\x06o\x09kÈ,\x04?\x96¥æÂ¦KÖSâì\x9b\x8f%ä\x00\x00\x1aÀ/À+À\x11À\x07À\x13À\x09À\x14À[0m" HTTPStatus.BAD_REQUEST -
+🐛 DEBUG [2025-08-07 15:33:29]: 3.143.33.63 - - [07/Aug/2025 15:33:29] code 400, message Bad request syntax ('SSH-2.0-Go')
+🐛 DEBUG [2025-08-07 15:33:29]: 3.143.33.63 - - [07/Aug/2025 15:33:29] "[35m[1mSSH-2.0-Go[0m" HTTPStatus.BAD_REQUEST -
+🐛 DEBUG [2025-08-07 15:35:21]: 3.143.33.63 - - [07/Aug/2025 15:35:21] code 400, message Bad request version ('À\x14À')
+🐛 DEBUG [2025-08-07 15:35:21]: 3.143.33.63 - - [07/Aug/2025 15:35:21] "[35m[1m\x16\x03\x01\x00{\x01\x00\x00w\x03\x03côîÆËk¤\x9e\x1fÃu¤"¤\x91ª\x83\x0fÚ¼j\x1f§Ò6y#6\x8b<.\x95\x00\x00\x1aÀ/À+À\x11À\x07À\x13À\x09À\x14À[0m" HTTPStatus.BAD_REQUEST -
+🐛 DEBUG [2025-08-07 16:12:56]: 165.227.171.56 - - [07/Aug/2025 16:12:56] code 400, message Bad request syntax ('\x16\x03\x01\x00u\x01\x00\x00q\x03\x03\x8dÌ.ÏfÌÃª¥d\x19\x9ajÒ\x9f¬þõô')
+🐛 DEBUG [2025-08-07 16:12:56]: 165.227.171.56 - - [07/Aug/2025 16:12:56] "[35m[1m\x16\x03\x01\x00u\x01\x00\x00q\x03\x03\x8dÌ.ÏfÌÃª¥d\x19\x9ajÒ\x9f¬þõô[0m" HTTPStatus.BAD_REQUEST -
+🐛 DEBUG [2025-08-07 16:31:43]: 127.0.0.1 - - [07/Aug/2025 16:31:43] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 16:32:14]: 127.0.0.1 - - [07/Aug/2025 16:32:14] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 16:34:50]: 127.0.0.1 - - [07/Aug/2025 16:34:50] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 16:39:05]: 127.0.0.1 - - [07/Aug/2025 16:39:05] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 16:42:17]: 127.0.0.1 - - [07/Aug/2025 16:42:17] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 16:43:18]: 127.0.0.1 - - [07/Aug/2025 16:43:18] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 16:44:11]: 127.0.0.1 - - [07/Aug/2025 16:44:11] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 16:44:38]: 127.0.0.1 - - [07/Aug/2025 16:44:38] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 16:55:50]: 127.0.0.1 - - [07/Aug/2025 16:55:50] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 16:56:45]: 127.0.0.1 - - [07/Aug/2025 16:56:45] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 17:01:10]: 127.0.0.1 - - [07/Aug/2025 17:01:10] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 17:05:56]: 127.0.0.1 - - [07/Aug/2025 17:05:56] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 17:06:24]: 127.0.0.1 - - [07/Aug/2025 17:06:24] "GET /api/dashboard-data HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 17:44:20]: 198.235.24.89 - - [07/Aug/2025 17:44:20] code 400, message Bad request version ('\x19´Ëú»\x07\x9e\x80xT¢F<_')
+🐛 DEBUG [2025-08-07 17:44:20]: 198.235.24.89 - - [07/Aug/2025 17:44:20] "[35m[1m\x16\x03\x01\x00î\x01\x00\x00ê\x03\x03?yÒÑç;8p\x9fÆ6.l1kUµw\x8b]º=\x81¡\x1a\x9aGâ½wÍº 1\x1c\x19´Ëú»\x07\x9e\x80xT¢F<_[0m" HTTPStatus.BAD_REQUEST -
+🐛 DEBUG [2025-08-07 17:44:20]: 198.235.24.89 - - [07/Aug/2025 17:44:20] code 400, message Bad HTTP/0.9 request type ("\x16\x03\x01\x00Ê\x01\x00\x00Æ\x03\x03\x10Y\x016V¶\x1b¯e£3?\x96Ù3ì\x18X²b¿B\x81¨Ñ°øU2þ\x8bè\x00\x00hÌ\x14Ì\x13À/À+À0À,À\x11À\x07À'À#À\x13À")
+🐛 DEBUG [2025-08-07 17:44:20]: 198.235.24.89 - - [07/Aug/2025 17:44:20] "[35m[1m\x16\x03\x01\x00Ê\x01\x00\x00Æ\x03\x03\x10Y\x016V¶\x1b¯e£3?\x96Ù3ì\x18X²b¿B\x81¨Ñ°øU2þ\x8bè\x00\x00hÌ\x14Ì\x13À/À+À0À,À\x11À\x07À'À#À\x13À\x09À(À$À\x14À[0m" HTTPStatus.BAD_REQUEST -
+🐛 DEBUG [2025-08-07 18:55:37]: 206.168.34.80 - - [07/Aug/2025 18:55:37] code 400, message Bad request version ('À\x14À')
+🐛 DEBUG [2025-08-07 18:55:37]: 206.168.34.80 - - [07/Aug/2025 18:55:37] "[35m[1m\x16\x03\x01\x00î\x01\x00\x00ê\x03\x03«Qy\x00uÅ\x1d_\x8bj$\x9d:|!n\x04_#Y±Ã\x13\x16Ãõîòu]\x1c\x09 \x1b\x9aæ~3uì\x80ù2µ¼ÉlJoP-9C\x0b©Ì\x08\x98ñKxF\x81{\x13\x00&Ì¨Ì©À/À0À+À,À\x13À\x09À\x14À[0m" HTTPStatus.BAD_REQUEST -
+🐛 DEBUG [2025-08-07 18:55:43]: 206.168.34.80 - - [07/Aug/2025 18:55:43] "GET / HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 18:55:50]: 206.168.34.80 - - [07/Aug/2025 18:55:50] "GET / HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 18:55:54]: 206.168.34.80 - - [07/Aug/2025 18:55:54] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+🐛 DEBUG [2025-08-07 18:55:55]: 206.168.34.80 - - [07/Aug/2025 18:55:55] code 505, message Invalid HTTP version (2.0)
+🐛 DEBUG [2025-08-07 18:55:55]: 206.168.34.80 - - [07/Aug/2025 18:55:55] "[35m[1mPRI * HTTP/2.0[0m" HTTPStatus.HTTP_VERSION_NOT_SUPPORTED -
+🐛 DEBUG [2025-08-07 18:56:06]: 206.168.34.80 - - [07/Aug/2025 18:56:06] "GET / HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-07 20:24:44]: 184.105.139.70 - - [07/Aug/2025 20:24:44] code 400, message Bad request version ('À\x14À')
+🐛 DEBUG [2025-08-07 20:24:44]: 184.105.139.70 - - [07/Aug/2025 20:24:44] "[35m[1m\x16\x03\x01\x00{\x01\x00\x00w\x03\x03\x02gN\x09\x8b\x02 B\x19ÁTDKóÈDù»³:\x14^l\x88\x7f9\x12\x90\x1bûkq\x00\x00\x1aÀ/À+À\x11À\x07À\x13À\x09À\x14À[0m" HTTPStatus.BAD_REQUEST -
+🐛 DEBUG [2025-08-08 02:34:27]: 172.236.228.86 - - [08/Aug/2025 02:34:27] code 400, message Bad request syntax ('\x16\x03\x01\x01')
+🐛 DEBUG [2025-08-08 02:34:27]: 172.236.228.86 - - [08/Aug/2025 02:34:27] "[35m[1m\x16\x03\x01\x01[0m" HTTPStatus.BAD_REQUEST -
+🐛 DEBUG [2025-08-08 02:34:28]: 172.236.228.86 - - [08/Aug/2025 02:34:28] code 400, message Bad request syntax ('\x16\x03\x01\x01')
+🐛 DEBUG [2025-08-08 02:34:28]: 172.236.228.86 - - [08/Aug/2025 02:34:28] "[35m[1m\x16\x03\x01\x01[0m" HTTPStatus.BAD_REQUEST -
+🐛 DEBUG [2025-08-08 13:56:09]: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://192.168.0.5:5001
+🐛 DEBUG [2025-08-08 13:56:09]: [33mPress CTRL+C to quit[0m
+🐛 DEBUG [2025-08-08 13:56:09]:  * Restarting with watchdog (windowsapi)
+🐛 DEBUG [2025-08-08 13:56:10]:  * Debugger is active!
+🐛 DEBUG [2025-08-08 13:56:10]:  * Debugger PIN: 116-159-866
+🐛 DEBUG [2025-08-08 13:56:32]: 127.0.0.1 - - [08/Aug/2025 13:56:32] "POST /api/login HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-08 13:56:41]: 127.0.0.1 - - [08/Aug/2025 13:56:41] "GET /api/assemblies/search?q=256 HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-08 13:57:17]: 127.0.0.1 - - [08/Aug/2025 13:57:17] "GET /api/saved-list HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-08 13:57:53]: 127.0.0.1 - - [08/Aug/2025 13:57:53] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-08 13:57:53]: 127.0.0.1 - - [08/Aug/2025 13:57:53] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-08 13:58:09]: 검사신청 승인 요청: request_id=97, user_id=34
+🐛 DEBUG [2025-08-08 13:58:11]: 검사신청 현재 상태: 대기중
+🐛 DEBUG [2025-08-08 13:58:11]: 검사신청 승인 완료: request_id=97, approver=dshi
+🐛 DEBUG [2025-08-08 13:58:11]: 127.0.0.1 - - [08/Aug/2025 13:58:11] "PUT /api/inspection-management/requests/97/approve HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-08 13:58:18]: 127.0.0.1 - - [08/Aug/2025 13:58:18] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-08 13:58:26]: 검사신청 승인 요청: request_id=96, user_id=34
+🐛 DEBUG [2025-08-08 13:58:28]: 검사신청 현재 상태: 대기중
+🐛 DEBUG [2025-08-08 13:58:28]: 검사신청 승인 완료: request_id=96, approver=dshi
+🐛 DEBUG [2025-08-08 13:58:28]: 127.0.0.1 - - [08/Aug/2025 13:58:28] "PUT /api/inspection-management/requests/96/approve HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-08 13:58:36]: 127.0.0.1 - - [08/Aug/2025 13:58:36] "GET /api/inspection-management/requests HTTP/1.1" 200 -
+🐛 DEBUG [2025-08-08 13:59:05]: 127.0.0.1 - - [08/Aug/2025 13:59:05] "GET /api/dashboard-data HTTP/1.1" 200 -

@@ -33,8 +33,8 @@ source = "Database"
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSHI 대시보드</title>
-    <link rel="stylesheet" href="/css/main.css?v=<%= Time.now.to_i %>">
+    <title>DSHI</title>
+    <link rel="stylesheet" href="/css/main.css">
 </head>
 <body class="dashboard-page">
 
@@ -75,22 +75,42 @@ source = "Database"
       <div class="overview-stats">
         <div class="stat-item">
           <div class="stat-number"><%= total_assemblies.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse %></div>
-          <div class="stat-label">총 조립품</div>
+          <div class="stat-label">총 수량</div>
         </div>
         <div class="stat-item">
           <div class="stat-number"><%= sprintf("%.1f", total_weight.to_f / 1000) %>K</div>
           <div class="stat-label">총 중량(톤)</div>
         </div>
-        <div class="stat-item">
-          <div class="stat-number"><%= monthly_progress["percentage"] || 0 %>%</div>
-          <div class="stat-label">전체 진행률</div>
+      </div>
+    <div class="progress-summary">
+        <div class="progress-bar-container">
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: <%= monthly_progress["percentage"] || 0 %>%"></div>
+          </div>
+          <div class="progress-text"><%= monthly_progress["percentage"] || 0 %>% 완료</div>
+        </div>
+        <div class="progress-details">
+          <div class="detail-item">
+            <span class="detail-label">완료 중량:</span>
+            <span class="detail-value"><%= sprintf("%.1f", (monthly_progress["completed"] || 0).to_f / 1000) %>K톤</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">잔여 중량:</span>
+            <span class="detail-value"><%= sprintf("%.1f", (monthly_progress["remaining"] || 0).to_f / 1000) %>K톤</span>
+          </div>
         </div>
       </div>
+    <div class="donut-chart-container">
+        <canvas id="companyDonutChart" class="donut-chart-canvas"></canvas>
+        <div class="donut-chart-center-label" id="donutCenterLabel">
+        </div>
+        <div class="donut-chart-legend" id="companyDonutLegend"></div>
+      </div>  
     </div>
-
+    
     <!-- 8단계 공정별 완료율 (중량 기준) -->
     <div class="dashboard-card process-completion">
-      <h2>⚙️ 8단계 공정별 완료율 (중량 기준)</h2>
+      <h2>⚙️ ARUP 공정율 (중량 기준)</h2>
       <div class="process-list">
         <% 
           process_names = {
@@ -182,70 +202,29 @@ source = "Database"
       </div>
     </div>
 
-    <!-- 전체 진행률 (중량 기준) -->
-    <div class="dashboard-card monthly-progress">
-      <h2>📅 전체 진행률 (중량 기준)</h2>
-      <div class="progress-summary">
-        <div class="progress-bar-container">
-          <div class="progress-bar">
-            <div class="progress-fill" style="width: <%= monthly_progress["percentage"] || 0 %>%"></div>
-          </div>
-          <div class="progress-text"><%= monthly_progress["percentage"] || 0 %>% 완료</div>
-        </div>
-        <div class="progress-details">
-          <div class="detail-item">
-            <span class="detail-label">전체 중량:</span>
-            <span class="detail-value"><%= sprintf("%.1f", (monthly_progress["planned"] || 0).to_f / 1000) %>K톤</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">완료 중량:</span>
-            <span class="detail-value"><%= sprintf("%.1f", (monthly_progress["completed"] || 0).to_f / 1000) %>K톤</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">잔여 중량:</span>
-            <span class="detail-value"><%= sprintf("%.1f", (monthly_progress["remaining"] || 0).to_f / 1000) %>K톤</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 업체별 분포 -->
+    <!-- 업체별 분포
     <div class="dashboard-card company-distribution">
       <h2>🏢 업체별 분포 (중량 기준)</h2>
-      <div class="company-list">
-        <% company_distribution.each_with_index do |company, index| %>
-          <% next if index >= 8 %> <!-- 상위 8개 업체만 표시 -->
-          <div class="company-item">
-            <div class="company-info">
-              <span class="company-name"><%= company['company'] %></span>
-              <span class="company-percentage"><%= company['percentage'] %>%</span>
-            </div>
-            <div class="company-details">
-              <span class="company-count"><%= company['count'] %>개</span>
-              <span class="company-weight"><%= sprintf("%.1f", company['total_weight'].to_f / 1000) %>K톤</span>
-            </div>
-          </div>
-        <% end %>
-      </div>
-    </div>
-
-    <!-- 데이터 소스 정보 -->
-    <div class="dashboard-card data-source">
-      <h2>💾 데이터 소스</h2>
-      <div class="source-info">
-        <p><strong>소스:</strong> <%= source %></p>
-        <p><strong>업데이트:</strong> <%= last_updated %></p>
-        <p><strong>총 조립품:</strong> <%= total_assemblies.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse %>개</p>
-        <p><strong>총 중량:</strong> <%= sprintf("%.2f", total_weight.to_f) %>톤</p>
-        <div class="refresh-actions">
-          <button onclick="location.reload()" class="refresh-btn">🔄 새로고침</button>
+      <div class="donut-chart-container">
+        <canvas id="companyDonutChart" class="donut-chart-canvas"></canvas>
+        <div class="donut-chart-center-label" id="donutCenterLabel">
         </div>
+        <div class="donut-chart-legend" id="companyDonutLegend"></div>
       </div>
-    </div>
-  </div>
+    </div> -->
+</div> <!-- dashboard-container 끝 -->
+
+<!-- 데이터 소스 정보를 컨테이너 아래 한 줄로 표시 -->
+<div class="data-source-inline">
+  <span style="font-size:16px; color:#174a6a; vertical-align:middle;">
+    <strong>업데이트:</strong> <%= last_updated %>
+  </span>
+  <!-- <button class="refresh-btn">🔄 새로고침</button> -->
+</div>
 </div>
 
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // 자동 새로고침 제거됨 - 수동 새로고침 버튼 사용
 // 향후 하루 특정 시간에 새로고침 로직 추가 예정
@@ -276,6 +255,62 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+  // 업체별 도넛 차트 데이터 준비
+  const companyData = [
+    <% company_distribution.each_with_index do |company, index| %>
+      <% next if index >= 8 %>
+      {
+        label: "<%= company['company'] %>",
+        value: <%= company['total_weight'].to_f %>,
+        percentage: <%= company['percentage'].to_f %>
+      },
+    <% end %>
+  ];
+
+  const colors = [
+    '#72dfaf', '#3a8ca8', '#174a6a' ];
+
+  // 도넛 차트 생성
+  const ctx = document.getElementById('companyDonutChart').getContext('2d');
+  const donutChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: companyData.map(c => c.label),
+      datasets: [{
+        data: companyData.map(c => c.value),
+        backgroundColor: colors,
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const idx = context.dataIndex;
+              const label = context.label || '';
+              const value = context.parsed || 0;
+              const percent = companyData[idx]?.percentage || 0;
+              return `${label}: ${percent.toFixed(1)}% (${value.toLocaleString()}톤)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // 범례 생성
+  const legendDiv = document.getElementById('companyDonutLegend');
+  legendDiv.innerHTML = companyData.map((c, i) => `
+    <div class="donut-chart-legend-item">
+      <span class="donut-chart-legend-color" style="background:${colors[i]}"></span>
+      ${c.label} <span style="color:#479bbc;font-weight:600;">${c.percentage.toFixed(1)}%</span>
+    </div>
+  `).join('');
+
+  document.getElementById('donutCenterLabel').innerHTML = '';
+
 });
 </script>
 

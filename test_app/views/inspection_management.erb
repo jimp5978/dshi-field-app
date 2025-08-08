@@ -67,9 +67,11 @@
                     <!-- 여백 추가 (상태와 선택승인 버튼 사이 공간만큼) -->
                     <div class="spacer"></div>
                     
-                    <div class="filter-group">
+                    <div id="customFilterRow">
                         <div>
-                            <label>상태:</label>
+                            <div class="label-container">
+                                <label>상태:</label>
+                            </div>
                             <select id="statusFilter" onchange="filterRequests()">
                                 <option value="">전체</option>
                                 <option value="대기중">대기중</option>
@@ -79,7 +81,9 @@
                             </select>
                         </div>
                         <div>
-                            <label>검사 타입:</label>
+                            <div class="label-container">
+                                <label>검사 타입:</label>
+                            </div>
                             <select id="typeFilter" onchange="filterRequests()">
                                 <option value="">전체</option>
                                 <option value="FIT_UP">FIT-UP</option>
@@ -93,15 +97,20 @@
                             </select>
                         </div>
                         <div>
-                            <label>검사일:</label>
-                            <input type="date" id="dateFromFilter" class="date-input">
+                            <div class="label-container">
+                                <label>검사일:</label>
+                            </div>
+                            <input type="date" id="dateFromFilter">
                         </div>
                         <div>
-                            <label>~</label>
-                            <input type="date" id="dateToFilter" class="date-input">
+                            <div class="label-container">
+                                <label>~</label>
+                            </div>
+                            <input type="date" id="dateToFilter">
                         </div>
                         <div>
-                            <button class="btn btn-primary" onclick="filterRequests()">🔍 필터 적용</button>
+                            <div class="label-container"></div>
+                            <button onclick="filterRequests()">🔍 필터 적용</button>
                         </div>
                     </div>
                     <!-- Level 1 사용자용 일괄 처리 버튼 -->
@@ -177,10 +186,152 @@
             }
         }
 
+        // 필터 정렬 강제 적용 함수 (개선된 버전)
+        function forceFilterAlignment() {
+            const filterRow = document.getElementById('customFilterRow');
+            if (filterRow) {
+                console.log('🔧 필터 정렬 강제 적용 시작...');
+                
+                // 기존 모든 스타일을 강제로 제거하고 재설정
+                filterRow.removeAttribute('style');
+                filterRow.style.cssText = `
+                    display: flex !important;
+                    gap: 15px !important;
+                    align-items: flex-end !important;
+                    flex-wrap: wrap !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    min-height: 80px !important;
+                `;
+                
+                // 모든 자식 div 스타일 강제 적용
+                const childDivs = filterRow.children;
+                console.log(`🔧 처리할 자식 요소 개수: ${childDivs.length}`);
+                
+                for (let i = 0; i < childDivs.length; i++) {
+                    const div = childDivs[i];
+                    console.log(`🔧 자식 div ${i} 처리 중...`);
+                    
+                    div.removeAttribute('style');
+                    div.style.cssText = `
+                        display: flex !important;
+                        flex-direction: column !important;
+                        width: auto !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        justify-content: flex-end !important;
+                    `;
+                    
+                    // 라벨 컨테이너 처리
+                    const labelContainer = div.querySelector('.label-container');
+                    if (labelContainer) {
+                        labelContainer.removeAttribute('style');
+                        labelContainer.style.cssText = `
+                            height: 32px !important;
+                            display: flex !important;
+                            align-items: flex-end !important;
+                            margin: 0 0 8px 0 !important;
+                            padding: 0 !important;
+                        `;
+                        
+                        const label = labelContainer.querySelector('label');
+                        if (label) {
+                            label.style.cssText = `
+                                font-weight: 500 !important;
+                                line-height: 1 !important;
+                                margin: 0 !important;
+                                padding: 0 !important;
+                                font-size: 14px !important;
+                            `;
+                        }
+                    }
+                    
+                    // 입력 요소들 처리
+                    const select = div.querySelector('select');
+                    const input = div.querySelector('input[type="date"]');
+                    const button = div.querySelector('button');
+                    
+                    if (select) {
+                        select.removeAttribute('style');
+                        select.style.cssText = `
+                            height: 48px !important;
+                            padding: 10px 12px !important;
+                            border: 2px solid #e1e5e9 !important;
+                            border-radius: 6px !important;
+                            font-size: 14px !important;
+                            min-width: 120px !important;
+                            box-sizing: border-box !important;
+                            margin: 0 !important;
+                            line-height: normal !important;
+                            vertical-align: bottom !important;
+                        `;
+                        console.log(`🔧 select 요소 스타일 적용됨: ${select.style.height}`);
+                    }
+                    
+                    if (input) {
+                        input.removeAttribute('style');
+                        input.style.cssText = `
+                            height: 48px !important;
+                            padding: 10px 12px !important;
+                            border: 2px solid #e1e5e9 !important;
+                            border-radius: 6px !important;
+                            font-size: 14px !important;
+                            min-width: 140px !important;
+                            box-sizing: border-box !important;
+                            margin: 0 !important;
+                            line-height: normal !important;
+                            vertical-align: bottom !important;
+                        `;
+                        console.log(`🔧 input 요소 스타일 적용됨: ${input.style.height}`);
+                    }
+                    
+                    if (button) {
+                        button.removeAttribute('style');
+                        button.style.cssText = `
+                            height: 48px !important;
+                            padding: 10px 20px !important;
+                            border: none !important;
+                            background: #479bbc !important;
+                            color: white !important;
+                            border-radius: 8px !important;
+                            font-size: 14px !important;
+                            font-weight: 500 !important;
+                            cursor: pointer !important;
+                            box-sizing: border-box !important;
+                            margin: 0 !important;
+                            line-height: normal !important;
+                            vertical-align: bottom !important;
+                        `;
+                        console.log(`🔧 button 요소 스타일 적용됨: ${button.style.height}`);
+                    }
+                }
+                
+                // 최종 검증 로그
+                console.log('🔧 최종 filterRow 스타일:', window.getComputedStyle(filterRow).display);
+                console.log('🔧 최종 filterRow alignItems:', window.getComputedStyle(filterRow).alignItems);
+                
+                console.log('✅ 필터 정렬 강제 적용 완료 - 개선된 버전');
+            } else {
+                console.error('❌ customFilterRow 요소를 찾을 수 없습니다');
+            }
+        }
+
         // 페이지 로드 시 데이터 불러오기
         document.addEventListener('DOMContentLoaded', function() {
             currentTab = 'active'; // 전역 변수 초기화
             console.log('페이지 로드 완료, currentTab:', currentTab);
+            
+            // 필터 정렬 강제 적용 (페이지 로드 후 여러 시점에서)
+            setTimeout(forceFilterAlignment, 100);
+            setTimeout(forceFilterAlignment, 500);
+            setTimeout(forceFilterAlignment, 1000);
+            setTimeout(forceFilterAlignment, 2000);
+            
+            // 윈도우 로드 이벤트 후에도 한 번 더 적용
+            window.addEventListener('load', function() {
+                setTimeout(forceFilterAlignment, 100);
+                setTimeout(forceFilterAlignment, 500);
+            });
             
             // 종료 날짜를 오늘로 기본 설정
             const today = new Date().toISOString().split('T')[0];
